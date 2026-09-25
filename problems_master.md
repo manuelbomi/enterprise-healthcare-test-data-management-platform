@@ -24,19 +24,6 @@ Each entry should have:
 
 ## Open problems
 
-### P0-2 — No CI runs have been executed against this repository yet
-
-- **Phase:** 0
-- **Status:** open (deliberately deferred)
-- **Description:** `.github/workflows/ci.yml` is a skeleton pipeline
-  definition. It has not been executed (no GitHub remote/Actions run yet
-  exists for this local repository).
-- **Repro / detail:** Push this repository to GitHub and confirm the
-  workflow triggers and its jobs (currently mostly placeholder steps)
-  succeed.
-- **Affected files:** `.github/workflows/ci.yml`
-- **Owner for resolution:** Phase 18 (CI/CD).
-
 ### P0-3 — Storage adapter interface is a design sketch, not an implementation
 
 - **Phase:** 0
@@ -86,3 +73,16 @@ Each entry should have:
   resolved in Phase 9: `npm install` now runs cleanly (435 packages),
   and `frontend/` is a real, working, tested console. See
   `ROADMAP.md`'s Phase 9 section and `problems_phase_09.md`.
+- **P0-2** (no CI runs had ever been executed against this repository)
+  -- resolved in Phase 12: `.github/workflows/ci.yml` was rewritten
+  into real lint/typecheck/unit/integration/data-quality/security/
+  frontend jobs plus a release-gate job, and actually triggered and
+  observed running on GitHub Actions, including a real, deliberate
+  failure that was confirmed to block the release gate before being
+  reverted. This also resolves the related "Postgres never verified
+  against real application code" gap `ARCHITECTURE.md`'s Phase 7/8/11
+  notes independently flagged: `infra/docker/docker-compose.yml` now
+  runs a real control-plane container against a real Postgres
+  container, and `GET /api/v1/ready` reports the database reachable.
+  See `ROADMAP.md`'s Phase 12 section and `problems_phase_12.md` for
+  the full account, including the real workflow run IDs/URLs.

@@ -1,17 +1,32 @@
-# Local development infrastructure for the enterprise healthcare test data
-# management platform.
+# Local development / CI integration infrastructure for the enterprise
+# healthcare test data management platform.
 #
-# Brings up the metadata plane (PostgreSQL) and local object storage
-# (MinIO, S3-API-compatible — see docs/adr/0005-object-storage-abstraction.md).
-# Application services (control-plane, data-plane, governance-service,
-# frontend) are intentionally NOT included here yet — they have no real
-# behavior until later phases, so there is nothing meaningful to
-# containerize for them yet (see ROADMAP.md).
+# Brings up the metadata plane (PostgreSQL), local object storage
+# (MinIO, S3-API-compatible — see docs/adr/0005-object-storage-abstraction.md),
+# and, as of Phase 12, the real application containers built from
+# services/control-plane/Dockerfile, services/governance-service/Dockerfile,
+# and frontend/Dockerfile. This is the "integration environment" Phase 12
+# asks for: it is what infra/docker/README.md's Phase 0 status note (and
+# problems_master.md P0-2/problems_phase_01.md P1-1) meant by "Postgres
+# never actually verified against real app code" -- control-plane's real
+# `/api/v1/ready` endpoint is checked below against this real Postgres
+# container, not a mock. See docs/runbooks/ and problems_phase_12.md for
+# the exact verification run.
+#
+# data-plane is deliberately NOT containerized here (or anywhere yet) --
+# it is a PySpark/pandas batch/CLI toolkit invoked directly
+# (`python -m data_plane....cli`), not a long-running service with a
+# port to expose. See problems_phase_12.md for the explicit decision
+# record; a real Spark-backed container is anticipated no earlier than
+# Phase 14 (Scale and performance engineering), once code actually
+# creates a SparkSession.
 #
 # All credentials below are obvious local-development-only placeholders,
-# never used outside a developer's own machine. See SECURITY.md.
+# never used outside a developer's machine or a CI runner. See SECURITY.md.
 #
-# Usage: docker compose -f infra/docker/docker-compose.yml up -d
+# Usage (from the repository root, so the build context resolves):
+#   docker compose -f infra/docker/docker-compose.yml up -d --build
+#   curl http://localhost:8000/api/v1/ready
 
 services:
   postgres:
@@ -23,7 +38,7 @@ services:
       POSTGRES_PASSWORD: tdm_local_dev_only
       POSTGRES_DB: tdm_metadata
     ports:
-      - "5432:5432"
+      - "${TDM_POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -50,6 +65,67 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  control-plane:
+    build:
+      context: ../..
+      dockerfile: services/control-plane/Dockerfile
+    image: tdm-control-plane:local
+    container_name: tdm-control-plane
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Points BOTH database settings at the real Postgres container
+      # above -- config.py's `lifecycle_database_url` default is
+      # SQLite (zero-infra local dev); this is the real, Postgres-backed
+      # path ADR-0004 always intended, exercised end to end here for
+      # the first time (see problems_phase_12.md).
+      TDM_CONTROL_PLANE_DATABASE_URL: "postgresql+psycopg://tdm:tdm_local_dev_only@postgres:5432/tdm_metadata"
+      TDM_CONTROL_PLANE_LIFECYCLE_DATABASE_URL: "postgresql+psycopg://tdm:tdm_local_dev_only@postgres:5432/tdm_metadata"
+      TDM_CONTROL_PLANE_LOG_LEVEL: "INFO"
+    ports:
+      - "${TDM_CONTROL_PLANE_HOST_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=2).status == 200 else 1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  governance-service:
+    build:
+      context: ../..
+      dockerfile: services/governance-service/Dockerfile
+    image: tdm-governance-service:local
+    container_name: tdm-governance-service
+    restart: unless-stopped
+    ports:
+      - "${TDM_GOVERNANCE_SERVICE_HOST_PORT:-8001}:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=2).status == 200 else 1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ../../frontend
+    image: tdm-console:local
+    container_name: tdm-console
+    restart: unless-stopped
+    depends_on:
+      - control-plane
+    ports:
+      - "${TDM_FRONTEND_HOST_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
 volumes:
   postgres-data:

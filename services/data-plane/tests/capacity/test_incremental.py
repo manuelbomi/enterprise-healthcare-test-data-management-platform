@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
-from healthcare_tdm_contracts import CertificationStatus, DatasetVersion
+from healthcare_tdm_contracts import DatasetVersion
 
 from data_plane.capacity.incremental import estimate_incremental_savings
 

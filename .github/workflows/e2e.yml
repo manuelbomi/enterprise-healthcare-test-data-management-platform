@@ -1,0 +1,106 @@
+name: Playwright E2E
+
+# Runs the real Phase 9 Playwright specs (frontend/e2e/*.spec.ts)
+# against a REAL control-plane (uvicorn) and a REAL Vite dev server —
+# never a mock backend, per frontend/playwright.config.ts's own header
+# comment and CONTRIBUTING.md's testing conventions. This workflow is
+# the CI-runner version of that file's documented three-step manual
+# startup sequence.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playwright:
+    name: Playwright E2E (control-plane + frontend, real processes)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install Python workspace
+        run: bash scripts/bootstrap.sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend
+        working-directory: frontend
+        run: npm ci
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate real demo data (Phase 9 fixture script)
+        run: python scripts/demo_phase9_console_data.py
+
+      - name: Start control-plane (background, port 8010)
+        working-directory: services/control-plane
+        run: |
+          nohup uvicorn control_plane.main:app --host 127.0.0.1 --port 8010 \
+            > "${{ runner.temp }}/control-plane.log" 2>&1 &
+          echo $! > "${{ runner.temp }}/control-plane.pid"
+      - name: Wait for control-plane
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8010/api/v1/health > /dev/null; then
+              echo "control-plane is up."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::control-plane never became healthy"
+          cat "${{ runner.temp }}/control-plane.log" || true
+          exit 1
+
+      - name: Start frontend dev server (background, port 5174)
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: "http://127.0.0.1:8010"
+        run: |
+          nohup npm run dev -- --port 5174 > "${{ runner.temp }}/frontend.log" 2>&1 &
+          echo $! > "${{ runner.temp }}/frontend.pid"
+      - name: Wait for frontend
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:5174/ > /dev/null; then
+              echo "frontend is up."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::frontend dev server never became reachable"
+          cat "${{ runner.temp }}/frontend.log" || true
+          exit 1
+
+      - name: Run Playwright E2E specs
+        working-directory: frontend
+        env:
+          PLAYWRIGHT_BASE_URL: "http://127.0.0.1:5174"
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7
+
+      - name: Stop background processes
+        if: always()
+        run: |
+          kill "$(cat "${{ runner.temp }}/control-plane.pid")" 2>/dev/null || true
+          kill "$(cat "${{ runner.temp }}/frontend.pid")" 2>/dev/null || true

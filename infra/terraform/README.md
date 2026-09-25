@@ -23,9 +23,20 @@ azure/      # Example Azure deployment (Blob/ADLS container, Azure Database for 
 modules/     # Shared reusable modules referenced by both
 ```
 
-## Phase 0 status
+## Phase 12 status
 
-Structural scaffold only — provider/backend blocks and a README per
-directory establishing intent. Real resource definitions are added in
-Phase 20, once there is a real deployment shape (Kubernetes/Helm) for
-them to support.
+`azure/main.tf` now has real, structurally valid resource definitions
+(AKS, Azure Database for PostgreSQL Flexible Server, an ADLS Gen2-
+enabled Storage Account, Azure Container Registry, Key Vault, and the
+least-privilege role assignments between them) — `terraform fmt -check`
+and `terraform validate` (against a local, `-backend=false` init) both
+pass; see `problems_phase_12.md` for the exact commands run and their
+output. `terraform plan`/`apply` were never run against a real Azure
+subscription — there is no `azurerm` credential anywhere in this
+repository or its CI. See `docs/AZURE_PRODUCTION_DEPLOYMENT.md` for the
+full narrative this file implements, including exactly what is
+Azure-specific here versus what the storage-adapter/plane-separation
+architecture (ADR-0003, ADR-0005) keeps portable to `aws/` (kept as a
+lighter, structural-placeholder example — the AWS equivalents of each
+Azure resource above are named in `aws/main.tf`'s own comments) or to
+any other cloud.

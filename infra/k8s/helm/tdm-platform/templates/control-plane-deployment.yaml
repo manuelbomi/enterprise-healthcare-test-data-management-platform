@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tdm-platform.fullname" . }}-control-plane
+  labels:
+    {{- include "tdm-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: control-plane
+spec:
+  replicas: {{ .Values.controlPlane.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "tdm-platform.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: control-plane
+  template:
+    metadata:
+      labels:
+        {{- include "tdm-platform.labels" . | nindent 8 }}
+        app.kubernetes.io/component: control-plane
+    spec:
+      containers:
+        - name: control-plane
+          image: "{{ .Values.controlPlane.image.repository }}:{{ .Values.controlPlane.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: {{ .Values.controlPlane.containerPort }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "tdm-platform.fullname" . }}-control-plane-config
+            - secretRef:
+                name: {{ .Values.controlPlane.databaseSecretName }}
+          # Liveness: the same Phase 0 liveness-only endpoint the
+          # Dockerfile's own HEALTHCHECK points at. Readiness: the
+          # Phase 11 dependency-aware /ready endpoint (real database
+          # connectivity check) -- this is the concrete difference
+          # between a container-level HEALTHCHECK (Docker only, no
+          # traffic-routing effect) and a Kubernetes readiness probe
+          # (controls whether this pod receives Service traffic at
+          # all). See control_plane/platform/readiness.py's module
+          # docstring for the liveness-vs-readiness distinction this
+          # split makes real.
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/v1/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.controlPlane.resources | nindent 12 }}

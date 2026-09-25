@@ -1,9 +1,13 @@
 # Default values for the tdm-platform chart.
 #
-# Phase 0 scope: documents the intended shape of configuration; the
-# templates that would consume these values do not exist yet (see
-# templates/README.md). Real values are added alongside real templates in
-# Phase 20.
+# Phase 12: real templates now consume these values (see templates/).
+# Image repositories default to the local names this repository's own
+# Dockerfiles build (services/control-plane/Dockerfile,
+# services/governance-service/Dockerfile, frontend/Dockerfile) --
+# `REPLACE_ME` marks the registry prefix a real deployment must set
+# (e.g. an Azure Container Registry login server, per
+# docs/AZURE_PRODUCTION_DEPLOYMENT.md), never a real account/registry
+# committed here (see infra/terraform/README.md's same convention).
 
 environment: dev
 
@@ -12,6 +16,10 @@ controlPlane:
     repository: REPLACE_ME/tdm-control-plane
     tag: "0.1.0"
   replicas: 1
+  containerPort: 8000
+  service:
+    type: ClusterIP
+    port: 8000
   resources:
     requests:
       cpu: 100m
@@ -19,24 +27,81 @@ controlPlane:
     limits:
       cpu: 500m
       memory: 512Mi
+  # Non-secret configuration -> ConfigMap (config.py's Settings fields).
+  # Secret configuration (database credentials) -> Secret, referenced by
+  # key, never a literal value in this file. See templates/secret.yaml.
+  config:
+    logLevel: INFO
+    apiV1Prefix: /api/v1
+  # Real deployments point this at a managed database (e.g. Azure
+  # Database for PostgreSQL Flexible Server -- see
+  # infra/terraform/azure) via a Secret populated out-of-band (Key
+  # Vault CSI driver, External Secrets Operator, or a sealed secret),
+  # never a plaintext value templated into this chart.
+  databaseSecretName: tdm-control-plane-db-credentials
+  # See templates/secret.yaml's header comment: `create: false` (the
+  # real-deployment default) expects a Secret named
+  # `databaseSecretName` above to already exist, created by an external
+  # secret pipeline. Setting `create: true` and the two URLs below is
+  # for local `helm install` demos only -- never set real credentials
+  # here in a committed values file.
+  dbSecret:
+    create: false
+    databaseUrl: "postgresql+psycopg://tdm:CHANGE_ME@postgres:5432/tdm_metadata"
+    lifecycleDatabaseUrl: "postgresql+psycopg://tdm:CHANGE_ME@postgres:5432/tdm_metadata"
 
 governanceService:
   image:
     repository: REPLACE_ME/tdm-governance-service
     tag: "0.1.0"
   replicas: 1
+  containerPort: 8001
+  service:
+    type: ClusterIP
+    port: 8001
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
 
 frontend:
   image:
     repository: REPLACE_ME/tdm-console
     tag: "0.1.0"
   replicas: 1
+  containerPort: 8080
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
+
+ingress:
+  # Disabled by default -- a real deployment enables this and sets a
+  # real host/TLS secret (see docs/AZURE_PRODUCTION_DEPLOYMENT.md for
+  # the Azure Application Gateway Ingress Controller / AGIC example).
+  enabled: false
+  className: ""
+  host: ""
+  tls:
+    enabled: false
+    secretName: ""
 
 postgresql:
-  # In a real deployment this typically points at a managed cloud database
-  # (see infra/terraform) rather than an in-cluster StatefulSet. Left
-  # unconfigured here deliberately.
+  # In a real deployment this points at a managed cloud database (see
+  # infra/terraform) rather than an in-cluster StatefulSet -- this
+  # chart intentionally does not template a StatefulSet Postgres.
   externalHost: ""
+  externalPort: 5432
+  database: tdm_metadata
 
 objectStorage:
   backend: aws_s3 # one of: minio | aws_s3 | azure_blob — see docs/adr/0005-object-storage-abstraction.md

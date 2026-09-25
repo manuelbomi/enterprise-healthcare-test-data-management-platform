@@ -1,12 +1,24 @@
 name: CI
 
-# Phase 0 status: this workflow has not yet run against this repository
-# (no GitHub remote/Actions run exists yet — see problems_master.md P0-2).
-# It is written to be correct against the package layout established in
-# Phase 0 (ADR-0002) so that Phase 1 onward can add real jobs/steps
-# incrementally without restructuring the pipeline. A package with no
-# tests yet still gets a job here (see CONTRIBUTING.md's testing
-# conventions) so CI coverage grows automatically as phases land.
+# Phase 12: this workflow finally runs for real (see problems_master.md
+# P0-2, open since Phase 0 -- "no GitHub remote/Actions run yet exists
+# for this local repository"). Every job below was verified locally
+# with the exact command it runs before being wired in here, and the
+# gate logic (a red job here blocks deployment) was proven with a real,
+# deliberately-broken commit -- see problems_phase_12.md for the run
+# IDs of both the real failure and the real fix.
+#
+# Jobs are split by concern (lint / typecheck / unit / integration /
+# data-quality / security / frontend) rather than one job per package,
+# so the Actions UI reads as "what kind of check failed" -- exactly
+# what ROADMAP.md Phase 12 asks for ("Build GitHub Actions workflows
+# for: lint, type checking, unit tests, integration tests, data-quality
+# tests, security checks, ... frontend build").
+#
+# This is the CI workflow only. Container build+scan is
+# container-build.yml, Playwright E2E is e2e.yml, and the QA/staging-
+# UAT/production promotion gates (deploy-*.yml) run only after this
+# workflow succeeds -- see those files' own header comments.
 
 on:
   push:
@@ -15,105 +27,298 @@ on:
     branches: [main]
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+
 jobs:
-  contracts:
-    name: Python — libs/contracts
+  # ---------------------------------------------------------------------
+  # Lint
+  # ---------------------------------------------------------------------
+  lint-python:
+    name: Lint — Python (ruff, all packages)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
-      - name: Install
-        run: pip install -e "libs/contracts[dev]"
-      - name: Lint (ruff)
+      - name: Install workspace
+        run: bash scripts/bootstrap.sh
+      - name: ruff — libs/contracts
         run: ruff check libs/contracts/src libs/contracts/tests
-      - name: Test (pytest)
-        run: pytest libs/contracts/tests
-
-  control-plane:
-    name: Python — services/control-plane
-    runs-on: ubuntu-latest
-    needs: contracts
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
-      - name: Install
-        run: |
-          pip install -e "libs/contracts"
-          pip install -e "services/control-plane[dev]"
-      - name: Lint (ruff)
+      - name: ruff — services/control-plane
         run: ruff check services/control-plane/src services/control-plane/tests
-      - name: Test (pytest)
-        run: pytest services/control-plane/tests
-
-  data-plane:
-    name: Python — services/data-plane
-    runs-on: ubuntu-latest
-    needs: contracts
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
-      - name: Install
-        run: |
-          pip install -e "libs/contracts"
-          pip install -e "services/data-plane[dev]"
-      - name: Lint (ruff)
+      - name: ruff — services/data-plane
         run: ruff check services/data-plane/src services/data-plane/tests
-      - name: Test (pytest)
-        run: pytest services/data-plane/tests
+      - name: ruff — services/governance-service
+        run: ruff check services/governance-service/src services/governance-service/tests
 
-  governance-service:
-    name: Python — services/governance-service
+  # ---------------------------------------------------------------------
+  # Type checking
+  # ---------------------------------------------------------------------
+  typecheck-python:
+    name: Type check — Python (mypy)
     runs-on: ubuntu-latest
-    needs: contracts
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
-      - name: Install
-        run: |
-          pip install -e "libs/contracts"
-          pip install -e "services/governance-service[dev]"
-      - name: Lint (ruff)
-        run: ruff check services/governance-service/src services/governance-service/tests
-      - name: Test (pytest)
-        run: pytest services/governance-service/tests
+      - name: Install workspace
+        run: bash scripts/bootstrap.sh
+      - name: mypy — libs/contracts
+        run: mypy libs/contracts/src
+      - name: mypy — services/control-plane
+        run: mypy services/control-plane/src
+      - name: mypy — services/governance-service
+        run: mypy services/governance-service/src
+      - name: mypy — services/data-plane (known gap, non-blocking)
+        # 15 pre-existing strict-mode findings from Phases 3/5, predating
+        # Phase 12 and out of this phase's scope to fix wholesale (see
+        # problems_phase_12.md). Reported, never silently skipped, but
+        # does not fail the build -- unlike every other mypy step above,
+        # which are hard gates.
+        run: mypy services/data-plane/src || echo "::warning::data-plane mypy has pre-existing findings — see problems_phase_12.md"
+        continue-on-error: true
 
-  frontend:
-    name: Frontend — lint, typecheck, unit test
+  # ---------------------------------------------------------------------
+  # Unit tests (no external services — libs/contracts, data-plane,
+  # governance-service; control-plane's own unit-test pass, against the
+  # default SQLite lifecycle DB, also runs here)
+  # ---------------------------------------------------------------------
+  unit-tests:
+    name: Unit tests — ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [libs/contracts, services/control-plane, services/data-plane, services/governance-service]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - name: Install workspace
+        run: bash scripts/bootstrap.sh
+      - name: pytest — ${{ matrix.package }}
+        run: pytest ${{ matrix.package }}/tests -v
+
+  # ---------------------------------------------------------------------
+  # Integration tests: the control plane's DB-backed domains (lifecycle,
+  # capacity, governance, platform/audit/RBAC) against a REAL Postgres
+  # service container, not the SQLite default -- this is what makes it
+  # an integration test rather than a repeat of the unit-tests job
+  # above, and is the CI-side counterpart to the real Docker Compose
+  # Postgres verification in problems_phase_12.md.
+  # ---------------------------------------------------------------------
+  integration-tests:
+    name: Integration tests — control-plane vs. real Postgres
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tdm
+          POSTGRES_PASSWORD: tdm_ci_only
+          POSTGRES_DB: tdm_metadata_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tdm -d tdm_metadata_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TDM_CONTROL_PLANE_DATABASE_URL: "postgresql+psycopg://tdm:tdm_ci_only@localhost:5432/tdm_metadata_ci"
+      TDM_CONTROL_PLANE_LIFECYCLE_DATABASE_URL: "postgresql+psycopg://tdm:tdm_ci_only@localhost:5432/tdm_metadata_ci"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - name: Install workspace
+        run: bash scripts/bootstrap.sh
+      - name: Confirm Postgres is reachable
+        run: |
+          python -c "
+          import sqlalchemy
+          engine = sqlalchemy.create_engine('${{ env.TDM_CONTROL_PLANE_LIFECYCLE_DATABASE_URL }}')
+          with engine.connect() as conn:
+              conn.execute(sqlalchemy.text('SELECT 1'))
+          print('Postgres reachable.')
+          "
+      - name: pytest — services/control-plane (real Postgres lifecycle DB)
+        run: pytest services/control-plane/tests -v
+
+  # ---------------------------------------------------------------------
+  # Data-quality tests: the specific test suites that re-derive
+  # correctness independently rather than trusting an engine's own
+  # report (docs/CERTIFICATION_VS_MASKING.md) -- masking correctness,
+  # referential integrity across the full closure, orphan
+  # classification, and the certification pipeline's eleven independent
+  # gates. Named/steps split deliberately so a reviewer (or the release
+  # gate logic below) can tell exactly which data-quality dimension
+  # failed.
+  # ---------------------------------------------------------------------
+  data-quality-tests:
+    name: Data-quality tests (masking, referential integrity, certification gates)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - name: Install workspace
+        run: bash scripts/bootstrap.sh
+      - name: Masking correctness & no-raw-value-leakage (services/data-plane/tests/masking)
+        run: pytest services/data-plane/tests/masking -v
+      - name: Referential integrity — subsetting closure (services/data-plane/tests/subsetting)
+        run: pytest services/data-plane/tests/subsetting -v
+      - name: Referential integrity & data-quality — certification gates (services/data-plane/tests/certification)
+        run: pytest services/data-plane/tests/certification -v
+      - name: Synthetic scenario provenance (services/data-plane/tests/synthetic)
+        run: pytest services/data-plane/tests/synthetic -v
+      - name: Platform failure-injection scenarios (both planes)
+        run: |
+          pytest services/data-plane/tests/platform_integrity -v
+          pytest services/control-plane/tests/test_failure_injection.py -v
+
+  # ---------------------------------------------------------------------
+  # Security checks — this IS the "critical security validation" gate
+  # ROADMAP.md's release-gate requirement names: a repo-wide committed-
+  # secret scan (scripts/security/detect_secrets.py) and a known-
+  # vulnerability dependency scan (scripts/security/dependency_scan.py,
+  # pip-audit), both real, both already existed as of Phase 11
+  # (problems_phase_11.md P11-3) but neither was wired into CI until now.
+  # ---------------------------------------------------------------------
+  security-checks:
+    name: Security checks (secrets scan, dependency audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - name: Install workspace
+        run: bash scripts/bootstrap.sh
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Repo-wide committed-secret scan
+        run: python scripts/security/detect_secrets.py
+      - name: Dependency vulnerability scan (pip-audit, every workspace package)
+        run: python scripts/security/dependency_scan.py
+
+  # ---------------------------------------------------------------------
+  # Frontend
+  # ---------------------------------------------------------------------
+  frontend-lint:
+    name: Lint — frontend (eslint)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
-      - name: Install
-        working-directory: frontend
-        run: npm install
-      - name: Lint
-        working-directory: frontend
+      - working-directory: frontend
+        run: npm ci
+      - working-directory: frontend
         run: npm run lint
-      - name: Typecheck + build
-        working-directory: frontend
+
+  frontend-build:
+    name: Build — frontend (tsc + vite build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - working-directory: frontend
+        run: npm ci
+      - working-directory: frontend
         run: npm run build
-      - name: Unit tests
-        working-directory: frontend
+      - name: Upload dist (used by container-build.yml / e2e.yml if needed)
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  frontend-unit-tests:
+    name: Unit tests — frontend (vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - working-directory: frontend
+        run: npm ci
+      - working-directory: frontend
         run: npm run test
 
-  # Data-quality and Playwright E2E jobs are added in Phase 19, once there
-  # are real data-plane jobs and UI screens to exercise them against.
+  # ---------------------------------------------------------------------
+  # Release gate: the single required status this repository's branch
+  # protection points at, and what deploy-qa.yml's workflow_run trigger
+  # waits on. Fails (job conclusion != success) if ANY of the jobs above
+  # failed — explicitly including unit-tests, integration-tests,
+  # data-quality-tests (masking + referential integrity), and
+  # security-checks, per ROADMAP.md Phase 12's release-gate requirement.
+  # `if: always()` so this job still runs (and still fails loudly) even
+  # when an upstream job failed and would otherwise have skipped
+  # everything downstream.
+  # ---------------------------------------------------------------------
+  release-gate:
+    name: Release gate (all required checks)
+    runs-on: ubuntu-latest
+    needs:
+      - lint-python
+      - typecheck-python
+      - unit-tests
+      - integration-tests
+      - data-quality-tests
+      - security-checks
+      - frontend-lint
+      - frontend-build
+      - frontend-unit-tests
+    if: always()
+    steps:
+      - name: Evaluate required checks
+        run: |
+          echo "lint-python: ${{ needs.lint-python.result }}"
+          echo "typecheck-python: ${{ needs.typecheck-python.result }}"
+          echo "unit-tests: ${{ needs.unit-tests.result }}"
+          echo "integration-tests: ${{ needs.integration-tests.result }}"
+          echo "data-quality-tests: ${{ needs.data-quality-tests.result }}"
+          echo "security-checks: ${{ needs.security-checks.result }}"
+          echo "frontend-lint: ${{ needs.frontend-lint.result }}"
+          echo "frontend-build: ${{ needs.frontend-build.result }}"
+          echo "frontend-unit-tests: ${{ needs.frontend-unit-tests.result }}"
+          if [ "${{ needs.lint-python.result }}" != "success" ] || \
+             [ "${{ needs.typecheck-python.result }}" != "success" ] || \
+             [ "${{ needs.unit-tests.result }}" != "success" ] || \
+             [ "${{ needs.integration-tests.result }}" != "success" ] || \
+             [ "${{ needs.data-quality-tests.result }}" != "success" ] || \
+             [ "${{ needs.security-checks.result }}" != "success" ] || \
+             [ "${{ needs.frontend-lint.result }}" != "success" ] || \
+             [ "${{ needs.frontend-build.result }}" != "success" ] || \
+             [ "${{ needs.frontend-unit-tests.result }}" != "success" ]; then
+            echo "::error::One or more required checks failed — release gate BLOCKED."
+            exit 1
+          fi
+          echo "All required checks passed — release gate OPEN."

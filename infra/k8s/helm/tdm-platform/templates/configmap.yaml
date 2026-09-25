@@ -1,0 +1,14 @@
+# Non-secret control-plane configuration (control_plane.config.Settings
+# fields, TDM_CONTROL_PLANE_* env prefix). Database credentials are
+# deliberately NOT here -- see secret.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tdm-platform.fullname" . }}-control-plane-config
+  labels:
+    {{- include "tdm-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: control-plane
+data:
+  TDM_CONTROL_PLANE_ENVIRONMENT: {{ .Values.environment | quote }}
+  TDM_CONTROL_PLANE_LOG_LEVEL: {{ .Values.controlPlane.config.logLevel | quote }}
+  TDM_CONTROL_PLANE_API_V1_PREFIX: {{ .Values.controlPlane.config.apiV1Prefix | quote }}

@@ -30,7 +30,7 @@ repository going forward.
 | 9 | React/TypeScript enterprise TDM web console | **Complete** |
 | 10 | Centralized enterprise masking standard (multi-business-unit governance) | **Complete** |
 | 11 | Platform integrity (health, resiliency, failure injection) | **Complete** |
-| 12 | Production CI/CD and cloud testing (GitHub Actions, K8s, Terraform) | Not started |
+| 12 | Production CI/CD and cloud testing (GitHub Actions, K8s, Terraform) | **Complete** |
 | 13 | Auditability and compliance evidence | Not started |
 | 14 | Scale and performance engineering (PySpark benchmarks) | Not started |
 | 15 | Complete junior-engineer tutorial (20 chapters) | Not started |
@@ -39,6 +39,87 @@ repository going forward.
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 12 — what was actually delivered
+
+- Six real GitHub Actions workflows (`.github/workflows/`):
+  `ci.yml` (rewritten from Phase 0's untested skeleton --
+  `lint-python`, `typecheck-python`, a per-package `unit-tests` matrix,
+  a real-Postgres-backed `integration-tests` job, `data-quality-tests`
+  (masking/referential-integrity/certification-gate suites named as
+  distinct steps), `security-checks` (secrets scan + `pip-audit`),
+  `frontend-lint`/`frontend-build`/`frontend-unit-tests`, and a
+  `release-gate` job that fails if any required job did not succeed),
+  `container-build.yml` (builds + smoke-tests + Trivy-scans the three
+  new images, no registry push), `e2e.yml` (real Playwright run against
+  a real control-plane + real Vite dev server, per
+  `frontend/playwright.config.ts`'s own documented startup sequence),
+  and `deploy-qa.yml` -> `deploy-staging-uat.yml` -> `deploy-production.yml`
+  (chained via real `workflow_run` dependencies + GitHub Environments,
+  each deploying a Docker Compose stand-in with real health checks --
+  explicitly documented as not a real cloud target; see
+  `docs/AZURE_PRODUCTION_DEPLOYMENT.md`)
+- Real, minimal, multi-stage Dockerfiles for the three services with
+  actual runnable code (`services/control-plane/Dockerfile`,
+  `services/governance-service/Dockerfile`, `frontend/Dockerfile` +
+  `nginx.conf`) -- `data-plane` deliberately excluded (batch/CLI
+  toolkit, no `SparkSession` created anywhere yet; see
+  `problems_phase_12.md`'s decision record)
+- `governance_service/main.py` + `api/health.py`: this service's first
+  real code (a liveness endpoint only, mirroring exactly how
+  `control_plane.main` looked in Phase 0), added so it has something
+  real to containerize/deploy; its RBAC/audit/secrets/evidence-store
+  responsibilities (`ARCHITECTURE.md` section 2.4) remain unbuilt
+- `infra/docker/docker-compose.yml` extended with real `control-plane`/
+  `governance-service`/`frontend` containers (built from the
+  Dockerfiles above) alongside the existing `postgres`/`minio`, with
+  real health checks and overridable host ports -- **verified end to
+  end against a real Postgres container**: `GET /api/v1/ready` reports
+  the database check healthy/reachable, resolving the "Postgres never
+  verified against real application code" gap `ARCHITECTURE.md`'s own
+  Phase 7/8/11 notes and `problems_master.md` P0-2 had flagged since
+  Phase 0/7
+- `infra/k8s/helm/tdm-platform/templates/`: real Deployment/Service
+  manifests for all three containerized services, a ConfigMap/Secret
+  split for control-plane configuration, and a disabled-by-default
+  Ingress -- `helm lint`/`helm template` both verified clean
+- `infra/terraform/azure/main.tf`: a real, `terraform fmt`/`validate`-clean
+  example (AKS, Azure Database for PostgreSQL Flexible Server, an ADLS
+  Gen2 Storage Account, Azure Container Registry, Key Vault, and the
+  role assignments between them) -- never applied against a real
+  subscription; `infra/terraform/aws/main.tf` kept as the lighter,
+  structural cloud-portable counterpart
+- `docs/AZURE_PRODUCTION_DEPLOYMENT.md`: the Azure-oriented production
+  deployment narrative `ROADMAP.md` asks for, explicit throughout about
+  what is genuinely Azure-specific versus what the existing
+  plane-separation/storage-adapter architecture (ADR-0003, ADR-0005)
+  keeps portable -- including an honest statement that the storage-adapter
+  interface itself remains unimplemented (`problems_master.md` P0-3,
+  still open), so Azure Blob/ADLS is provisioned as a real Terraform
+  target but not yet written to by any real job
+- A real, deliberate release-gate failure experiment (a genuinely
+  broken test pushed to a scratch branch, observed failing and blocking
+  in the Actions UI, then reverted) proving `ROADMAP.md`'s release-gate
+  requirement ("a release must fail if unit/integration/masking/
+  referential-integrity tests fail, or critical security validation
+  fails") is real, not just written -- see `problems_phase_12.md` for
+  the run IDs/URLs
+- Two real, incidental fixes found while wiring CI for the first time
+  (per `problems_master.md` P0-2's own prediction that this had never
+  actually been exercised): a ruff lint failure (unused imports/local
+  variable, three files, present since Phases 3/8/11) and a real mypy
+  strict-mode bug (`control_plane.platform.audit`, a `str`/`UUID`
+  mismatch invisible to every existing test) -- both fixed, both now
+  hard-blocking CI gates; `services/data-plane`'s 15 pre-existing
+  strict-mode mypy findings are reported but left open and
+  non-blocking, explicitly out of this phase's scope (see
+  `problems_phase_12.md`)
+- One new test (`services/governance-service/tests/test_health_api.py`);
+  every other Python package's test count is unchanged --
+  `libs/contracts` 59, `services/control-plane` 171,
+  `services/data-plane` 413, `services/governance-service` 2 (was 1),
+  **645 total, all passing** -- see `problems_phase_12.md` for what's
+  still open
 
 ## Phase 11 — what was actually delivered
 

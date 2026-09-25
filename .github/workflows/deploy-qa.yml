@@ -1,0 +1,84 @@
+name: QA Deployment
+
+# First promotion gate: deploys to QA only after the CI workflow (every
+# required check — lint, typecheck, unit, integration, data-quality,
+# security, frontend build/lint/test) has completed successfully.
+# `workflow_run` is GitHub Actions' real cross-workflow dependency
+# mechanism — this is not a copy-pasted "pretend gate", it genuinely
+# will not run if `ci.yml`'s run it is attached to failed or is still
+# in progress (the `if` condition below checks the real
+# `github.event.workflow_run.conclusion`).
+#
+# No real cloud credentials or QA cluster exist in this repository (see
+# infra/terraform/README.md). "Deploy" here means: build the real
+# Dockerfiles, stand up the real Docker Compose stack (Postgres +
+# control-plane + governance-service + frontend) as a stand-in for a
+# real QA environment, and run a smoke test against it — exactly the
+# same containers and health checks a real QA deploy step would use,
+# just pointed at an ephemeral runner instead of a real QA cluster.
+# This is documented explicitly, not presented as a real deployment.
+#
+# `workflow_dispatch` is added purely so this gate's own mechanics can
+# be exercised on demand (used to verify this workflow for real during
+# Phase 12 — see problems_phase_12.md for the run this produced) without
+# waiting for a full CI run on main.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-qa
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Check CI succeeded
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Gate open
+        run: echo "CI succeeded (or manual dispatch) — proceeding to QA deploy."
+
+  deploy-qa:
+    name: Deploy to QA (Docker Compose stand-in) + smoke test
+    runs-on: ubuntu-latest
+    needs: gate
+    environment: qa
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Bring up the QA stand-in stack
+        run: |
+          docker compose -f infra/docker/docker-compose.yml up -d --build \
+            postgres control-plane governance-service frontend
+
+      - name: Wait for control-plane readiness (real Postgres behind it)
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8000/api/v1/ready > /dev/null; then
+              echo "control-plane ready."
+              curl -s http://127.0.0.1:8000/api/v1/ready
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::control-plane never became ready"
+          docker compose -f infra/docker/docker-compose.yml logs
+          exit 1
+
+      - name: Smoke test — governance-service and frontend
+        run: |
+          curl -sf http://127.0.0.1:8001/health
+          curl -sf http://127.0.0.1:8080/ > /dev/null
+          curl -sf http://127.0.0.1:8080/api/v1/health
+          echo "QA smoke test passed."
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f infra/docker/docker-compose.yml down -v

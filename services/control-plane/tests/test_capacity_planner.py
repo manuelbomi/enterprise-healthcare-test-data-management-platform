@@ -12,7 +12,6 @@ from pathlib import Path
 
 import pytest
 from healthcare_tdm_contracts import (
-    DatasetVersionStatus,
     Environment,
     EnvironmentCapacityRequirement,
     IllustrativeCapacityScenario,

@@ -1,0 +1,84 @@
+name: Staging/UAT Promotion
+
+# Second promotion gate — only runs after QA Deployment succeeds (real
+# `workflow_run` dependency on that workflow's conclusion, same pattern
+# as deploy-qa.yml's own dependency on CI; see that file's header
+# comment for what "deploy" means here: no real cloud target/
+# credentials, a Docker Compose stand-in with real health checks).
+#
+# Staging/UAT promotion additionally runs a broader post-deploy
+# acceptance smoke test (a handful of real read endpoints across every
+# router this service exposes), standing in for what a real UAT sign-off
+# checklist would exercise against a real staging environment.
+
+on:
+  workflow_run:
+    workflows: ["QA Deployment"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-staging-uat
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Check QA deployment succeeded
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Gate open
+        run: echo "QA deployment succeeded (or manual dispatch) — proceeding to staging/UAT."
+
+  deploy-staging-uat:
+    name: Deploy to staging/UAT (Docker Compose stand-in) + acceptance smoke test
+    runs-on: ubuntu-latest
+    needs: gate
+    environment: staging-uat
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Bring up the staging/UAT stand-in stack
+        run: |
+          docker compose -f infra/docker/docker-compose.yml up -d --build \
+            postgres control-plane governance-service frontend
+
+      - name: Wait for control-plane readiness
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8000/api/v1/ready > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::control-plane never became ready"
+          docker compose -f infra/docker/docker-compose.yml logs
+          exit 1
+
+      - name: Acceptance smoke test — every real router surface
+        run: |
+          set -e
+          echo "-- health/readiness --"
+          curl -sf http://127.0.0.1:8000/api/v1/health
+          curl -sf http://127.0.0.1:8000/api/v1/ready
+          echo "-- catalog --"
+          curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8000/api/v1/catalog/summary
+          echo "-- lifecycle --"
+          curl -sf http://127.0.0.1:8000/api/v1/lifecycle/dataset-versions
+          echo "-- capacity --"
+          curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8000/api/v1/capacity/plan
+          echo "-- governance --"
+          curl -sf http://127.0.0.1:8000/api/v1/governance/policy-versions
+          echo "-- audit --"
+          curl -sf http://127.0.0.1:8000/api/v1/audit/events
+          echo "-- frontend --"
+          curl -sf http://127.0.0.1:8080/ > /dev/null
+          curl -sf http://127.0.0.1:8080/api/v1/health
+          echo "Staging/UAT acceptance smoke test passed."
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f infra/docker/docker-compose.yml down -v

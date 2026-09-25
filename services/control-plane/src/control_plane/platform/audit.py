@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from healthcare_tdm_contracts import AuditEvent, AuditEventType
 from sqlalchemy import select
@@ -111,7 +111,7 @@ class AuditLogRepository:
 
     def _to_contract(self, row: AuditEventRow) -> AuditEvent:
         return AuditEvent(
-            event_id=row.event_id,
+            event_id=UUID(row.event_id),
             event_type=AuditEventType(row.event_type),
             actor=row.actor,
             subject=row.subject,
