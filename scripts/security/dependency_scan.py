@@ -83,19 +83,31 @@ def run_pip_audit_for_package(pip_audit_cmd: list[str], package_root: Path) -> t
     package in this repository (`healthcare-tdm-contracts` and the
     three services) is installed editable (`pip install -e ".[dev]"`,
     `scripts/bootstrap.sh`) and is not published to PyPI. Without this
-    flag, `--strict` pip-audit tries to resolve `healthcare-tdm-contracts`
-    itself against PyPI to audit it and fails with "Dependency not
-    found on PyPI and could not be audited" -- a real failure hit and
-    fixed while verifying this script's first real CI run (Phase 12;
-    see problems_phase_12.md). This is the semantically correct fix,
-    not a workaround: this scan's job is to audit *third-party*
-    dependencies for known vulnerabilities, and our own workspace
-    packages are neither third-party nor published, so they have no
-    PyPI-tracked CVE history to audit in the first place.
+    flag, pip-audit tries to resolve `healthcare-tdm-contracts` itself
+    against PyPI to audit it and fails with "Dependency not found on
+    PyPI and could not be audited" -- a real failure hit and fixed
+    while verifying this script's first real CI run (Phase 12; see
+    problems_phase_12.md). This is the semantically correct fix, not a
+    workaround: this scan's job is to audit *third-party* dependencies
+    for known vulnerabilities, and our own workspace packages are
+    neither third-party nor published, so they have no PyPI-tracked
+    CVE history to audit in the first place.
+
+    Deliberately does NOT pass `--strict` (a second, real finding from
+    the same verification run): `--strict` treats `--skip-editable`
+    skipping our own workspace packages as itself a fatal collection
+    error ("distribution marked as editable"), which would fail this
+    scan on every run regardless of whether any real third-party
+    vulnerability exists -- the opposite of a meaningful gate. Without
+    `--strict`, a skipped (editable, local) package is reported as a
+    skip, not an error, and the scan's exit code reflects only whether
+    a real, known vulnerability was found in an actual third-party
+    dependency -- see problems_phase_12.md for the real vulnerability
+    findings this surfaced once fixed.
     """
 
     result = subprocess.run(
-        [*pip_audit_cmd, "--strict", "--skip-editable"],
+        [*pip_audit_cmd, "--skip-editable"],
         cwd=package_root,
         capture_output=True,
         text=True,
