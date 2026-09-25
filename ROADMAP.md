@@ -33,12 +33,87 @@ repository going forward.
 | 12 | Production CI/CD and cloud testing (GitHub Actions, K8s, Terraform) | **Complete** |
 | 13 | Auditability and compliance evidence | **Complete** |
 | 14 | Scale and performance engineering (PySpark benchmarks) | **Complete** |
-| 15 | Complete junior-engineer tutorial (20 chapters) | Not started |
+| 15 | Complete junior-engineer tutorial (20 chapters) | **Complete** |
 | 16 | Interview / system design documentation | Not started |
 | 17 | Principal-engineer production readiness review (findings only, no fixes) | Not started |
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 15 — what was actually delivered
+
+- Audited `docs/tutorial/` and the whole repository before writing
+  anything, per `CONTRIBUTING.md`: `docs/tutorial/` already contains
+  `00-overview.md` plus numbered deep-dive chapters `01`-`09` and `13`
+  (no `10`/`11`/`12`/`14` — those phases didn't add a chapter under
+  this naming scheme), each an implementation-detail walkthrough
+  assuming the reader already knows TDM/PHI/subsetting/masking
+  vocabulary. This phase's own required chapter list (`ROADMAP.md`'s
+  twenty topics) is a different, "zero to understanding the complete
+  repository" arc that the existing chapters never build from first
+  principles.
+- **Filename/numbering decision** (recorded in full in
+  `problems_phase_15.md`): grepped the whole repository for
+  `docs/tutorial/0` and `docs/tutorial/1` first and found real
+  cross-references from `ARCHITECTURE.md`, `CONTRIBUTING.md`, ADRs,
+  `docs/diagrams/README.md`, `docs/PLATFORM_INTEGRITY.md`, a runbook,
+  `README.md`, `problems_phase_04.md`/`05`/`07`, `scripts/README.md`,
+  `services/control-plane/README.md`, and two data-plane package
+  READMEs -- all pointing at the *existing* filenames, none at a
+  `docs/tutorial/10`-`14` or `guide/` path. Renumbering or reusing any
+  existing filename was therefore ruled out (it would break every one
+  of those links); a new, non-colliding `docs/tutorial/guide/`
+  subdirectory with its own `01`-`20` sequence (matching the
+  promptbook's own chapter numbers exactly) was created instead.
+- **Twenty new chapters** in `docs/tutorial/guide/`
+  (`01-what-is-test-data-management.md` through
+  `20-operating-tdm-as-a-product.md`) plus `docs/tutorial/guide/README.md`
+  as the index -- each chapter teaches its concept from first
+  principles for a junior data engineer with no prior TDM exposure,
+  then links out to the matching existing `0X`/`13` chapter (or ADR/
+  doc, where no numbered chapter exists for that topic -- platform
+  integrity, CI/CD, cloud testing) for implementation depth, rather
+  than duplicating that chapter's own worked examples. Every chapter
+  points at real repository code; every captured "expected output"
+  block was produced by actually running the named command in this
+  environment (a fresh `tiny`-scale estate through discovery,
+  subsetting, masking, and a full `--publish`ed certification run --
+  11/11 gates passed -- plus a real `data_plane.capacity.cli footprint`
+  measurement), not hand-typed. Chapters covering Phase 7/8/10
+  behavior already demonstrated end-to-end with real captured output
+  in the existing tutorial chapters quote that already-real output
+  rather than re-running the same demo scripts a second time.
+- Chapter 20 ("Operating TDM as a product") is an explicit synthesis,
+  stated as such in the chapter itself: this repository never built a
+  dedicated "product operations" module, so the chapter draws on real,
+  already-built material across Phase 7 lifecycle/refresh, Phase 8
+  capacity, Phase 10 governance, Phase 11 platform integrity, Phase 13
+  audit evidence, and this repository's own `ROADMAP.md`/
+  `CONTRIBUTING.md` process, rather than inventing an unbuilt
+  capability.
+- `docs/tutorial/00-overview.md`'s "Where to go next" section and
+  `README.md`'s "Getting started" section both updated to point a new
+  reader at `docs/tutorial/guide/README.md`, explicit that it is the
+  onboarding path and the existing numbered chapters remain the
+  implementation-depth reference.
+- This phase adds no new application code, and therefore no new pytest
+  test file -- `problems_phase_15.md` says so explicitly rather than
+  fabricating a test against prose. The full workspace suite was run,
+  unmodified, to confirm editing/adding documentation did not touch any
+  application code path: `libs/contracts` 62 passed,
+  `services/control-plane` 195 passed, `services/data-plane` 439
+  passed, `services/governance-service` 2 passed -- 698 total,
+  unchanged from `problems_phase_14.md`.
+- Left open, tracked in `problems_phase_15.md`: no retroactive numbered
+  `docs/tutorial/1X-...md` implementation-depth chapter was added for
+  Phases 11/12/14 (out of this phase's 20-chapter-onboarding-arc scope;
+  the new guide's Chapters 16-18 link to `docs/PLATFORM_INTEGRITY.md`/
+  `docs/AZURE_PRODUCTION_DEPLOYMENT.md` directly instead) (P15-1);
+  Chapter 20 is a synthesis across five phases, not a single module's
+  documentation, and should not be read as evidence a unified
+  "operate TDM as a product" capability already exists in code (P15-2);
+  no Mermaid diagram this phase added has been rendered to a static
+  image, consistent with the already-open `P0-4` (P15-3).
 
 ## Phase 14 — what was actually delivered
 

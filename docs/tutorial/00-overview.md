@@ -93,6 +93,15 @@ off on.
 
 ## 6. Where to go next
 
+- **New to TDM entirely, with no prior exposure to any of the vocabulary
+  in section 2 above?** Start with
+  [`docs/tutorial/guide/README.md`](guide/README.md) instead — a
+  twenty-chapter "zero to understanding the complete repository" path
+  (Phase 15) that teaches each concept from first principles before
+  pointing you at this file's own numbered chapters (`01`-`09`, `13`)
+  for implementation depth. This file and the numbered chapters that
+  follow it remain the implementation-detail reference for a reader who
+  already knows the vocabulary and wants to go straight to the code.
 - Read `ARCHITECTURE.md` in full.
 - Skim the ADRs in `docs/adr/` — each one is a short "why we chose X over Y."
 - Read `DATA_GOVERNANCE.md` to understand the classification/masking/

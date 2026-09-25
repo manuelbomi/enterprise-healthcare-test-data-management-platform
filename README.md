@@ -120,6 +120,10 @@ will be updated with concrete `docker compose up`, `pip install`, and
 `npm install` instructions. For now:
 
 - Read [`ARCHITECTURE.md`](ARCHITECTURE.md) to understand the system.
+- New to Test Data Management entirely? Start with
+  [`docs/tutorial/guide/README.md`](docs/tutorial/guide/README.md) — a
+  complete, twenty-chapter, zero-to-understanding-this-repository
+  tutorial (Phase 15).
 - Read [`docs/tutorial/00-overview.md`](docs/tutorial/00-overview.md) for a
   guided walkthrough aimed at junior engineers.
 - Read [`ROADMAP.md`](ROADMAP.md) to see what's next.
