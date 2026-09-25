@@ -29,7 +29,6 @@ Pydantic shapes, never a raw ORM row, mirroring
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 

@@ -1,0 +1,43 @@
+# Disabled by default (values.yaml `ingress.enabled: false`). Routes the
+# frontend Service at "/" and the control-plane Service at "/api" --
+# the same split frontend/nginx.conf implements for the Docker Compose
+# environment, here as a real Kubernetes Ingress instead of nginx's own
+# reverse proxy. See docs/AZURE_PRODUCTION_DEPLOYMENT.md for the
+# Azure Application Gateway Ingress Controller (AGIC) example this is
+# written to be compatible with.
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "tdm-platform.fullname" . }}
+  labels:
+    {{- include "tdm-platform.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "tdm-platform.fullname" . }}-control-plane
+                port:
+                  number: {{ .Values.controlPlane.service.port }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "tdm-platform.fullname" . }}-frontend
+                port:
+                  number: {{ .Values.frontend.service.port }}
+{{- end }}

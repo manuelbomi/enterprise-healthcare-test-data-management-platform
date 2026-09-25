@@ -53,7 +53,7 @@ def test_manifest_has_no_lineage_in_standalone_mode(tmp_path: Path) -> None:
 
 
 def test_manifest_round_trips_through_json(tmp_path: Path) -> None:
-    result = generate_synthetic_scenarios(
+    generate_synthetic_scenarios(
         tmp_path / "out", [ScenarioType.NORMAL_CLAIMS, ScenarioType.MISSING_PROVIDER], base_estate_dir=None, seed=1
     )
     manifest_path = tmp_path / "out" / "synthetic_generation_manifest.json"

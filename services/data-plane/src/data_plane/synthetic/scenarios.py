@@ -64,7 +64,7 @@ from data_plane.reference_data.domain import (
     Prescription,
 )
 from data_plane.synthetic.ids import ScenarioIdAllocator
-from data_plane.synthetic.provenance import tag_row, tag_rows
+from data_plane.synthetic.provenance import tag_row
 from data_plane.synthetic.reference_pool import ReferencePool
 
 

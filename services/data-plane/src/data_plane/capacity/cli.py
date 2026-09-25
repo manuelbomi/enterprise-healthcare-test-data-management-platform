@@ -19,7 +19,6 @@ about it. It does not write anything back to that directory.
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tdm-platform.fullname" . }}-governance-service
+  labels:
+    {{- include "tdm-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: governance-service
+spec:
+  replicas: {{ .Values.governanceService.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "tdm-platform.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: governance-service
+  template:
+    metadata:
+      labels:
+        {{- include "tdm-platform.labels" . | nindent 8 }}
+        app.kubernetes.io/component: governance-service
+    spec:
+      containers:
+        - name: governance-service
+          image: "{{ .Values.governanceService.image.repository }}:{{ .Values.governanceService.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: {{ .Values.governanceService.containerPort }}
+          # Liveness only, matching governance_service/api/health.py's
+          # module docstring: this service has no real dependency yet
+          # to back a dependency-aware readiness probe (see
+          # ARCHITECTURE.md section 2.4) -- a fake /ready here would be
+          # a false signal, so Kubernetes readiness reuses the same
+          # liveness endpoint rather than inventing one.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.governanceService.resources | nindent 12 }}

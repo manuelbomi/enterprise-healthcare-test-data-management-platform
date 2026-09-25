@@ -514,6 +514,37 @@ per-source-system files are still not written atomically -- see
 (`HEALTHCHECK`) is documented as design intent only -- `infra/docker/`
 has no application `Dockerfile` yet to attach one to (Phase 12).
 
+Phase 12 note: this phase gives the repository its first real
+Dockerfiles (`services/control-plane/Dockerfile`,
+`services/governance-service/Dockerfile`, `frontend/Dockerfile` --
+`data-plane` is deliberately not containerized; see
+`problems_phase_12.md` for why), real GitHub Actions workflows
+(`.github/workflows/ci.yml` -- lint/typecheck/unit/integration/
+data-quality/security/frontend jobs plus a release-gate job;
+`container-build.yml`; `e2e.yml`; `deploy-qa.yml` ->
+`deploy-staging-uat.yml` -> `deploy-production.yml`, chained via real
+`workflow_run` dependencies), a real Docker Compose integration
+environment (`infra/docker/docker-compose.yml`, extended with the
+three new containers wired to a real Postgres container), real
+Kubernetes/Helm templates (`infra/k8s/helm/tdm-platform/templates/`),
+and a real, `terraform validate`-clean Azure example
+(`infra/terraform/azure/main.tf`). Section 2.6's own longstanding gap
+-- Postgres never verified against real application code -- is
+resolved here: `GET /api/v1/ready` against the real `control-plane`
+container in `docker-compose.yml`, pointed at the real `postgres`
+container via `TDM_CONTROL_PLANE_LIFECYCLE_DATABASE_URL`, reports the
+database check healthy and reachable. Section 2.4's `governance-service`
+gains its first line of real code -- a liveness endpoint only
+(`governance_service/main.py`), added so this service has something
+real to containerize/deploy alongside the other two; its RBAC/audit/
+secrets/evidence-store business logic remains unbuilt, unchanged from
+every earlier phase's notes above. See `problems_phase_12.md` for the
+full account, including a real deliberate-failure experiment proving
+the release gate actually blocks a broken build, and
+`docs/AZURE_PRODUCTION_DEPLOYMENT.md` for what stays cloud-portable
+(ADR-0003/ADR-0005) versus what is genuinely Azure-specific in the new
+Terraform example.
+
 ## 5. Why this stack
 
 See the ADRs in `docs/adr/` for the reasoning behind each major choice

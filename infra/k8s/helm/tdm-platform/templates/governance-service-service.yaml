@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tdm-platform.fullname" . }}-governance-service
+  labels:
+    {{- include "tdm-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: governance-service
+spec:
+  type: {{ .Values.governanceService.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.governanceService.service.port }}
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: {{ include "tdm-platform.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: governance-service
