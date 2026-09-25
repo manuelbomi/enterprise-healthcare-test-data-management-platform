@@ -13,6 +13,15 @@ $ErrorActionPreference = "Stop"
 
 $Root = Split-Path -Parent $PSScriptRoot
 
+# Upgrade setuptools in the target environment itself (not just the
+# `[build-system] requires` version pip uses in its own isolated build
+# environment, which does not affect what ends up importable/installed
+# afterward). A real, current CVE (PYSEC-2026-3447, fixed in 83.0.0) was
+# found by scripts/security/dependency_scan.py's first real CI run
+# against the setuptools version actions/setup-python's Python 3.11
+# ships with -- see problems_phase_12.md.
+python -m pip install --upgrade "setuptools>=83.0.0"
+
 # Push into each package dir and install "." (not an absolute path) — pip's
 # editable-requirement parser mishandles `<absolute path with a space>[extra]`
 # as a single argument, even though a relative "."/".[extra]" is fine.
