@@ -33,6 +33,13 @@ from healthcare_tdm_contracts.source_systems import (
     SourceSystemType,
 )
 from healthcare_tdm_contracts.storage import ObjectRef, StorageBackend
+from healthcare_tdm_contracts.subsetting import (
+    IntegrityStatus,
+    RelationshipEdge,
+    SubsetManifest,
+    SubsetSelectionCriteria,
+    SubsettingStrategy,
+)
 
 __all__ = [
     "TIER_BY_CATEGORY",
@@ -42,6 +49,7 @@ __all__ = [
     "ClassificationMethod",
     "ClassificationTier",
     "ColumnClassification",
+    "IntegrityStatus",
     "JobRequest",
     "JobResult",
     "JobStatus",
@@ -52,6 +60,7 @@ __all__ = [
     "MaskingStrategy",
     "MaskingTechnique",
     "ObjectRef",
+    "RelationshipEdge",
     "RetentionClassification",
     "ScaleProfileName",
     "SensitivityCategory",
@@ -60,6 +69,9 @@ __all__ = [
     "SourceDatasetDescriptor",
     "SourceSystemType",
     "StorageBackend",
+    "SubsetManifest",
+    "SubsetSelectionCriteria",
+    "SubsettingStrategy",
 ]
 
 __version__ = "0.1.0"

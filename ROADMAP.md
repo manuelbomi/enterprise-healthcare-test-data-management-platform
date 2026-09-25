@@ -22,7 +22,7 @@ repository going forward.
 | 1 | Synthetic healthcare data estate across 5 heterogeneous source systems | **Complete** |
 | 2 | PHI/PII discovery and classification engine + data catalog | **Complete** |
 | 3 | Enterprise deterministic masking engine (pseudonymization/tokenization) | **Complete** |
-| 4 | Referentially intact, production-scale data subsetting | Not started |
+| 4 | Referentially intact, production-scale data subsetting | **Complete** |
 | 5 | Synthetic test data generation (scenario/edge-case data) | Not started |
 | 6 | Certified test dataset pipeline (ingest→...→certify→publish) | Not started |
 | 7 | Dataset lifecycle and refresh management (versions, cadence, retention) | Not started |
@@ -39,6 +39,45 @@ repository going forward.
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 4 — what was actually delivered
+
+- A real subsetting engine
+  (`services/data-plane/src/data_plane/subsetting/`) that selects a
+  referentially closed population from the real Phase 1 estate, anchored
+  at `Member`, and pulls every related row across all five simulated
+  source systems (`estate_io.py` reads, `closure.py` graph-walks,
+  `writer.py` writes back in the same multi-format shape) — the same
+  "read the real multi-format estate, do something per-row, write a new
+  estate" pattern Phase 3's `dataset_masker.py` established
+- All six required sizing strategies
+  (`healthcare_tdm_contracts.SubsettingStrategy`), implemented as real,
+  working code and each demonstrated against the real generated estate:
+  `percentage`, `fixed_population`, `stratified`, `date_window`,
+  `business_rule`, `risk_edge_case` (`data_plane/subsetting/selection.py`)
+- Extended `libs/contracts`:
+  `SubsettingStrategy`, `IntegrityStatus`, `SubsetSelectionCriteria`,
+  `RelationshipEdge`, `SubsetManifest` — the durable, typed record of a
+  subsetting run's source counts, selected counts, relationship edge
+  counts, filter criteria, timestamp, version, estimated storage, and
+  integrity status
+- A three-way orphan classification
+  (`data_plane/subsetting/closure.py`'s `DanglingReference.category`)
+  that distinguishes a pre-existing Phase 1 source orphan (reachable from
+  a real selected member, carried through and reported) from a genuine
+  engine bug (an id that existed in the source but was dropped by the
+  subsetting logic itself — verified never to happen against the real
+  estate) from an intentional negative-test injection
+  (`data_plane/subsetting/negative_testing.py`, opt-in only) — see
+  `docs/tutorial/04-subsetting-and-referential-closure.md` for the full
+  "reachable vs. unreachable orphans" explanation
+- Population size/percentage is fully runtime-configurable (never
+  hardcoded); the same code path demonstrated at `tiny` scale is what
+  would run unmodified against a real `performance`-scale estate for a
+  real 10,000-member subset (not yet benchmarked at that scale — see
+  `problems_phase_04.md` P4-3)
+- 61 new tests (57 in `services/data-plane`, 4 in `libs/contracts`) — see
+  `problems_phase_04.md` for what's still open
 
 ## Phase 3 — what was actually delivered
 

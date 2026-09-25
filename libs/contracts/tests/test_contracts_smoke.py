@@ -19,6 +19,7 @@ from healthcare_tdm_contracts import (
     ClassificationMethod,
     ClassificationTier,
     ColumnClassification,
+    IntegrityStatus,
     JobRequest,
     JobStatus,
     JobType,
@@ -26,6 +27,7 @@ from healthcare_tdm_contracts import (
     MaskingRule,
     MaskingStrategy,
     ObjectRef,
+    RelationshipEdge,
     RetentionClassification,
     ScaleProfileName,
     SensitivityCategory,
@@ -34,6 +36,9 @@ from healthcare_tdm_contracts import (
     SourceDatasetDescriptor,
     SourceSystemType,
     StorageBackend,
+    SubsetManifest,
+    SubsetSelectionCriteria,
+    SubsettingStrategy,
 )
 
 
@@ -233,3 +238,48 @@ def test_source_system_type_is_closed_enum() -> None:
         "adls_pbm_extract",
         "partner_lab_feed",
     }
+
+
+def test_subsetting_strategy_has_all_six_required_strategies() -> None:
+    assert {s.value for s in SubsettingStrategy} == {
+        "percentage",
+        "fixed_population",
+        "stratified",
+        "date_window",
+        "business_rule",
+        "risk_edge_case",
+    }
+
+
+def test_subset_manifest_round_trip() -> None:
+    manifest = SubsetManifest(
+        scale_profile="tiny",
+        selection=SubsetSelectionCriteria(
+            strategy=SubsettingStrategy.FIXED_POPULATION,
+            parameters={"count": "8"},
+            description="Fixed population of 8",
+        ),
+        source_counts={"member": 26},
+        selected_counts={"member": 8},
+        relationship_edges=[RelationshipEdge(parent_entity="Member", child_entity="Coverage", edge_count=11)],
+        filter_criteria={"requested_count": "8"},
+        estimated_source_storage_bytes=131_764,
+        estimated_subset_storage_bytes=70_640,
+        integrity_status=IntegrityStatus.PASSED_WITH_KNOWN_ORPHANS,
+        known_orphan_counts={"encounter.provider_id": 1},
+    )
+    assert SubsetManifest.model_validate_json(manifest.model_dump_json()) == manifest
+    assert manifest.selection_ratio("member") == 8 / 26
+    assert manifest.selection_ratio("claim") is None  # not present in source_counts
+
+
+def test_subset_manifest_requires_integrity_status() -> None:
+    with pytest.raises(ValidationError):
+        SubsetManifest(
+            scale_profile="tiny",
+            selection=SubsetSelectionCriteria(strategy=SubsettingStrategy.PERCENTAGE, parameters={"percentage": "10"}),
+        )  # type: ignore[call-arg]
+
+
+def test_integrity_status_is_closed_enum_with_three_values() -> None:
+    assert {s.value for s in IntegrityStatus} == {"passed", "passed_with_known_orphans", "failed"}

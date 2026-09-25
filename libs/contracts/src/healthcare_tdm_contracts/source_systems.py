@@ -10,11 +10,11 @@ was generated:
 - The data plane's reference synthetic data estate (see
   ``services/data-plane/src/data_plane/reference_data``) is organized by
   source system and is generated at a chosen scale profile.
-- Discovery (Phase 7) will classify columns per ``(source_system,
+- Discovery (Phase 2) classifies columns per ``(source_system,
   dataset)`` pair, reusing ``ColumnClassification.source_system`` as a
   free-form string today; ``SourceSystemType`` gives that string a closed,
   typed vocabulary going forward.
-- Subsetting/masking (Phases 8-10) need to know which datasets are
+- Subsetting/masking (Phases 4 and 3) need to know which datasets are
   Postgres-bound (real foreign keys enforceable) versus file/object-store
   bound (referential integrity is a *logical* contract enforced by the
   producing job, not the storage engine) — see
@@ -72,7 +72,7 @@ class SourceDatasetDescriptor(BaseModel):
     This is the shape the (future) data catalog uses to answer "what is
     ``claim_line``, which system owns it, and how do I read it back" —
     produced once by the reference data generator's manifest and consumed
-    by discovery (Phase 7) and subsetting (Phase 8).
+    by discovery (Phase 2) and subsetting (Phase 4).
     """
 
     entity: str = Field(..., description="Logical entity name, e.g. 'Member' or 'ClaimLine'.")
