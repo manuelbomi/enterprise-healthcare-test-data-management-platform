@@ -422,7 +422,22 @@ the planned experiment above.
   `docs/AZURE_PRODUCTION_DEPLOYMENT.md` section 5 ("what a real rollout
   would add").
 - **The `production` GitHub Environment's manual-approval protection
-  rule** (if configured — see the phase-12 handback report for whether
-  a required-reviewer rule was actually added via the GitHub API during
-  this phase, and how it was verified) is a real GitHub feature, not
-  simulated in YAML; it is documented here rather than assumed.
+  rule was NOT configured during this phase** (no required-reviewer
+  rule was added via the GitHub API or web UI) — the `environment:
+  production` key in `deploy-production.yml` creates the Environment on
+  first use but leaves it unprotected by default; a real deployment
+  would add a required-reviewer rule in Settings -> Environments, which
+  `deploy-production.yml`'s own header comment documents as the
+  intended real mechanism. Not simulated, just not turned on here.
+- **`deploy-qa.yml`/`deploy-staging-uat.yml`/`deploy-production.yml`
+  could not be exercised via `workflow_dispatch` from the verification
+  branch**: `gh workflow run deploy-qa.yml --ref phase-12-ci-verification`
+  returned a real `HTTP 404` — GitHub only allows dispatching a
+  workflow that already exists on the repository's default branch, and
+  these three files exist only on the scratch branch as of this
+  writing. Their `workflow_run` chain (CI -> QA -> staging/UAT ->
+  production) is structurally real and will fire automatically on the
+  next real push to `main` once this phase's diff lands there — it was
+  not separately exercisable before that point, a real GitHub platform
+  constraint, not a gap in these workflow files' own logic (each was
+  independently validated with `actionlint`, see above).
