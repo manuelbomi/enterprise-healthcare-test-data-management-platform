@@ -1,0 +1,35 @@
+%% system-context.mmd
+%% Shows: the platform's six planes and external actors.
+%% Companion to: ARCHITECTURE.md section 2.
+
+flowchart TB
+    Engineer["QA / Test Engineer"]
+    Steward["Data Steward"]
+    Auditor["Auditor / Compliance Reviewer"]
+
+    subgraph Platform["enterprise-healthcare-test-data-management-platform"]
+        UI["UI (React/TS/Vite)"]
+        CP["Control Plane (FastAPI)"]
+        DP["Data Plane (PySpark)"]
+        MP["Metadata Plane (PostgreSQL)"]
+        SGP["Security/Governance Plane"]
+    end
+
+    SourceSys["Synthetic upstream source systems\n(EHR-shaped, claims-shaped, scheduling-shaped)"]
+    Storage["Object Storage\n(MinIO / S3 / Azure Blob-ADLS)"]
+    Secrets["Secrets Provider"]
+
+    Engineer -->|requests test data| UI
+    Steward -->|confirms classifications| UI
+    Auditor -->|reviews evidence| UI
+
+    UI --> CP
+    CP --> DP
+    CP --> MP
+    CP --> SGP
+    DP --> MP
+    DP --> SGP
+    SGP --> Secrets
+
+    DP -->|reads, scoped read-only| SourceSys
+    DP -->|reads/writes| Storage

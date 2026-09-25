@@ -1,0 +1,142 @@
+# =============================================================================
+# enterprise-healthcare-test-data-management-platform — .gitignore
+# Keep this list boring and explicit. When in doubt, exclude generated
+# artifacts and local state; never exclude source, docs, or config-as-code.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Secrets / environment — NEVER commit real credentials to this repository.
+# Only *.example files with synthetic/placeholder values are tracked.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+**/secrets.local.*
+**/*_secret.*
+**/*.secret
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# ---------------------------------------------------------------------------
+# Node / frontend
+# ---------------------------------------------------------------------------
+node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/coverage/
+.pnpm-store/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------------------------------------------------------------------------
+# PySpark / data engineering
+# ---------------------------------------------------------------------------
+spark-warehouse/
+metastore_db/
+derby.log
+*.crc
+_SUCCESS
+
+# ---------------------------------------------------------------------------
+# Data / synthetic data working directories (never commit generated data,
+# even synthetic data — treat local generated output as disposable)
+# ---------------------------------------------------------------------------
+data/raw/
+data/processed/
+data/snapshots/
+data/tmp/
+**/*.parquet
+**/*.delta
+!**/fixtures/**/*.parquet
+
+# ---------------------------------------------------------------------------
+# Local infrastructure state (MinIO, Postgres, docker volumes)
+# ---------------------------------------------------------------------------
+infra/docker/minio-data/
+infra/docker/postgres-data/
+infra/docker/volumes/
+**/.minio.sys/
+*.db
+*.sqlite3
+
+# ---------------------------------------------------------------------------
+# Terraform
+# ---------------------------------------------------------------------------
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
+# ---------------------------------------------------------------------------
+# Kubernetes / Helm
+# ---------------------------------------------------------------------------
+**/charts/*.tgz
+**/secrets.yaml
+!**/secrets.yaml.example
+
+# ---------------------------------------------------------------------------
+# IDE / editor
+# ---------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# OS
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------------------
+# Logs / observability local output
+# ---------------------------------------------------------------------------
+*.log
+logs/
+.otel/
+
+# ---------------------------------------------------------------------------
+# Claude Code / agent harness local state (never part of project content)
+# ---------------------------------------------------------------------------
+.claude/

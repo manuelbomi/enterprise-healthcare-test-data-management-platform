@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tdm-data-plane"
+version = "0.1.0"
+description = "Data plane: PySpark jobs for PHI/PII discovery, subsetting, masking, and synthetic data generation."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "pyspark>=3.5",
+    "delta-spark>=3.1",
+    "pandas>=2.2",
+    "pyarrow>=15.0",
+    "healthcare-tdm-contracts @ file:../../libs/contracts",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "mypy>=1.9",
+    "ruff>=0.4",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true

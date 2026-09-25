@@ -1,0 +1,43 @@
+# Default values for the tdm-platform chart.
+#
+# Phase 0 scope: documents the intended shape of configuration; the
+# templates that would consume these values do not exist yet (see
+# templates/README.md). Real values are added alongside real templates in
+# Phase 20.
+
+environment: dev
+
+controlPlane:
+  image:
+    repository: REPLACE_ME/tdm-control-plane
+    tag: "0.1.0"
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+governanceService:
+  image:
+    repository: REPLACE_ME/tdm-governance-service
+    tag: "0.1.0"
+  replicas: 1
+
+frontend:
+  image:
+    repository: REPLACE_ME/tdm-console
+    tag: "0.1.0"
+  replicas: 1
+
+postgresql:
+  # In a real deployment this typically points at a managed cloud database
+  # (see infra/terraform) rather than an in-cluster StatefulSet. Left
+  # unconfigured here deliberately.
+  externalHost: ""
+
+objectStorage:
+  backend: aws_s3 # one of: minio | aws_s3 | azure_blob — see docs/adr/0005-object-storage-abstraction.md
+  bucket: ""
