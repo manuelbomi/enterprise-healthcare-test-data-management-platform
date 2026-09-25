@@ -4,17 +4,16 @@ Run locally with:
 
     uvicorn control_plane.main:app --reload
 
-Phase 0 scope: only a health/readiness endpoint is wired up, so the
-service's shape (app factory, router registration pattern) is fixed
-before real routes are added in Phase 2 onward. See api/v1/ for versioned
-route modules.
+Phase 0 scope: only a health/readiness endpoint was wired up. Phase 2
+adds the first real business-capability route set (`api/v1/catalog.py`,
+the PHI/PII data catalog). See api/v1/ for versioned route modules.
 """
 
 from __future__ import annotations
 
 from fastapi import FastAPI
 
-from control_plane.api.v1 import health
+from control_plane.api.v1 import catalog, health
 from control_plane.config import get_settings
 
 
@@ -38,6 +37,7 @@ def create_app() -> FastAPI:
         ),
     )
     app.include_router(health.router, prefix=settings.api_v1_prefix)
+    app.include_router(catalog.router, prefix=settings.api_v1_prefix)
     return app
 
 

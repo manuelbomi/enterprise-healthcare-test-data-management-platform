@@ -24,25 +24,24 @@ Each entry should have:
 
 ## Open problems
 
-### P0-1 — No dependency installation has been performed
+### P0-1 — `npm install` has not been performed for `frontend/`
 
 - **Phase:** 0
 - **Status:** open (deliberately deferred)
-- **Description:** `pip install` has not been run for any of the Python
-  packages (`services/control-plane`, `services/data-plane`,
-  `services/governance-service`, `libs/contracts`), and `npm install` has
-  not been run for `frontend/`. Config files (`pyproject.toml`,
-  `package.json`) are in place and should be installable, but this has not
-  been verified by actually running the install.
-- **Repro / detail:** Run `pip install -e .` inside any
-  `services/*/` or `libs/contracts/` directory, and `npm install` inside
-  `frontend/`. Expected: succeeds cleanly. Not yet verified because Phase 0
-  is scaffolding-only per the operating instructions for this build.
-- **Affected files:** `services/*/pyproject.toml`, `libs/contracts/pyproject.toml`,
-  `frontend/package.json`
-- **Owner for resolution:** Phase 1 (metadata plane) and Phase 2 (control
-  plane skeleton) should be the first phases to actually install and run
-  their respective packages.
+- **Description:** All four Python workspace packages (`libs/contracts`,
+  `services/control-plane`, `services/data-plane`,
+  `services/governance-service`) are now installed in editable mode via
+  `scripts/bootstrap.sh` and their test suites pass (verified in Phases 1
+  and 2 — 14 + 20 + 74 + 1 = 109 tests passing across the four packages as
+  of Phase 2). `npm install` has still not been run for `frontend/`
+  (`frontend/node_modules/` does not exist) — there is no real frontend
+  code yet to install dependencies for (`ROADMAP.md` Phase 9).
+- **Repro / detail:** Run `npm install` inside `frontend/`. Expected:
+  succeeds cleanly. Deferred until Phase 9 actually adds frontend code
+  worth installing dependencies for.
+- **Affected files:** `frontend/package.json`
+- **Owner for resolution:** Phase 9 (React/TypeScript enterprise TDM web
+  console).
 
 ### P0-2 — No CI runs have been executed against this repository yet
 

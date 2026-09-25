@@ -1,18 +1,42 @@
-"""PHI/PII discovery & classification.
+"""PHI/PII discovery & classification (Phase 2).
 
 Scans a source dataset's schema and (synthetic-only) sample data to
-produce ColumnClassification records (see
-libs/contracts/src/healthcare_tdm_contracts/classification.py) using
-rule-based and pattern-based detectors — e.g., column-name heuristics
-("mrn", "ssn", "dob"), value-pattern matchers (SSN-shaped strings,
-email-shaped strings), and statistical uniqueness checks (a column where
-nearly every value is unique is a candidate identifier even without a
-name/pattern match).
+produce `ColumnClassification`/`CatalogEntry` records (see
+`libs/contracts/src/healthcare_tdm_contracts/classification.py` and
+`catalog.py`) using three layers, in precedence order:
 
-Phase 0 scope: placeholder module. Implemented in Phase 7. Design intent
-recorded here so later phases start from a clear target: detectors must be
-independently unit-testable against fixture data, must report a
-confidence score (never a bare boolean), and must default to the more
-conservative classification tier below a configured confidence threshold
-(see DATA_GOVERNANCE.md section B.1).
+1. **Schema-based** (`schema_rules.py`) — an explicit, human-authored
+   table covering every field of all 14 Phase 1 entities
+   (`data_plane.reference_data.domain`).
+2. **Rule-based** (`pattern_rules.py`) — column-name (and optionally
+   sample-value) pattern detectors, consulted only for columns the schema
+   layer doesn't recognize (schema drift, partner-specific abbreviations,
+   genuinely unknown columns).
+3. **Manual override** (`overrides.py`) — a human data steward's decision,
+   always highest precedence.
+
+`engine.py`'s `ClassificationEngine` combines all three and applies
+DATA_GOVERNANCE.md B.1's conservative-default rule when nothing matches.
+`scanner.py` reads the actual generated Phase 1 estate (SQLite, Parquet,
+NDJSON, CSV, partner flat-file/JSON) to enumerate real columns.
+`catalog_builder.py` turns classified columns into the full data catalog
+(`CatalogEntry`: classification + masking requirement + owner + retention
+classification) and writes/reads it as a JSON artifact. `cli.py` is the
+command-line entry point.
+
+See `README.md` in this directory for how to run it, and
+`docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md` for what this engine can and
+cannot prove — regex/schema-based classification is a triage tool, not a
+HIPAA-compliance guarantee.
 """
+
+from data_plane.discovery.catalog_builder import build_catalog, load_catalog, write_catalog
+from data_plane.discovery.engine import ClassificationEngine, ColumnToClassify
+
+__all__ = [
+    "ClassificationEngine",
+    "ColumnToClassify",
+    "build_catalog",
+    "load_catalog",
+    "write_catalog",
+]

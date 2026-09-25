@@ -1,0 +1,53 @@
+# Manual classification overrides.
+#
+# Loaded by overrides.py; applied by engine.py with the highest precedence
+# (above both schema-based and rule-based classification) and always at
+# confidence 1.0, method "manual_override". Each entry must have a
+# `confirmed_by` identity and a human-readable `reason` — this file *is*
+# the audit trail for "who decided this and why" (DATA_GOVERNANCE.md B.1).
+#
+# `source_system` values are `SourceSystemType` enum values
+# (libs/contracts/src/healthcare_tdm_contracts/source_systems.py).
+# `dataset` is the snake_case entity/dataset name the scanner uses
+# (see discovery/scanner.py, `entity_to_dataset_name`).
+# `category` is a SensitivityCategory value.
+#
+# Two worked, realistic examples:
+overrides:
+  # 1. Raises the automated classification. The schema layer classifies
+  #    Provider.specialty as NON_SENSITIVE (it's ordinary provider-
+  #    directory metadata by column name/definition). A data steward
+  #    reviewing the actual generated values noticed "Behavioral Health"
+  #    among them and decided the column should be handled conservatively
+  #    at the provider-directory level too -- exactly the kind of
+  #    values-not-just-names judgment call neither the schema layer nor
+  #    the pattern layer can make on its own.
+  - source_system: postgres_enrollment
+    dataset: provider
+    column: specialty
+    category: sensitive
+    reason: >-
+      Reviewed generated values and found "Behavioral Health" among them.
+      Per DATA_GOVERNANCE.md B.1, sensitive clinical categories warrant
+      conservative handling even at the provider-directory level, since a
+      behavioral-health specialty can itself be a sensitive fact in some
+      downstream uses (e.g., inferring the population a provider treats).
+    confirmed_by: data-governance-steward@example.org
+
+  # 2. Lowers the automated classification. "adjustment_reason_code" is a
+  #    genuinely new column introduced by the claims warehouse's
+  #    current-quarter schema (see writers/parquet_writer.py) that matches
+  #    no schema entry and no pattern detector, so the engine's own
+  #    DATA_GOVERNANCE.md B.1 conservative default applies (SENSITIVE,
+  #    confidence 0.3). A data steward who actually knows what the column
+  #    means confirms it is safe to downgrade.
+  - source_system: object_storage_claims_parquet
+    dataset: claim
+    column: adjustment_reason_code
+    category: non_sensitive
+    reason: >-
+      Confirmed with the claims warehouse team: this is an internal
+      claims-adjudication reason code (e.g. "COPAY_ADJUSTED",
+      "CONTRACT_RATE_APPLIED"), not a clinical or identifying value.
+      Safe to classify as non-sensitive.
+    confirmed_by: data-governance-steward@example.org

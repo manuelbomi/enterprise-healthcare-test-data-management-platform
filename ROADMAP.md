@@ -20,7 +20,7 @@ repository going forward.
 |---|---|---|
 | 0 | Repository operating rules, architecture, conventions, ADRs, scaffolding | **Complete** |
 | 1 | Synthetic healthcare data estate across 5 heterogeneous source systems | **Complete** |
-| 2 | PHI/PII discovery and classification engine + data catalog | Not started |
+| 2 | PHI/PII discovery and classification engine + data catalog | **Complete** |
 | 3 | Enterprise deterministic masking engine (pseudonymization/tokenization) | Not started |
 | 4 | Referentially intact, production-scale data subsetting | Not started |
 | 5 | Synthetic test data generation (scenario/edge-case data) | Not started |
@@ -39,6 +39,40 @@ repository going forward.
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 2 — what was actually delivered
+
+- A configurable, three-layer PHI/PII classification engine
+  (`services/data-plane/src/data_plane/discovery/`): schema-based
+  (every field of all 14 Phase 1 entities, explicitly), rule-based
+  (column-name/value pattern detectors), and manual override (steward
+  corrections, signed with a `confirmed_by` identity), combined with a
+  documented precedence order and DATA_GOVERNANCE.md B.1's
+  conservative-default rule for unrecognized columns
+- Extended `libs/contracts` classification/catalog shapes:
+  `SensitivityCategory` (6 labels), `ClassificationMethod`, `CatalogEntry`,
+  `RetentionClassification`, built on top of (not duplicating) the
+  existing Phase 0 `ClassificationTier`/`ColumnClassification`
+- Run against the real, generated Phase 1 estate (not just the schema):
+  a scanner (`discovery/scanner.py`) reads the actual SQLite/Parquet/
+  NDJSON/CSV/partner files and catches real schema-drift columns
+  (`amount_paid`, `adjustment_reason_code`, `pat_id`, `test_cd`, ...) a
+  schema-only classifier would miss
+- A data catalog (classification + masking requirement + source + owner +
+  retention classification per column), produced as a JSON artifact and
+  served read-only by the control plane
+  (`GET /api/v1/catalog`, `/catalog/summary`, `/catalog/datasets`,
+  `/catalog/{source_system}/{dataset}/{column}`) — see
+  [ADR-0009](docs/adr/0009-catalog-artifact-handoff.md) for the
+  plane-separation-respecting handoff design
+- `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md`: an honest account of what
+  pattern/schema-based classification can and cannot prove (no free-text/
+  NLP coverage, no semantic understanding, no combination/re-identification
+  risk scoring) — this is explicitly not presented as a HIPAA compliance
+  guarantee
+- Tests across both affected packages (`libs/contracts`,
+  `services/data-plane`, `services/control-plane`) — see
+  `problems_phase_02.md` for what's still open
 
 ## Phase 1 — what was actually delivered
 

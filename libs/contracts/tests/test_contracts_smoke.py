@@ -12,8 +12,11 @@ import pytest
 from pydantic import ValidationError
 
 from healthcare_tdm_contracts import (
+    TIER_BY_CATEGORY,
     AuditEvent,
     AuditEventType,
+    CatalogEntry,
+    ClassificationMethod,
     ClassificationTier,
     ColumnClassification,
     JobRequest,
@@ -23,7 +26,9 @@ from healthcare_tdm_contracts import (
     MaskingRule,
     MaskingStrategy,
     ObjectRef,
+    RetentionClassification,
     ScaleProfileName,
+    SensitivityCategory,
     SnapshotRecord,
     SnapshotStatus,
     SourceDatasetDescriptor,
@@ -38,11 +43,80 @@ def test_column_classification_round_trip() -> None:
         dataset="patients",
         column="mrn",
         tier=ClassificationTier.DIRECT_IDENTIFIER,
+        category=SensitivityCategory.DIRECT_IDENTIFIER,
         confidence=0.98,
         detector="pattern:mrn-format",
+        method=ClassificationMethod.RULE_BASED,
+        reason="Column name matches the medical-record-number pattern.",
     )
     assert classification.confirmed_by is None
     assert ColumnClassification.model_validate_json(classification.model_dump_json()) == classification
+
+
+def test_column_classification_backfills_category_from_tier() -> None:
+    classification = ColumnClassification(
+        source_system="ehr-synthetic",
+        dataset="patients",
+        column="mrn",
+        tier=ClassificationTier.DIRECT_IDENTIFIER,
+        confidence=0.98,
+        detector="pattern:mrn-format",
+    )
+    assert classification.category == SensitivityCategory.DIRECT_IDENTIFIER
+
+
+def test_column_classification_needs_review_below_confidence_threshold() -> None:
+    low_confidence = ColumnClassification(
+        source_system="ehr-synthetic",
+        dataset="patients",
+        column="notes",
+        tier=ClassificationTier.SENSITIVE_CLINICAL_ATTRIBUTE,
+        category=SensitivityCategory.SENSITIVE,
+        confidence=0.3,
+        detector="fallback:no-match",
+    )
+    assert low_confidence.needs_review is True
+
+    confirmed = low_confidence.model_copy(update={"confirmed_by": "steward.jane"})
+    assert confirmed.needs_review is False
+
+    high_confidence = low_confidence.model_copy(update={"confidence": 0.95})
+    assert high_confidence.needs_review is False
+
+
+def test_sensitivity_category_is_closed_enum_with_six_values() -> None:
+    assert {c.value for c in SensitivityCategory} == {
+        "direct_identifier",
+        "quasi_identifier",
+        "phi",
+        "pii",
+        "sensitive",
+        "non_sensitive",
+    }
+    assert set(TIER_BY_CATEGORY) == set(SensitivityCategory)
+
+
+def test_catalog_entry_composes_classification() -> None:
+    entry = CatalogEntry(
+        classification=ColumnClassification(
+            source_system="postgres_enrollment",
+            dataset="member",
+            column="ssn",
+            tier=ClassificationTier.DIRECT_IDENTIFIER,
+            category=SensitivityCategory.DIRECT_IDENTIFIER,
+            confidence=1.0,
+            detector="schema:Member.ssn",
+            method=ClassificationMethod.SCHEMA_BASED,
+            reason="Explicit schema entry for the known Member entity.",
+        ),
+        masking_requirement=MaskingStrategy.DETERMINISTIC_TOKENIZATION,
+        owner="Enrollment Data Engineering",
+        retention_classification=RetentionClassification.EXTENDED,
+    )
+    assert entry.dataset == "member"
+    assert entry.column == "ssn"
+    assert entry.source == "postgres_enrollment"
+    assert CatalogEntry.model_validate_json(entry.model_dump_json()) == entry
 
 
 def test_column_classification_confidence_must_be_in_unit_range() -> None:

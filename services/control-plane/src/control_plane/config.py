@@ -33,6 +33,13 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     database_url: str = "postgresql+psycopg://tdm:tdm@localhost:5432/tdm_metadata"
     api_v1_prefix: str = "/api/v1"
+    # Path to the PHI/PII data catalog JSON artifact the data-plane
+    # discovery engine (`data_plane.discovery.cli`) writes. Read by
+    # `control_plane.catalog.CatalogRepository` and served by
+    # `api/v1/catalog.py`. See ADR-0009
+    # (`docs/adr/0009-catalog-artifact-handoff.md`) for why this is a file
+    # path rather than a database connection in Phase 2.
+    catalog_path: str = "data/tmp/synthetic-estate/catalog.json"
 
 
 def get_settings() -> Settings:

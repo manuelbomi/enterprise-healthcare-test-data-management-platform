@@ -279,6 +279,16 @@ of the system is fixed before behavior is added.
 | Any plane → Security/governance plane | AuthZ check, audit event emit, secret resolve | `libs/contracts` `AuditEvent`, `AuthorizationRequest` models |
 | Data plane → Infrastructure | Object storage get/put, Spark session | Storage adapter interface in `libs/contracts` / `data_plane` |
 
+Phase 2 note: the PHI/PII data catalog (`Discovery` in the diagram above)
+is implemented and real, but the metadata plane's PostgreSQL
+catalog/classification store (row 3 above, per ADR-0004) does not exist
+yet — that is later-phase infrastructure work. Until it does, discovery
+writes the catalog as a JSON artifact and the control plane reads it
+directly, both sides depending only on the shared `libs/contracts`
+`CatalogEntry` shape, never on each other's package. See
+[ADR-0009](docs/adr/0009-catalog-artifact-handoff.md) for the interim
+design and what it does not yet solve (concurrent writers, live reload).
+
 ## 5. Why this stack
 
 See the ADRs in `docs/adr/` for the reasoning behind each major choice
