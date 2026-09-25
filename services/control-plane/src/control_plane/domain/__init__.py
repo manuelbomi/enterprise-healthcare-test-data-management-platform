@@ -10,4 +10,11 @@ without a running Postgres/network. Concrete I/O implementations live in
 Phase 0 scope: this module is an empty placeholder establishing where
 orchestration/policy code will live starting Phase 2 (orchestration) and
 Phase 14 (job DAG execution).
+
+Phase 7 adds the first real subpackage here: `domain.lifecycle`
+(dataset versions, refresh policies, environment requests, the refresh
+orchestration abstraction). It depends only on a `sqlalchemy.orm.Session`
+handed to it by the caller (never opens its own connection), keeping it
+unit-testable without a running API process -- see
+`domain/lifecycle/__init__.py`.
 """

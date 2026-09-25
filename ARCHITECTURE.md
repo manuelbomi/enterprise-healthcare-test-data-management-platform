@@ -373,6 +373,25 @@ not simply trust [masking's] own report" is what this phase's gates
 (`data_plane/certification/gates.py`) exist to satisfy; see
 `docs/CERTIFICATION_VS_MASKING.md` for the full reasoning.
 
+Phase 7 note: this phase gives `services/control-plane` its first real,
+database-backed piece of the metadata plane described in section 2.3 --
+`control_plane/db/models.py` (dataset versions, refresh policies,
+environment dataset requests, refresh runs, rollback events) and
+`control_plane/domain/lifecycle/` (the business logic and the
+`RefreshOrchestrator` orchestration abstraction), exposed at
+`/api/v1/lifecycle`. Unlike every prior control-plane capability (the
+Phase 2 catalog, a read-only view over a JSON artifact per ADR-0009),
+this is real, writable, queryable state -- `EnvironmentDatasetRequest`
+rows reference a `DatasetVersion` by foreign key rather than copying its
+`storage_uri`, which is the concrete mechanism satisfying `ROADMAP.md`
+Phase 7's "avoid unnecessary duplicate physical copies" requirement. See
+[ADR-0012](docs/adr/0012-refresh-orchestration-abstraction.md) and
+`docs/tutorial/07-dataset-lifecycle-and-refresh.md`. The catalog,
+lineage, and classification-store portions of section 2.3's schema
+remain not-yet-migrated from their Phase 2 JSON-artifact interim design
+(see `problems_phase_07.md`, which does not reopen that gap -- it is
+still tracked under its original Phase 2 owner note).
+
 ## 5. Why this stack
 
 See the ADRs in `docs/adr/` for the reasoning behind each major choice

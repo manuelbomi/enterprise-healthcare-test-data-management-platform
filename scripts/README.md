@@ -9,6 +9,18 @@ Developer utility scripts.
   for *why* this exists as a script rather than `pyproject.toml` `file:`
   URL dependencies — a real pip bug hit in Phase 1 when the repo's parent
   directory name contains a space.
+- `demo_phase7_lifecycle.py` — an end-to-end demonstration of Phase 7
+  (dataset lifecycle and refresh management): runs the real Phase 6
+  certification pipeline twice to produce two real `CertificationReport`s,
+  then registers/requests-into-5-environments/refreshes/rolls-back/
+  revokes them through the real `services/control-plane` API (via
+  `TestClient`, backed by a real on-disk SQLite database). A standalone
+  operator script, not part of either service's installed package -- see
+  its own module docstring for why that's consistent with ADR-0003. Run
+  with `python scripts/demo_phase7_lifecycle.py` from the repository
+  root (both `data_plane` and `control_plane` must be installed, i.e.
+  `bootstrap.sh` already run). See
+  `docs/tutorial/07-dataset-lifecycle-and-refresh.md`.
 
 Planned for later phases:
 
