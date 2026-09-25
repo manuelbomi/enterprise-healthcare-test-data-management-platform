@@ -49,6 +49,35 @@ class Settings(BaseSettings):
     # unmodified. See `problems_phase_07.md` for what remains unverified
     # against a real Postgres instance.
     lifecycle_database_url: str = "sqlite:///data/tmp/control-plane/lifecycle.db"
+    # Phase 9: read-only JSON-artifact roots for the data-plane engines
+    # that do not yet have their own control-plane API (masking,
+    # subsetting, synthetic scenario generation, certification -- see
+    # ARCHITECTURE.md's Phase 3/4/5/6 notes). Each repository under
+    # `control_plane.artifacts` recursively scans its configured root for
+    # the well-known artifact filename a data-plane CLI/pipeline run
+    # writes (e.g. `certification_report.json`), exactly the same
+    # single-writer/single-reader JSON-artifact-handoff pattern ADR-0009
+    # established for the Phase 2 catalog -- no control-plane code here
+    # imports `data_plane`.
+    masking_artifacts_root: str = "data/tmp"
+    subsetting_artifacts_root: str = "data/tmp"
+    synthetic_artifacts_root: str = "data/tmp"
+    certification_artifacts_root: str = "data/tmp"
+    # Phase 9: CORS origins allowed to call this API cross-origin.
+    # ADR-0008's default local-dev path is same-origin (the Vite dev
+    # server proxies `/api` to this service -- see `frontend/vite.config.ts`
+    # -- so the browser never makes a cross-origin request and no CORS
+    # header is needed). This exists for the documented escape hatch
+    # `frontend/.env.example`'s `VITE_API_BASE_URL` already describes
+    # ("targets a control plane running somewhere else"), and for any
+    # future deployment shape where the frontend is served from a
+    # different origin than this API. Comma-separated; empty means no
+    # CORS middleware is installed at all (the strictest default).
+    cors_allowed_origins: str = ""
+
+    @property
+    def cors_allowed_origins_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
 
 
 def get_settings() -> Settings:

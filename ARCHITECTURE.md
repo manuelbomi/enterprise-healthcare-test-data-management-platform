@@ -410,6 +410,43 @@ produces, exposed at `/api/v1/capacity`. See
 `docs/CAPACITY_COST_TRADEOFFS.md` for the honest, measured numbers and
 what remains modeled/illustrative rather than measured.
 
+Phase 9 note: `frontend/` (row 1 above, the UI plane) goes from an
+empty Phase 0 scaffold to a real, working console -- fourteen
+route-mounted pages, a typed API client layer (`frontend/src/api/`,
+strict TypeScript interfaces mirroring the `libs/contracts` Pydantic
+models), Vitest/React Testing Library component tests, and Playwright
+E2E tests for the critical workflows, all talking only to the control
+plane's REST API per this section's original constraint. Four of the
+console's pages (Masking Policies, Subsetting Jobs, Synthetic Data,
+Certification) needed a real backing API that did not exist yet --
+Phases 3/4/5/6's engines only ever wrote a JSON artifact to disk (see
+this document's own Phase 3/4/5/6 notes above). Rather than fake those
+pages' data, this phase adds four new, small, read-only control-plane
+routers (`control_plane/api/v1/masking.py`, `subsetting.py`,
+`synthetic.py`, `certification.py`) backed by a new
+`control_plane/artifacts/` package, following the *exact* JSON-artifact-
+handoff pattern ADR-0009 established for the Phase 2 catalog: no
+control-plane code imports `data_plane`, and the only coupling is the
+shared `libs/contracts` shapes (`SubsetManifest`,
+`SyntheticGenerationManifest`, `CertificationReport`) plus one small,
+deliberately duplicated, control-plane-local mirror type for masking
+(`MaskingRunSummary` -- masking's run summary was never promoted to a
+`libs/contracts` shape, unlike the other three). Unlike the Phase 2
+catalog's single configured artifact path, each of these four
+repositories recursively scans a configured *root directory* for every
+matching artifact filename found under it (real job/demo runs write to
+different output directories per run) -- see
+`control_plane/artifacts/__init__.py`'s module docstring and
+`problems_phase_09.md` for the concurrency/performance caveats this
+inherits from ADR-0009's original design. Audit Trail (Phase 13) and
+full Platform Health (Phase 11, beyond the existing liveness-only
+`/api/v1/health`) remain honest "not yet available" placeholders --
+there is no security/governance-plane audit log or dependency-aware
+readiness check to point at yet. See `problems_phase_09.md` for the
+per-page decision record and `docs/adr/0008-frontend-stack.md`
+(unchanged, since the accessible-by-default / control-plane-only
+constraints it establishes are exactly what this phase followed).
+
 ## 5. Why this stack
 
 See the ADRs in `docs/adr/` for the reasoning behind each major choice
