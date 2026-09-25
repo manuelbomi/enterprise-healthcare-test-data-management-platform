@@ -19,6 +19,7 @@ from healthcare_tdm_contracts import (
     ClassificationMethod,
     ClassificationTier,
     ColumnClassification,
+    DataProvenance,
     IntegrityStatus,
     JobRequest,
     JobStatus,
@@ -30,6 +31,8 @@ from healthcare_tdm_contracts import (
     RelationshipEdge,
     RetentionClassification,
     ScaleProfileName,
+    ScenarioGenerationRecord,
+    ScenarioType,
     SensitivityCategory,
     SnapshotRecord,
     SnapshotStatus,
@@ -39,6 +42,7 @@ from healthcare_tdm_contracts import (
     SubsetManifest,
     SubsetSelectionCriteria,
     SubsettingStrategy,
+    SyntheticGenerationManifest,
 )
 
 
@@ -283,3 +287,64 @@ def test_subset_manifest_requires_integrity_status() -> None:
 
 def test_integrity_status_is_closed_enum_with_three_values() -> None:
     assert {s.value for s in IntegrityStatus} == {"passed", "passed_with_known_orphans", "failed"}
+
+
+def test_data_provenance_is_closed_enum_with_three_values() -> None:
+    assert {p.value for p in DataProvenance} == {"masked_production_like", "synthetic", "negative_test"}
+
+
+def test_scenario_type_has_all_eleven_required_scenarios() -> None:
+    assert {s.value for s in ScenarioType} == {
+        "normal_claims",
+        "high_cost_claims",
+        "duplicate_claims",
+        "invalid_claim_references",
+        "expired_coverage",
+        "missing_provider",
+        "unusual_prescription_combinations",
+        "missing_laboratory_values",
+        "boundary_dates",
+        "null_heavy_records",
+        "very_large_claim_histories",
+    }
+
+
+def test_synthetic_generation_manifest_round_trip() -> None:
+    manifest = SyntheticGenerationManifest(
+        mode="augment",
+        base_estate_dir="/tmp/subset",
+        seed=42,
+        scenarios=[
+            ScenarioGenerationRecord(
+                scenario=ScenarioType.HIGH_COST_CLAIMS,
+                provenance=DataProvenance.SYNTHETIC,
+                description="3 catastrophic-cost claims",
+                row_counts={"claim": 3, "claim_line": 9},
+                anchor_ids=["SYN-CLM-SCEN-0000001"],
+            )
+        ],
+        total_row_counts={"claim": 3},
+        provenance_row_counts={"synthetic": 3},
+        estimated_output_storage_bytes=1024,
+    )
+    assert SyntheticGenerationManifest.model_validate_json(manifest.model_dump_json()) == manifest
+    assert manifest.scenario_types() == {ScenarioType.HIGH_COST_CLAIMS}
+
+
+def test_synthetic_generation_manifest_requires_mode_and_seed() -> None:
+    with pytest.raises(ValidationError):
+        SyntheticGenerationManifest()  # type: ignore[call-arg]
+
+
+def test_scenario_generation_record_provenance_and_scenario_are_independent() -> None:
+    # A scenario's headline classification (NEGATIVE_TEST) is independent
+    # of what any individual supporting row within it is tagged -- the
+    # contract only records the batch-level rollup; row-level provenance
+    # lives in the data plane's own output, not in this contract.
+    record = ScenarioGenerationRecord(
+        scenario=ScenarioType.DUPLICATE_CLAIMS,
+        provenance=DataProvenance.NEGATIVE_TEST,
+        row_counts={"claim": 6},
+    )
+    assert record.provenance is DataProvenance.NEGATIVE_TEST
+    assert record.scenario is ScenarioType.DUPLICATE_CLAIMS

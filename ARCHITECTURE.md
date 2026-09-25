@@ -165,9 +165,24 @@ Responsibilities:
   classification -> masking policy -> masked output" is wired end to
   end. See `docs/adr/0006-deterministic-masking-strategy.md` and
   `docs/adr/0010-masking-technique-vocabulary.md`.
-- **Synthetic generation** (`data_plane/synthetic`): generate wholly synthetic
-  records (no real source row involved at all) for scenarios where no safe
-  source data exists (e.g., rare disease cohorts, edge-case volumes).
+- **Synthetic generation** (`data_plane/synthetic`, implemented in
+  Phase 5): supplements an already-subsetted-and-masked dataset (or
+  produces a standalone dataset) with wholly synthetic *scenario*
+  records — no real source row involved at all — for specific test
+  scenarios a QA/test engineer needs on demand (a high-cost claim, a
+  claim referencing a member that doesn't exist, a member with an
+  unusually large claim history, ...) that may not occur naturally, or
+  often enough, in a random subset. Distinct from Phase 1's
+  `data_plane/reference_data`, which builds the *entire* estate from
+  nothing and injects its own edge cases as part of that build — this
+  component runs one stage later in the pipeline (after `MASK`, per the
+  diagram above) and only ever augments. Every record it produces (and
+  every base-estate record it touches while augmenting) is tagged with
+  an explicit `healthcare_tdm_contracts.DataProvenance`
+  (`masked_production_like` / `synthetic` / `negative_test`) so a
+  synthetic or negative-test record can never be mistaken for real
+  (masked) data downstream. See
+  `docs/tutorial/05-synthetic-scenario-generation.md`.
 - **Certification** (implemented alongside masking): automated checks that a
   produced dataset actually meets its masking policy (no raw identifiers
   leaked, referential integrity holds, distribution shape preserved within

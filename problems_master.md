@@ -63,10 +63,21 @@ Each entry should have:
 - **Description:** `libs/contracts` documents the intended storage adapter
   contract in comments/docstrings, but there is no working MinIO, S3, or
   Azure Blob/ADLS adapter yet.
-- **Repro / detail:** N/A — no code to exercise yet. Tracked so Phase 5
-  starts from a known contract rather than re-deriving it.
+- **Repro / detail:** N/A — no code to exercise yet.
 - **Affected files:** `libs/contracts/src/healthcare_tdm_contracts/`
-- **Owner for resolution:** Phase 5 (object storage abstraction).
+- **Owner for resolution:** Not currently scheduled by name in
+  `ROADMAP.md`. (Correction made during Phase 5: this entry previously
+  said "Owner: Phase 5 (object storage abstraction)," a stale reference
+  to an earlier draft phase order. The current `ROADMAP.md` Phase 5 is
+  "Synthetic test data generation," not object storage, and Phase 5's
+  own real, on-disk local-filesystem reads/writes -- see
+  `services/data-plane/src/data_plane/synthetic/` -- do not touch this
+  gap. Every data-plane phase through Phase 5 continues to read/write a
+  local filesystem path directly, not through a `StorageBackend` adapter;
+  closest current candidate is Phase 8, "Storage and compute footprint
+  management / capacity planning," though that phase's own scope is
+  capacity planning, not necessarily implementing the adapters
+  themselves.)
 
 ### P0-4 — Diagrams are Mermaid source only; no rendered/exported images yet
 
