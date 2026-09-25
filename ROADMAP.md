@@ -27,7 +27,7 @@ repository going forward.
 | 6 | Certified test dataset pipeline (ingest→...→certify→publish) | **Complete** |
 | 7 | Dataset lifecycle and refresh management (versions, cadence, retention) | **Complete** |
 | 8 | Storage and compute footprint management / capacity planning | **Complete** |
-| 9 | React/TypeScript enterprise TDM web console | Not started |
+| 9 | React/TypeScript enterprise TDM web console | **Complete** |
 | 10 | Centralized enterprise masking standard (multi-business-unit governance) | Not started |
 | 11 | Platform integrity (health, resiliency, failure injection) | Not started |
 | 12 | Production CI/CD and cloud testing (GitHub Actions, K8s, Terraform) | Not started |
@@ -39,6 +39,85 @@ repository going forward.
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 9 — what was actually delivered
+
+- A real, running React + TypeScript + Vite console
+  (`frontend/`, real `npm install` -- 435 packages, real
+  `npm run build`/`npm run lint`/`npm run test` all passing): fourteen
+  route-mounted pages plus a composed Dataset Detail page, per
+  `frontend/src/pages/README.md`'s table -- Dashboard, Data Sources,
+  Data Catalog, Sensitive Data Discovery, Masking Policies, Subsetting
+  Jobs, Synthetic Data, Certification, Datasets (+ Detail), Environment
+  Provisioning, Refresh Calendar, Capacity & Cost, Audit Trail, Platform
+  Health
+- A typed API client layer (`frontend/src/api/`): a small `fetch`
+  wrapper (`client.ts`, real `ApiError` with HTTP status/detail),
+  hand-maintained strict TypeScript interfaces mirroring every
+  `libs/contracts` Pydantic model this console touches (`types.ts`), and
+  one domain module per control-plane router (`catalog.ts`,
+  `lifecycle.ts`, `capacity.ts`, `masking.ts`, `subsetting.ts`,
+  `synthetic.ts`, `certification.ts`, `health.ts`) -- pages never call
+  `fetch` directly
+- Four new, real, read-only control-plane endpoints
+  (`services/control-plane/src/control_plane/api/v1/masking.py`,
+  `subsetting.py`, `synthetic.py`, `certification.py`) backed by a new
+  `control_plane/artifacts/` package, following ADR-0009's exact
+  JSON-artifact-handoff pattern to expose Phases 3/4/5/6's real,
+  already-working engines (which previously only wrote a JSON artifact
+  to disk) -- see `ARCHITECTURE.md`'s Phase 9 note and
+  `problems_phase_09.md` for the per-page build-vs-placeholder decision
+  record
+- A real Dataset Detail page composing FOUR real endpoints (lifecycle +
+  the three new Phase 9 artifact endpoints) into one view -- lineage,
+  masking policy, subset policy, dataset version, certification, row
+  counts, referential-integrity status (from the certification report's
+  own gate result), storage footprint, and consumer environments -- see
+  `frontend/src/pages/DatasetDetailPage.tsx`'s module docstring for the
+  exact composition and why no single endpoint has it all
+  - a small, deliberate CORS addition
+  (`TDM_CONTROL_PLANE_CORS_ALLOWED_ORIGINS`,
+  `services/control-plane/src/control_plane/config.py`,
+  `main.py`) -- opt-in, empty (no CORS middleware installed) by
+  default, matching ADR-0008's same-origin-via-dev-proxy default; only
+  activates for the documented `VITE_API_BASE_URL` escape hatch or a
+  future non-proxied deployment
+- Vitest + React Testing Library component tests (39 tests across 11
+  files: `StatusBadge`, `DataTable`, `StatCard`, `ErrorState`,
+  `NotYetAvailable`, `AsyncSection`, `format.ts` utilities, the typed
+  API client, `DashboardPage`, `PlatformHealthPage`, `AuditTrailPage`)
+  -- including a real bug caught and fixed by the tests themselves:
+  `formatBytes`'s original `Math.log10`-based implementation
+  mis-formatted exact powers of 1000 (a real IEEE-754 floating-point
+  quirk, `Math.log10(1000) === 2.9999999999999996` in JS)
+- Playwright E2E tests (`frontend/e2e/`, 6 tests across 3 spec files)
+  for the three required critical workflows -- Dashboard with real
+  data, Data Catalog with real classifications (plus category
+  filtering), and Dataset Detail (lineage/masking policy/certification/
+  etc.) -- run against the REAL control plane and REAL Vite dev server
+  (no mock server), executed and passing in this environment; see
+  `frontend/playwright.config.ts`'s header comment for the two-server
+  startup sequence and `problems_phase_09.md` for an environment quirk
+  encountered and worked around during verification
+- `scripts/demo_phase9_console_data.py`: generates real end-to-end demo
+  data (two real certification pipeline runs, one with synthetic
+  scenarios, both registered as dataset versions and requested into all
+  five environments) at the control plane's *default* settings paths,
+  so `uvicorn control_plane.main:app` run with zero configuration
+  serves real data for manual exploration or the Playwright suite
+- Extended `libs/contracts`: none -- Phase 9 reused every existing
+  contract shape unmodified (`SubsetManifest`,
+  `SyntheticGenerationManifest`, `CertificationReport`, `CatalogEntry`,
+  `DatasetVersion`, `EnvironmentDatasetRequest`, the capacity shapes);
+  only `services/control-plane`'s own artifact repositories and one
+  new control-plane-local `MaskingRunSummary` mirror type were added
+- 14 new Python tests (`services/control-plane`'s new
+  `test_masking_api.py`, `test_subsetting_api.py`,
+  `test_synthetic_api.py`, `test_certification_api.py`) plus 5 new CORS
+  tests (`test_cors.py`); `services/control-plane` is now 97 tests
+  total, and `services/data-plane`'s/`libs/contracts`' pre-existing
+  test suites continue to pass unmodified -- see `problems_phase_09.md`
+  for what's still open
 
 ## Phase 8 — what was actually delivered
 

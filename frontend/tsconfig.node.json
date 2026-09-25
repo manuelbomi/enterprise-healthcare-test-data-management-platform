@@ -5,7 +5,14 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "allowSyntheticDefaultImports": true,
-    "strict": true
+    "strict": true,
+    "types": ["node"],
+    // A composite project referenced from tsconfig.json (see
+    // `references` below) must emit -- `tsc -b` rejects `noEmit` here
+    // (TS6310). Redirected into node_modules/ (already gitignored)
+    // instead of emitting `vite.config.js`/`.d.ts` next to the source
+    // file, which would otherwise be untracked build-artifact clutter.
+    "outDir": "./node_modules/.tsc-out"
   },
   "include": ["vite.config.ts"]
 }

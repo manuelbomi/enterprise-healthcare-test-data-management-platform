@@ -15,8 +15,9 @@ Phase 8 adds capacity-planning endpoints built on top of it
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from control_plane.api.v1 import capacity, catalog, health, lifecycle
+from control_plane.api.v1 import capacity, catalog, certification, health, lifecycle, masking, subsetting, synthetic
 from control_plane.config import get_settings
 
 
@@ -39,10 +40,25 @@ def create_app() -> FastAPI:
             "ARCHITECTURE.md at the repository root."
         ),
     )
+    # Phase 9: only installed when TDM_CONTROL_PLANE_CORS_ALLOWED_ORIGINS
+    # is set -- the documented default (same-origin, via the Vite dev
+    # server proxy) needs no CORS at all. See `config.py`.
+    if settings.cors_allowed_origins_list:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_allowed_origins_list,
+            allow_credentials=False,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
     app.include_router(health.router, prefix=settings.api_v1_prefix)
     app.include_router(catalog.router, prefix=settings.api_v1_prefix)
     app.include_router(lifecycle.router, prefix=settings.api_v1_prefix)
     app.include_router(capacity.router, prefix=settings.api_v1_prefix)
+    app.include_router(masking.router, prefix=settings.api_v1_prefix)
+    app.include_router(subsetting.router, prefix=settings.api_v1_prefix)
+    app.include_router(synthetic.router, prefix=settings.api_v1_prefix)
+    app.include_router(certification.router, prefix=settings.api_v1_prefix)
     return app
 
 

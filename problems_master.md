@@ -24,25 +24,6 @@ Each entry should have:
 
 ## Open problems
 
-### P0-1 — `npm install` has not been performed for `frontend/`
-
-- **Phase:** 0
-- **Status:** open (deliberately deferred)
-- **Description:** All four Python workspace packages (`libs/contracts`,
-  `services/control-plane`, `services/data-plane`,
-  `services/governance-service`) are now installed in editable mode via
-  `scripts/bootstrap.sh` and their test suites pass (verified in Phases 1
-  and 2 — 14 + 20 + 74 + 1 = 109 tests passing across the four packages as
-  of Phase 2). `npm install` has still not been run for `frontend/`
-  (`frontend/node_modules/` does not exist) — there is no real frontend
-  code yet to install dependencies for (`ROADMAP.md` Phase 9).
-- **Repro / detail:** Run `npm install` inside `frontend/`. Expected:
-  succeeds cleanly. Deferred until Phase 9 actually adds frontend code
-  worth installing dependencies for.
-- **Affected files:** `frontend/package.json`
-- **Owner for resolution:** Phase 9 (React/TypeScript enterprise TDM web
-  console).
-
 ### P0-2 — No CI runs have been executed against this repository yet
 
 - **Phase:** 0
@@ -101,5 +82,7 @@ Each entry should have:
 
 ## Resolved problems
 
-_(None yet — this section will list problems that were opened and then
-resolved in a later phase, kept briefly for history before being pruned.)_
+- **P0-1** (`npm install` had not been performed for `frontend/`) --
+  resolved in Phase 9: `npm install` now runs cleanly (435 packages),
+  and `frontend/` is a real, working, tested console. See
+  `ROADMAP.md`'s Phase 9 section and `problems_phase_09.md`.
