@@ -171,25 +171,39 @@ phase.
 
 ### P7-6 — No RBAC/authorization or audit-log integration on any lifecycle endpoint
 
-- **Status:** open (deliberately deferred; same shape of gap Phases
-  3/4/5/6 documented for their own outputs)
-- **Description:** Every `/api/v1/lifecycle/*` endpoint is unauthenticated
-  and unauthorized -- anyone who can reach the API can register a
-  version, request/refresh/rollback/revoke it. `requested_by`,
-  `performed_by`, `revoked_by`, `triggered_by`, and `created_by` are all
-  caller-supplied free-text identity strings, not verified against a
-  real identity provider, and no event this phase produces (a
-  registration, a refresh, a rollback, a revocation) is written to the
-  security/governance plane's immutable audit event log
-  (`healthcare_tdm_contracts.AuditEvent`) -- because that log is not
-  wired up yet, the same gap `problems_phase_03.md` P3-2 and
-  `problems_phase_06.md` P6-2 document for their own phases.
-- **Repro / detail:** N/A -- no RBAC/audit-log infrastructure exists yet
-  to integrate with.
-- **Affected files:** `services/control-plane/src/control_plane/api/v1/lifecycle.py`
-- **Owner for resolution:** `services/governance-service` (not currently
-  scheduled by name in `ROADMAP.md` for RBAC/audit specifically); see
-  also Phase 13 (auditability and compliance evidence).
+- **Status:** **partially resolved in Phase 11** -- narrowed, not
+  closed. `control_plane.platform.rbac.authorize()` now real, enforced
+  RBAC gates `POST /dataset-versions/{id}/revoke` and
+  `POST /environment-requests/{id}/rollback` (only
+  `COMPLIANCE_APPROVER`/`PLATFORM_ADMIN` and `DATA_STEWARD`/
+  `PLATFORM_ADMIN` respectively may call them; a real 403 for anyone
+  else, proven by `test_failure_injection.py::test_insufficiently_privileged_actor_is_rejected_revoking_a_dataset_version`).
+  `control_plane.platform.audit.AuditLogRepository` now writes a real,
+  append-only `AuditEvent` for every lifecycle mutation this router
+  performs (registration, revocation, environment request creation,
+  refresh, rollback), queryable at `GET /api/v1/audit/events`. See
+  [ADR-0015](docs/adr/0015-platform-integrity-controls-in-control-plane.md)
+  and `docs/PLATFORM_INTEGRITY.md`.
+- **Description (what remains open):** Every *other*
+  `/api/v1/lifecycle/*` mutation (register a dataset version,
+  request/refresh an environment) still performs no RBAC check at all
+  -- only revoke/rollback are gated. `requested_by`, `performed_by`,
+  `revoked_by`, `triggered_by`, and `created_by` remain caller-supplied
+  free-text identity strings, not verified against a real identity
+  provider -- `control_plane.platform.rbac` answers "if you claim this
+  role, are you allowed to do this," not "are you who you claim to
+  be." The audit log itself lives in `services/control-plane`'s own
+  schema, not yet `services/governance-service`'s eventual dedicated
+  store (see `problems_phase_11.md` P11-5).
+- **Repro / detail:** `POST /api/v1/lifecycle/environment-requests`
+  still succeeds with no `actor_role` field of any kind.
+- **Affected files:** `services/control-plane/src/control_plane/api/v1/lifecycle.py`,
+  `services/control-plane/src/control_plane/platform/rbac.py`,
+  `services/control-plane/src/control_plane/platform/audit.py`
+- **Owner for resolution:** `services/governance-service`, once built
+  out for real (full identity verification, RBAC over every remaining
+  endpoint); see also Phase 13 (auditability and compliance evidence)
+  for the audit log's eventual dedicated home.
 
 ### P7-7 — Lifecycle endpoints are synchronous REST calls, not `JobType`-driven orchestrated jobs
 

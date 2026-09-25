@@ -21,6 +21,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from control_plane.api.v1 import (
+    audit,
     capacity,
     catalog,
     certification,
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     app.include_router(synthetic.router, prefix=settings.api_v1_prefix)
     app.include_router(certification.router, prefix=settings.api_v1_prefix)
     app.include_router(governance.router, prefix=settings.api_v1_prefix)
+    app.include_router(audit.router, prefix=settings.api_v1_prefix)
     return app
 
 

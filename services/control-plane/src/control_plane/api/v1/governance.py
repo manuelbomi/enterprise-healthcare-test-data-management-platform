@@ -20,6 +20,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from healthcare_tdm_contracts import (
+    AuditEventType,
     BusinessConsumer,
     ConsumerDatasetRequest,
     Environment,
@@ -32,7 +33,7 @@ from healthcare_tdm_contracts import (
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from control_plane.api.v1.lifecycle import get_db_session
+from control_plane.api.v1.lifecycle import get_audit_log, get_db_session
 from control_plane.domain.governance import (
     BusinessConsumerNotFoundError,
     ConsumerDatasetRequestNotFoundError,
@@ -42,6 +43,8 @@ from control_plane.domain.governance import (
     PolicyVersionNotApprovedError,
 )
 from control_plane.domain.lifecycle import NoActiveDatasetVersionError
+from control_plane.platform.audit import AuditLogRepository
+from control_plane.platform.rbac import AuthorizationError, Permission, Role, authorize
 
 router = APIRouter(prefix="/governance", tags=["governance"])
 
@@ -65,6 +68,19 @@ class DraftPolicyVersionRequest(BaseModel):
 class PolicyApprovalActionRequest(BaseModel):
     performed_by: str
     comments: str = ""
+
+
+class PolicyApprovalDecisionRequest(PolicyApprovalActionRequest):
+    """Used only by `approve_policy_version`/`reject_policy_version`
+    below -- `submit_policy_version_for_approval` (drafting/submitting,
+    a lower-sensitivity action) keeps using the plain
+    `PolicyApprovalActionRequest` unchanged, so this phase's new
+    required field does not force every pre-existing Phase 10 caller of
+    `/submit` to change. Phase 11: required, checked against
+    `Permission.APPROVE_POLICY_VERSION`/`Permission.REJECT_POLICY_VERSION`
+    (only `COMPLIANCE_APPROVER`/`PLATFORM_ADMIN` hold either)."""
+
+    actor_role: Role
 
 
 class RegisterBusinessConsumerRequest(BaseModel):
@@ -163,34 +179,100 @@ def submit_policy_version(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
+def _authorize_or_deny(
+    *,
+    actor_role: Role,
+    permission: Permission,
+    audit: AuditLogRepository,
+    session: Session,
+    actor: str,
+    subject: str,
+) -> None:
+    """Shared RBAC-check-then-deny helper for `approve_policy_version`/
+    `reject_policy_version` -- see `api.v1.lifecycle.revoke_dataset_version`'s
+    docstring for why the denial audit event is committed immediately
+    (survives the `HTTPException` this then raises)."""
+
+    try:
+        authorize(actor_role, permission)
+    except AuthorizationError as exc:
+        audit.record(
+            event_type=AuditEventType.ACCESS_DENIED,
+            actor=actor,
+            subject=subject,
+            outcome="denied",
+            detail={"permission": permission.value, "actor_role": actor_role.value},
+        )
+        session.commit()
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
 @router.post("/policy-versions/{policy_version_id}/approve", response_model=MaskingPolicyVersion)
 def approve_policy_version(
     policy_version_id: UUID,
-    body: PolicyApprovalActionRequest,
+    body: PolicyApprovalDecisionRequest,
     repository: GovernanceRepository = Depends(get_governance_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
+    session: Session = Depends(get_db_session),
 ) -> MaskingPolicyVersion:
     """Approve a PENDING_APPROVAL policy version. Also supersedes any
     other currently-APPROVED version of the same `policy_name` -- see
-    `GovernanceRepository.approve_policy_version`."""
+    `GovernanceRepository.approve_policy_version`.
 
+    Phase 11: requires `body.actor_role` to hold
+    `Permission.APPROVE_POLICY_VERSION` -- resolves
+    `problems_phase_10.md` P10-2 for this one endpoint specifically
+    (every other governance mutation remains ungated; see
+    `problems_phase_11.md` P11-4)."""
+
+    _authorize_or_deny(
+        actor_role=body.actor_role,
+        permission=Permission.APPROVE_POLICY_VERSION,
+        audit=audit,
+        session=session,
+        actor=body.performed_by,
+        subject=str(policy_version_id),
+    )
     try:
-        return repository.approve_policy_version(
+        result = repository.approve_policy_version(
             policy_version_id, performed_by=body.performed_by, comments=body.comments
         )
     except MaskingPolicyVersionNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except InvalidPolicyApprovalTransitionError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    audit.record(
+        event_type=AuditEventType.POLICY_APPROVED,
+        actor=body.performed_by,
+        subject=str(policy_version_id),
+        outcome="allowed",
+        detail={"comments": body.comments, "actor_role": body.actor_role.value},
+    )
+    return result
 
 
 @router.post("/policy-versions/{policy_version_id}/reject", response_model=MaskingPolicyVersion)
 def reject_policy_version(
     policy_version_id: UUID,
-    body: PolicyApprovalActionRequest,
+    body: PolicyApprovalDecisionRequest,
     repository: GovernanceRepository = Depends(get_governance_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
+    session: Session = Depends(get_db_session),
 ) -> MaskingPolicyVersion:
+    """Phase 11: requires `body.actor_role` to hold
+    `Permission.REJECT_POLICY_VERSION` -- see `approve_policy_version`'s
+    docstring."""
+
+    _authorize_or_deny(
+        actor_role=body.actor_role,
+        permission=Permission.REJECT_POLICY_VERSION,
+        audit=audit,
+        session=session,
+        actor=body.performed_by,
+        subject=str(policy_version_id),
+    )
     try:
-        return repository.reject_policy_version(
+        result = repository.reject_policy_version(
             policy_version_id, performed_by=body.performed_by, comments=body.comments
         )
     except MaskingPolicyVersionNotFoundError as exc:
@@ -199,6 +281,14 @@ def reject_policy_version(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    audit.record(
+        event_type=AuditEventType.POLICY_REJECTED,
+        actor=body.performed_by,
+        subject=str(policy_version_id),
+        outcome="allowed",
+        detail={"comments": body.comments, "actor_role": body.actor_role.value},
+    )
+    return result
 
 
 @router.get("/policy-versions/{policy_version_id}/approvals", response_model=list[PolicyApproval])
@@ -253,7 +343,9 @@ def get_business_consumer(
 
 @router.post("/consumer-requests", response_model=ConsumerDatasetRequest, status_code=201)
 def submit_consumer_request(
-    body: SubmitConsumerRequestBody, repository: GovernanceRepository = Depends(get_governance_repository)
+    body: SubmitConsumerRequestBody,
+    repository: GovernanceRepository = Depends(get_governance_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
 ) -> ConsumerDatasetRequest:
     """Submit a business consumer's request for a dataset, referencing
     an APPROVED `MaskingPolicyVersion` by id. Rejected with 409 if that
@@ -261,7 +353,7 @@ def submit_consumer_request(
     `GovernanceRepository.submit_consumer_request`."""
 
     try:
-        return repository.submit_consumer_request(
+        result = repository.submit_consumer_request(
             business_consumer_id=body.business_consumer_id,
             dataset_name=body.dataset_name,
             environment=body.environment,
@@ -278,6 +370,14 @@ def submit_consumer_request(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except PolicyVersionNotApprovedError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    audit.record(
+        event_type=AuditEventType.CONSUMER_REQUEST_SUBMITTED,
+        actor=body.requested_by,
+        subject=str(result.consumer_request_id),
+        outcome="allowed",
+        detail={"dataset_name": body.dataset_name, "environment": body.environment.value},
+    )
+    return result
 
 
 @router.post("/consumer-requests/{consumer_request_id}/fulfill", response_model=ConsumerDatasetRequest)
@@ -285,19 +385,31 @@ def fulfill_consumer_request(
     consumer_request_id: UUID,
     body: FulfillConsumerRequestBody,
     repository: GovernanceRepository = Depends(get_governance_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
 ) -> ConsumerDatasetRequest:
     """Resolve a submitted request into a real Phase 7
     `EnvironmentDatasetRequest` -- see
     `GovernanceRepository.fulfill_consumer_request`. Rejected with 409
     if no ACTIVE Phase 7 `DatasetVersion` has been registered yet for
-    this request's `dataset_name`."""
+    this request's `dataset_name` -- including when the only version
+    that ever existed has since been REVOKED (Phase 11's governance-layer
+    extension of Phase 7's revocation guarantee; see
+    `test_failure_injection.py::test_consumer_cannot_fulfill_request_against_a_revoked_dataset_version`)."""
 
     try:
-        return repository.fulfill_consumer_request(consumer_request_id, triggered_by=body.triggered_by)
+        result = repository.fulfill_consumer_request(consumer_request_id, triggered_by=body.triggered_by)
     except ConsumerDatasetRequestNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except NoActiveDatasetVersionError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    audit.record(
+        event_type=AuditEventType.CONSUMER_REQUEST_FULFILLED,
+        actor=body.triggered_by,
+        subject=str(consumer_request_id),
+        outcome="allowed",
+        detail={"environment_request_id": str(result.environment_request_id)},
+    )
+    return result
 
 
 @router.get("/consumer-requests", response_model=list[ConsumerDatasetRequest])

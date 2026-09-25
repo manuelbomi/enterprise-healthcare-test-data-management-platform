@@ -29,12 +29,27 @@ class AuditEventType(str, Enum):
     CLASSIFICATION_CONFIRMED = "classification_confirmed"
     CLASSIFICATION_CHANGED = "classification_changed"
     POLICY_APPROVED = "policy_approved"
+    POLICY_REJECTED = "policy_rejected"
     POLICY_CHANGED = "policy_changed"
     JOB_REQUESTED = "job_requested"
     JOB_PUBLISHED = "job_published"
     CERTIFICATION_PASSED = "certification_passed"
     CERTIFICATION_FAILED = "certification_failed"
     SNAPSHOT_ACCESSED = "snapshot_accessed"
+    # Phase 11 additions -- wired to real control-plane lifecycle/
+    # governance mutations (see `control_plane.platform.audit`). Added
+    # rather than overloading an existing value, because none of the
+    # values above (written for the certification/classification
+    # domain in Phase 0) describe "a dataset version was revoked" or
+    # "an environment's dataset request was rolled back" precisely
+    # enough for an auditor to trust the event type alone.
+    DATASET_VERSION_REGISTERED = "dataset_version_registered"
+    DATASET_VERSION_REVOKED = "dataset_version_revoked"
+    DATASET_VERSION_ROLLED_BACK = "dataset_version_rolled_back"
+    ENVIRONMENT_REQUEST_CREATED = "environment_request_created"
+    REFRESH_EXECUTED = "refresh_executed"
+    CONSUMER_REQUEST_SUBMITTED = "consumer_request_submitted"
+    CONSUMER_REQUEST_FULFILLED = "consumer_request_fulfilled"
 
 
 class AuditEvent(BaseModel):

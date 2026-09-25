@@ -100,27 +100,35 @@ the end of the phase is a genuine open issue for a later phase.
 
 ### P10-2 — No RBAC enforcement on who may approve a policy version or register a business consumer
 
-- **Status:** open (deliberately deferred, consistent with every other
-  actor-attribution field in this service)
-- **Description:** `PolicyApproval.performed_by`,
-  `MaskingPolicyVersion.created_by`, and every other actor field in this
-  domain accept any caller-supplied string -- there is no check that
-  `performed_by="compliance-steward@example.org"` is actually an
-  authorized approver. This is the same, already-documented gap
-  `control_plane.domain.lifecycle`'s `revoked_by`/`performed_by` fields
-  have (no RBAC anywhere in `services/control-plane` yet).
-- **Repro / detail:** `POST /api/v1/governance/policy-versions/{id}/approve`
-  succeeds with any `performed_by` value, including one that has never
-  been registered as a `BusinessConsumer` or any other identity.
+- **Status:** **partially resolved in Phase 11** -- narrowed, not
+  closed. `POST /api/v1/governance/policy-versions/{id}/approve` and
+  `.../reject` now require a real, enforced `actor_role`
+  (`control_plane.platform.rbac.authorize()`, only
+  `COMPLIANCE_APPROVER`/`PLATFORM_ADMIN` permitted) -- a caller
+  claiming any other role gets a real HTTP 403, proven by
+  `test_failure_injection.py::test_insufficiently_privileged_actor_is_rejected_approving_a_policy_version`.
+  Every approve/reject decision is also now recorded as a real,
+  queryable `AuditEvent` (`POLICY_APPROVED`/`POLICY_REJECTED`), and a
+  rejected attempt is itself recorded (`ACCESS_DENIED`). See
+  [ADR-0015](docs/adr/0015-platform-integrity-controls-in-control-plane.md).
+- **Description (what remains open):** `draft_policy_version`,
+  `submit_policy_version_for_approval`, `register_business_consumer`,
+  `submit_consumer_request`, and `fulfill_consumer_request` still
+  perform no RBAC check at all -- only approve/reject are gated.
+  `PolicyApproval.performed_by`, `MaskingPolicyVersion.created_by`, and
+  every other actor field still accept any caller-supplied string with
+  no verification that the claimed identity is real -- Phase 11's
+  `control_plane.platform.rbac` answers "if you claim this role, are
+  you allowed to do this," not "are you who you claim to be."
+- **Repro / detail:** `POST /api/v1/governance/business-consumers`
+  succeeds with no `actor_role` field of any kind.
 - **Affected files:** `services/control-plane/src/control_plane/api/v1/governance.py`,
-  `services/control-plane/src/control_plane/domain/governance/repository.py`
+  `services/control-plane/src/control_plane/platform/rbac.py`
 - **Owner for resolution:** `services/governance-service`, once it is
-  built out for real (RBAC is explicitly that service's responsibility
-  per `ARCHITECTURE.md` section 2.4) -- see
+  built out for real (full identity verification, RBAC over every
+  remaining governance endpoint) -- see
   `docs/adr/0014-masking-governance-lives-in-control-plane.md`'s
-  Consequences section for why this domain's transactional logic still
-  lives in `services/control-plane` even though the RBAC check over it
-  belongs elsewhere.
+  Consequences section, unchanged by this phase's partial fix.
 
 ### P10-3 — `ConsumerDatasetRequest` has no REJECTED/CANCELLED terminal state
 

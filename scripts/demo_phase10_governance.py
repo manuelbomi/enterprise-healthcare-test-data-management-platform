@@ -140,6 +140,9 @@ def main() -> int:
         json={
             "performed_by": "compliance-steward@example.org",
             "comments": "Reviewed against DATA_GOVERNANCE.md B.2; approved for enterprise-wide use.",
+            # Phase 11: approval now requires a real, checked actor_role
+            # (control_plane.platform.rbac).
+            "actor_role": "compliance_approver",
         },
     )
     assert approve_resp.status_code == 200, approve_resp.text

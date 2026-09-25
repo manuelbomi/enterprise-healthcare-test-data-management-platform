@@ -225,7 +225,12 @@ def test_rollback_endpoint(client: TestClient) -> None:
 
     response = client.post(
         f"/api/v1/lifecycle/environment-requests/{request['request_id']}/rollback",
-        json={"to_version_number": 1, "performed_by": "oncall@example.org", "reason": "v2 broke the build"},
+        json={
+            "to_version_number": 1,
+            "performed_by": "oncall@example.org",
+            "reason": "v2 broke the build",
+            "actor_role": "data_steward",
+        },
     )
     assert response.status_code == 200
     body = response.json()
@@ -251,12 +256,12 @@ def test_rollback_to_revoked_version_returns_409(client: TestClient) -> None:
     )
     client.post(
         f"/api/v1/lifecycle/dataset-versions/{v1['version_id']}/revoke",
-        json={"reason": "known defect", "revoked_by": "security@example.org"},
+        json={"reason": "known defect", "revoked_by": "security@example.org", "actor_role": "compliance_approver"},
     )
 
     response = client.post(
         f"/api/v1/lifecycle/environment-requests/{request['request_id']}/rollback",
-        json={"to_version_number": 1, "performed_by": "a", "reason": "try anyway"},
+        json={"to_version_number": 1, "performed_by": "a", "reason": "try anyway", "actor_role": "data_steward"},
     )
     assert response.status_code == 409
 
@@ -265,7 +270,11 @@ def test_revoke_dataset_version_endpoint(client: TestClient) -> None:
     version = _register_version(client, dataset_name="ds")
     response = client.post(
         f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/revoke",
-        json={"reason": "policy defect discovered", "revoked_by": "security@example.org"},
+        json={
+            "reason": "policy defect discovered",
+            "revoked_by": "security@example.org",
+            "actor_role": "compliance_approver",
+        },
     )
     assert response.status_code == 200
     assert response.json()["status"] == "revoked"
@@ -273,7 +282,7 @@ def test_revoke_dataset_version_endpoint(client: TestClient) -> None:
     # Revoking again is rejected (terminal state).
     again = client.post(
         f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/revoke",
-        json={"reason": "again", "revoked_by": "security@example.org"},
+        json={"reason": "again", "revoked_by": "security@example.org", "actor_role": "compliance_approver"},
     )
     assert again.status_code == 409
 

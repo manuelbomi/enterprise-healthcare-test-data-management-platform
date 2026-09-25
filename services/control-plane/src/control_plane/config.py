@@ -15,7 +15,25 @@ provider (see SECURITY.md).
 
 from __future__ import annotations
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+#: Phase 11: the closed set of levels Python's own `logging` module
+#: recognizes by name -- an unrecognized `TDM_CONTROL_PLANE_LOG_LEVEL`
+#: value is a real deployment misconfiguration (logging would silently
+#: fall back to `WARNING`, likely hiding real errors) that should fail
+#: fast at process start, not be discovered later from missing logs.
+_VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+
+#: A minimal, dependency-free check that a value at least looks like a
+#: SQLAlchemy database URL (`<dialect>[+<driver>]://...`) -- this is
+#: not a full DSN parser (SQLAlchemy's own `create_engine` will raise a
+#: far more precise error for a truly malformed URL), just cheap enough
+#: to catch the most common misconfiguration (an empty string, a bare
+#: hostname, a copy-pasted value missing the `://`) before the process
+#: even tries to open a connection.
+def _looks_like_database_url(value: str) -> bool:
+    return "://" in value and bool(value.split("://", 1)[0])
 
 
 class Settings(BaseSettings):
@@ -78,6 +96,64 @@ class Settings(BaseSettings):
     @property
     def cors_allowed_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
+
+    # ------------------------------------------------------------------
+    # Phase 11: real configuration validation.
+    #
+    # Before this phase, `Settings` was "thin" -- every field had a
+    # type annotation (so Pydantic would reject e.g. a non-integer for
+    # an `int` field) but no field actually validated its own *value*
+    # beyond that. A field like `log_level` or `api_v1_prefix` could be
+    # set to any string at all and the process would start successfully,
+    # only to misbehave in a confusing way at request time. These
+    # validators make a real misconfiguration a fast, clear startup
+    # failure instead -- exactly the "fail safely" principle this
+    # phase's failure-injection tests apply to job execution, applied
+    # here to process configuration.
+    # ------------------------------------------------------------------
+
+    @field_validator("log_level")
+    @classmethod
+    def _validate_log_level(cls, value: str) -> str:
+        normalized = value.strip().upper()
+        if normalized not in _VALID_LOG_LEVELS:
+            raise ValueError(
+                f"TDM_CONTROL_PLANE_LOG_LEVEL={value!r} is not a recognized logging level; "
+                f"expected one of {sorted(_VALID_LOG_LEVELS)}."
+            )
+        return normalized
+
+    @field_validator("api_v1_prefix")
+    @classmethod
+    def _validate_api_v1_prefix(cls, value: str) -> str:
+        if not value.startswith("/"):
+            raise ValueError(
+                f"TDM_CONTROL_PLANE_API_V1_PREFIX={value!r} must start with '/' "
+                "(e.g. '/api/v1')."
+            )
+        return value
+
+    @field_validator("database_url", "lifecycle_database_url")
+    @classmethod
+    def _validate_database_url(cls, value: str) -> str:
+        if not _looks_like_database_url(value):
+            raise ValueError(
+                f"{value!r} does not look like a valid SQLAlchemy database URL "
+                "(expected '<dialect>[+<driver>]://...', e.g. "
+                "'postgresql+psycopg://user:pass@host:5432/db' or 'sqlite:///path/to/file.db')."
+            )
+        return value
+
+    @field_validator("cors_allowed_origins")
+    @classmethod
+    def _validate_cors_allowed_origins(cls, value: str) -> str:
+        for origin in (o.strip() for o in value.split(",") if o.strip()):
+            if not (origin.startswith("http://") or origin.startswith("https://")):
+                raise ValueError(
+                    f"TDM_CONTROL_PLANE_CORS_ALLOWED_ORIGINS contains {origin!r}, which is not "
+                    "a valid origin (expected 'http://...' or 'https://...')."
+                )
+        return value
 
 
 def get_settings() -> Settings:

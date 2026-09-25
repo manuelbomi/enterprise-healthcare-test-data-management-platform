@@ -481,6 +481,39 @@ approve a policy version remains explicitly out of scope (tracked in
 field already in this service (e.g. `DatasetVersion.revoked_by`) having
 no RBAC check behind it yet.
 
+Phase 11 note: platform-integrity controls (`ROADMAP.md` Phase 11) --
+readiness (`/api/v1/ready`, distinct from Phase 0's liveness-only
+`/api/v1/health`), a real, enforced RBAC mechanism
+(`control_plane.platform.rbac`), the first real wiring of the Phase 0
+`AuditEvent` contract to a durable store (`control_plane.platform.audit`),
+a dead-letter concept for isolated job failures
+(`control_plane.platform.dead_letter`), a generic retry helper
+(`control_plane.platform.retry`), real `Settings` field validation,
+and eight real failure-injection tests -- are implemented in
+`services/control-plane/src/control_plane/platform/`, on name alone
+`services/governance-service` (section 2.4) territory, for the exact
+same same-transaction reason ADR-0014 gives for Phase 10's governance
+domain living in `services/control-plane`: see
+[ADR-0015](docs/adr/0015-platform-integrity-controls-in-control-plane.md).
+RBAC is deliberately enforced at the API router layer, not inside the
+domain repositories underneath it -- ADR-0015 explains the concrete,
+discovered reason (an audit-denial write inside a repository call that
+then raises would be rolled back by `session_scope`'s blanket
+exception handling). `docs/PLATFORM_INTEGRITY.md` is the honest,
+control-by-control account of what was already real from earlier
+phases (certification's state machine and HMAC signing, Phase 7's
+rollback/revocation, Phase 10's approved-policy-only consumer
+requests, Phase 3's masking idempotency and secret-missing handling)
+versus what this phase genuinely adds, including one real gap found
+and fixed (`LifecycleRepository.register_dataset_version` was not
+idempotent under a duplicate call) and one real gap found and only
+partially mitigated (a masking run that crashes mid-way now leaves a
+checkable `_MASKING_RUN_INCOMPLETE.marker`, but individual
+per-source-system files are still not written atomically -- see
+`problems_phase_11.md` P11-1). Container health
+(`HEALTHCHECK`) is documented as design intent only -- `infra/docker/`
+has no application `Dockerfile` yet to attach one to (Phase 12).
+
 ## 5. Why this stack
 
 See the ADRs in `docs/adr/` for the reasoning behind each major choice

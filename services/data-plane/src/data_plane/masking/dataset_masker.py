@@ -28,6 +28,7 @@ import csv
 import json
 import sqlite3
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -383,6 +384,34 @@ def mask_partner_lab_feed(
         report.files_written.append(out_path)
 
 
+#: Phase 11: the sentinel file `mask_estate` writes at the start of a
+#: run and removes only on clean completion -- see `mask_estate`'s
+#: docstring and `is_masking_run_complete` below. Named with a leading
+#: underscore (not a dotfile) so it sorts to the top of a directory
+#: listing and is unmistakably not part of the masked data itself.
+INCOMPLETE_MARKER_FILENAME = "_MASKING_RUN_INCOMPLETE.marker"
+
+
+def is_masking_run_complete(out_root: Path) -> bool:
+    """`True` iff `out_root` both exists and holds no
+    `_MASKING_RUN_INCOMPLETE.marker` -- i.e. the most recent
+    `mask_estate` run into `out_root` either has not started or
+    finished successfully, never "crashed partway through." A caller
+    (an operator, a future certification gate, a test) should treat
+    `out_root` as untrustworthy -- do not read it as a complete masked
+    estate -- whenever this returns `False`.
+
+    This does **not** guarantee every individual file under `out_root`
+    is itself complete/uncorrupted (see `problems_phase_11.md` P11-1
+    for the honest limit: a per-source-system masker that writes rows
+    incrementally, e.g. `mask_clinical_data_lake`, can still leave one
+    truncated file for the source system that was mid-write when a
+    crash happened). It guarantees the *run as a whole* did not finish.
+    """
+
+    return out_root.exists() and not (out_root / INCOMPLETE_MARKER_FILENAME).exists()
+
+
 def mask_estate(
     estate_root: Path,
     catalog_entries: list[CatalogEntry],
@@ -396,11 +425,31 @@ def mask_estate(
     same relative layout `reference_data.estate_writer.write_estate`
     produced), using `catalog_entries` (the real Phase 2 discovery output)
     to decide which technique masks which column.
+
+    **Phase 11 crash-safety note**: before any output is written, this
+    function writes `out_root / _MASKING_RUN_INCOMPLETE.marker`. That
+    marker is removed only if every one of the five per-source-system
+    maskers below completes without raising -- if any of them raises
+    (a real, unhandled exception, exactly the "masking job crashes
+    halfway" failure-injection scenario), the exception propagates
+    unchanged (this function does not swallow it) and the marker is
+    left in place, so `is_masking_run_complete(out_root)` reports
+    `False` rather than a caller mistaking a partial `out_root` for a
+    finished one. This is a real, tested mitigation for a real gap
+    found while writing this phase's failure-injection tests -- see
+    `problems_phase_11.md` P11-1 for what it does and does not fully
+    solve (it does not make each individual file's writes atomic).
     """
 
     policy = policy or DEFAULT_POLICY
     catalog = CatalogLookup(catalog_entries)
     report = MaskingRunReport()
+
+    out_root.mkdir(parents=True, exist_ok=True)
+    marker_path = out_root / INCOMPLETE_MARKER_FILENAME
+    marker_path.write_text(
+        json.dumps({"started_at": datetime.now(timezone.utc).isoformat()}), encoding="utf-8"
+    )
 
     mask_postgres_enrollment(
         estate_root / "postgres_enrollment" / "enrollment.sqlite3",
@@ -443,13 +492,16 @@ def mask_estate(
         report=report,
     )
 
+    marker_path.unlink(missing_ok=True)
     report.warnings = list(engine.warnings)
     return report
 
 
 __all__ = [
     "CatalogLookup",
+    "INCOMPLETE_MARKER_FILENAME",
     "MaskingRunReport",
+    "is_masking_run_complete",
     "mask_claims_parquet",
     "mask_clinical_data_lake",
     "mask_estate",

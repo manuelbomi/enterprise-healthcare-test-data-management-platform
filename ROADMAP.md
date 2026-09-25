@@ -29,7 +29,7 @@ repository going forward.
 | 8 | Storage and compute footprint management / capacity planning | **Complete** |
 | 9 | React/TypeScript enterprise TDM web console | **Complete** |
 | 10 | Centralized enterprise masking standard (multi-business-unit governance) | **Complete** |
-| 11 | Platform integrity (health, resiliency, failure injection) | Not started |
+| 11 | Platform integrity (health, resiliency, failure injection) | **Complete** |
 | 12 | Production CI/CD and cloud testing (GitHub Actions, K8s, Terraform) | Not started |
 | 13 | Auditability and compliance evidence | Not started |
 | 14 | Scale and performance engineering (PySpark benchmarks) | Not started |
@@ -39,6 +39,103 @@ repository going forward.
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 11 — what was actually delivered
+
+- `docs/PLATFORM_INTEGRITY.md`: an honest, control-by-control account
+  of every Phase 11 requirement -- which were already real from
+  earlier phases (certification's state machine/HMAC signing,
+  Phase 7's rollback/revocation, Phase 10's approved-policy-only
+  consumer requests, Phase 3's masking idempotency and secret-missing
+  handling), which are genuinely new here, and which remain
+  documented, honest gaps
+- `control_plane.platform` (new package,
+  `services/control-plane/src/control_plane/platform/`), living here
+  rather than `services/governance-service` for the same
+  same-transaction reasons ADR-0014 gives for Phase 10's governance
+  domain -- see
+  [ADR-0015](docs/adr/0015-platform-integrity-controls-in-control-plane.md):
+  - `rbac.py` -- a real, enforced authorization check (`Role`,
+    `Permission`, `authorize()`), gating `POST /dataset-versions/{id}/revoke`,
+    `.../rollback`, and `POST /policy-versions/{id}/approve`/`.../reject`
+    -- proven by a real HTTP 403 for an under-privileged actor, not a
+    no-op
+  - `audit.py` -- `AuditLogRepository`, the first real, DB-backed
+    wiring of the Phase 0 `healthcare_tdm_contracts.AuditEvent`
+    contract (new `audit_event` table, append-only by construction --
+    no update/delete method exists), wired into every real Phase 7/10
+    mutation this phase touches, exposed read-only at
+    `GET /api/v1/audit/events`
+  - `readiness.py` -- `/api/v1/ready`, the dependency-aware check
+    Phase 0's own `/health` docstring promised ("added once this
+    service has real dependencies to check"), checking real lifecycle
+    database connectivity (required) and catalog artifact presence
+    (informational)
+  - `retry.py` -- a small, generic, tested retry-with-backoff helper,
+    wired into the readiness database check only (deliberately not
+    into data-plane job execution -- see below)
+  - `dead_letter.py` -- `DeadLetterStore` (new `dead_letter_event`
+    table), wired into `LocalRefreshOrchestrator.run_due_refreshes`'s
+    existing per-request failure isolation so a failed scheduled
+    refresh is now durably recorded, not only returned to one caller
+- `control_plane.config.Settings` gained real `field_validator`s
+  (log level, API prefix, database URL shape, CORS origin scheme) --
+  previously every field had a type but no value validation
+- `LifecycleRepository.register_dataset_version` is now idempotent per
+  `certification_report_id` -- a real duplicate-row bug found while
+  writing this phase's job-idempotency test, fixed
+- `data_plane.masking.dataset_masker.mask_estate` now writes a
+  `_MASKING_RUN_INCOMPLETE.marker` at the start of a run and removes it
+  only on clean completion -- a real gap found (no on-disk signal that
+  a masking run crashed partway through) and a real, though partial,
+  fix (`is_masking_run_complete()`); the honest remaining limit
+  (per-file writes still not atomic) is `problems_phase_11.md` P11-1
+- `scripts/security/detect_secrets.py`: a repo-wide secret-detection
+  scan generalizing Phase 3's scoped "no secrets committed" test
+  (bare 64-hex-char strings, AWS access key IDs, PEM private key
+  headers, known secret-shaped env vars, a conservative generic
+  assigned-secret pattern), verified clean against this repository's
+  real tracked tree
+- `scripts/security/dependency_scan.py`: a real `pip-audit` hook
+  across every workspace package, reporting an explicit failure (never
+  a silent pass) when `pip-audit` is unavailable -- not yet wired into
+  CI (Phase 12's job)
+- New ADR: [ADR-0015](docs/adr/0015-platform-integrity-controls-in-control-plane.md)
+  (where these controls live, and why RBAC is enforced at the API
+  layer rather than the domain-repository layer)
+- Three new runbooks (`docs/runbooks/backup-and-restore.md`,
+  `masking-job-failure-recovery.md`,
+  `duplicate-requests-and-revoked-datasets.md`), each REAL (not
+  aspirational) and cross-referencing the exact tests that back them
+- Eight real failure-injection tests (masking job crashes halfway,
+  source schema changes, storage unavailable, duplicate refresh
+  request, certification validation fails, secret missing, dataset
+  becomes corrupted, consumer requests revoked dataset), split across
+  `services/data-plane/tests/platform_integrity/test_failure_injection.py`
+  (the four data-plane-owned scenarios) and
+  `services/control-plane/tests/test_failure_injection.py` (the four
+  control-plane-owned scenarios) -- each either genuinely new, or an
+  explicit, real extension of an existing Phase 3/6/7 test, documented
+  either way rather than presented as uniformly new
+- `libs/contracts`: `AuditEventType` extended with seven new values
+  (`DATASET_VERSION_REGISTERED`, `DATASET_VERSION_REVOKED`,
+  `DATASET_VERSION_ROLLED_BACK`, `ENVIRONMENT_REQUEST_CREATED`,
+  `REFRESH_EXECUTED`, `CONSUMER_REQUEST_SUBMITTED`,
+  `CONSUMER_REQUEST_FULFILLED`, `POLICY_REJECTED`) -- the existing
+  Phase 0 vocabulary (written for the certification/classification
+  domain) did not have precise-enough values for this phase's real
+  lifecycle/governance events
+- 55 new tests (17 in `services/data-plane`'s new
+  `tests/platform_integrity/`; 38 in `services/control-plane`'s new
+  `test_platform_rbac.py`/`test_platform_audit.py`/
+  `test_platform_readiness.py`/`test_platform_retry.py`/
+  `test_config_validation.py`/`test_failure_injection.py`), plus
+  updates to existing Phase 7/8/10 tests and demo scripts to carry the
+  new required `actor_role` field on the four newly RBAC-gated
+  endpoints; `services/control-plane` is now 171 tests total, all
+  passing, and `services/data-plane`'s pre-existing 396 tests continue
+  to pass unmodified (413 total) -- see `problems_phase_11.md` for
+  what's still open
 
 ## Phase 10 — what was actually delivered
 
