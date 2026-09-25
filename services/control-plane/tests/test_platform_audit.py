@@ -69,6 +69,36 @@ def test_list_events_filters_by_event_type(session: Session) -> None:
     assert denied_only[0].outcome == "denied"
 
 
+def test_phase_13_event_types_record_and_list_correctly(session: Session) -> None:
+    # `problems_phase_13.md` added DATASET_VERSION_ACCESSED (the "who
+    # accessed it" event this phase found missing) and
+    # EVIDENCE_PACKAGE_GENERATED -- prove both round-trip through this
+    # real repository exactly like every pre-existing event type does.
+    repo = AuditLogRepository(session)
+    repo.record(
+        event_type=AuditEventType.DATASET_VERSION_ACCESSED,
+        actor="qa-engineer@example.org",
+        subject="some-version-id",
+        outcome="allowed",
+        detail={"purpose": "QA smoke test"},
+    )
+    repo.record(
+        event_type=AuditEventType.EVIDENCE_PACKAGE_GENERATED,
+        actor="auditor@example.org",
+        subject="some-version-id",
+        outcome="allowed",
+        detail={"package_id": "some-package-id"},
+    )
+
+    accessed = repo.list_events(event_type=AuditEventType.DATASET_VERSION_ACCESSED)
+    assert len(accessed) == 1
+    assert accessed[0].detail == {"purpose": "QA smoke test"}
+
+    generated = repo.list_events(event_type=AuditEventType.EVIDENCE_PACKAGE_GENERATED)
+    assert len(generated) == 1
+    assert generated[0].actor == "auditor@example.org"
+
+
 def test_audit_log_repository_has_no_update_or_delete_method() -> None:
     # Structural enforcement of immutability: there is no code path in
     # this class that could modify or remove a row once written.

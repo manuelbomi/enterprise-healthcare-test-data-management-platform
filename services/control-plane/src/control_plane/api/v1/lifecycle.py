@@ -142,6 +142,23 @@ class RefreshRequestBody(BaseModel):
     trigger: RefreshTrigger = RefreshTrigger.ON_DEMAND
 
 
+class RecordDatasetVersionAccessRequest(BaseModel):
+    """Phase 13: record that someone accessed/used a provisioned dataset
+    version -- the "who accessed it" requirement `problems_phase_13.md`
+    found genuinely unmet (only ACCESS_DENIED was ever wired; nothing
+    recorded a successful access). Self-reported, like every other
+    actor field in this service (`accessed_by` is not verified against
+    a real identity provider -- see `control_plane.platform.rbac`'s
+    module docstring for the same honest caveat on `revoked_by`/
+    `performed_by`)."""
+
+    accessed_by: str
+    environment: Environment | None = Field(
+        default=None, description="Which environment's copy was accessed, if known."
+    )
+    purpose: str = Field(default="", description="Free-text reason, e.g. 'QA test run', 'compliance review'.")
+
+
 class RollbackRequestBody(BaseModel):
     to_version_number: int = Field(..., ge=1)
     performed_by: str
@@ -273,6 +290,39 @@ def revoke_dataset_version(
         subject=str(version_id),
         outcome="allowed",
         detail={"reason": body.reason, "actor_role": body.actor_role.value},
+    )
+    return version
+
+
+@router.post("/dataset-versions/{version_id}/access", response_model=DatasetVersion)
+def record_dataset_version_access(
+    version_id: UUID,
+    body: RecordDatasetVersionAccessRequest,
+    repository: LifecycleRepository = Depends(get_lifecycle_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
+) -> DatasetVersion:
+    """Phase 13: record that `body.accessed_by` accessed/used this
+    dataset version. Not RBAC-gated (see `problems_phase_13.md` P13-3)
+    -- any caller may self-report an access, the same way every other
+    unrestricted lifecycle mutation in this router works. Returns the
+    dataset version unchanged (this call has no state effect other than
+    the audit record) so a caller can confirm which version it just
+    recorded access against."""
+
+    try:
+        version = repository.get_version(version_id)
+    except DatasetVersionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    audit.record(
+        event_type=AuditEventType.DATASET_VERSION_ACCESSED,
+        actor=body.accessed_by,
+        subject=str(version_id),
+        outcome="allowed",
+        detail={
+            "environment": body.environment.value if body.environment else "",
+            "purpose": body.purpose,
+        },
     )
     return version
 
@@ -473,6 +523,33 @@ def rollback_environment_request(
         detail={"to_version_number": str(body.to_version_number), "reason": body.reason},
     )
     return result
+
+
+@router.get("/refresh-runs", response_model=list[RefreshRunRecord])
+def list_refresh_runs(
+    dataset_name: str | None = None,
+    request_id: UUID | None = None,
+    repository: LifecycleRepository = Depends(get_lifecycle_repository),
+) -> list[RefreshRunRecord]:
+    """Phase 13: full refresh history (most recent first), optionally
+    filtered by `dataset_name` and/or `request_id` -- the read side
+    `problems_phase_13.md` (issue 2) found missing: `refresh()` above
+    only ever returned the one run it had just created."""
+
+    return repository.list_refresh_runs(dataset_name=dataset_name, request_id=request_id)
+
+
+@router.get("/rollback-events", response_model=list[RollbackRecord])
+def list_rollback_events(
+    dataset_name: str | None = None,
+    request_id: UUID | None = None,
+    repository: LifecycleRepository = Depends(get_lifecycle_repository),
+) -> list[RollbackRecord]:
+    """Phase 13: full rollback history (most recent first), optionally
+    filtered by `dataset_name` and/or `request_id` -- same gap as
+    `list_refresh_runs` above, for `rollback()`."""
+
+    return repository.list_rollback_events(dataset_name=dataset_name, request_id=request_id)
 
 
 # ----------------------------------------------------------------------

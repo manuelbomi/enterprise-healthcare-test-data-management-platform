@@ -233,6 +233,20 @@ integration with the control plane's own Phase 7/8 schema; see
 *Who is authorized* to approve a policy version (RBAC) remains this
 service's eventual, still-unbuilt responsibility.
 
+Phase 11 built the real "immutable audit event log" this section
+describes (`control_plane.platform.audit.AuditLogRepository`) and
+Phase 13 extended it and built the "certification evidence store" this
+section describes (`control_plane.domain.evidence.EvidenceRepository`,
+the Audit Evidence Package) -- both in `services/control-plane`, for
+the same same-transaction reason as Phase 10 (see
+[ADR-0015](docs/adr/0015-platform-integrity-controls-in-control-plane.md)
+and
+[ADR-0016](docs/adr/0016-audit-evidence-lives-in-control-plane.md)).
+This service remains untouched by either phase. See
+`docs/COMPLIANCE_EVIDENCE.md` for what the Audit Evidence Package does
+and does not claim -- it supports an organization's own compliance
+program; it does not itself certify HIPAA (or any other) compliance.
+
 ### 2.5 UI (`frontend/`)
 
 A React + TypeScript + Vite console for the people who consume this

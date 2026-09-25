@@ -50,6 +50,23 @@ class AuditEventType(str, Enum):
     REFRESH_EXECUTED = "refresh_executed"
     CONSUMER_REQUEST_SUBMITTED = "consumer_request_submitted"
     CONSUMER_REQUEST_FULFILLED = "consumer_request_fulfilled"
+    # Phase 13 additions -- `problems_phase_13.md` found that
+    # `ACCESS_GRANTED`/`ACCESS_REQUESTED` above (defined since Phase 0)
+    # had never actually been wired to any real mutation, and that
+    # nothing recorded "who accessed a provisioned dataset version"
+    # specifically, as opposed to "who requested/fulfilled a
+    # provisioning request" (`CONSUMER_REQUEST_SUBMITTED`/
+    # `CONSUMER_REQUEST_FULFILLED` above, which are about the request
+    # workflow, not actual use of the resulting data). Rather than
+    # overload `ACCESS_GRANTED` (whose name suggests a generic
+    # permission grant, not specifically "this dataset version was
+    # used"), this phase adds a precise, dataset-version-scoped event --
+    # see `control_plane.api.v1.lifecycle.record_dataset_version_access`.
+    DATASET_VERSION_ACCESSED = "dataset_version_accessed"
+    # Generating an Audit Evidence Package (Phase 13) is itself a
+    # governance-relevant action worth its own auditable record -- see
+    # `control_plane.domain.evidence.EvidenceRepository`.
+    EVIDENCE_PACKAGE_GENERATED = "evidence_package_generated"
 
 
 class AuditEvent(BaseModel):

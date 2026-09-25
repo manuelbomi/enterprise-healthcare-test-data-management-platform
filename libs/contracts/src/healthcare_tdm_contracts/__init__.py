@@ -42,6 +42,7 @@ from healthcare_tdm_contracts.classification import (
     ColumnClassification,
     SensitivityCategory,
 )
+from healthcare_tdm_contracts.evidence import COMPLIANCE_DISCLAIMER, AuditEvidencePackage
 from healthcare_tdm_contracts.governance import (
     POLICY_APPROVAL_STATUS_TRANSITIONS,
     BusinessConsumer,
@@ -98,6 +99,7 @@ from healthcare_tdm_contracts.synthetic import (
 __all__ = [
     "TIER_BY_CATEGORY",
     "CERTIFICATION_STATUS_TRANSITIONS",
+    "COMPLIANCE_DISCLAIMER",
     "DATASET_VERSION_STATUS_TRANSITIONS",
     "DEFAULT_CADENCE_BY_ENVIRONMENT",
     "DEFAULT_ENVIRONMENT_CAPACITY_REQUIREMENTS",
@@ -107,6 +109,7 @@ __all__ = [
     "TERABYTE_BYTES",
     "AuditEvent",
     "AuditEventType",
+    "AuditEvidencePackage",
     "BusinessConsumer",
     "CapacityPlan",
     "CatalogEntry",

@@ -658,6 +658,87 @@ class LifecycleRepository:
         )
 
     # ------------------------------------------------------------------
+    # Refresh / rollback history (Phase 13)
+    # ------------------------------------------------------------------
+    #
+    # `refresh()`/`rollback()` above each return the single
+    # `RefreshRunRecord`/`RollbackRecord` they just created, but until
+    # this phase nothing queried `RefreshRunRow`/`RollbackEventRow`
+    # *after* the fact -- there was no way to answer "show me this
+    # dataset's refresh history" or "show me every rollback ever
+    # performed against it" other than re-deriving it from application
+    # logs. See `problems_phase_13.md` (issue 2).
+
+    def list_refresh_runs(
+        self,
+        *,
+        dataset_name: str | None = None,
+        request_id: UUID | str | None = None,
+        limit: int = 200,
+    ) -> list[RefreshRunRecord]:
+        """Every `RefreshRunRecord` ever executed, most recent first,
+        optionally filtered by `dataset_name` and/or `request_id`."""
+
+        stmt = select(RefreshRunRow)
+        if dataset_name is not None:
+            stmt = stmt.where(RefreshRunRow.dataset_name == dataset_name)
+        if request_id is not None:
+            stmt = stmt.where(RefreshRunRow.request_id == str(request_id))
+        stmt = stmt.order_by(RefreshRunRow.started_at.desc()).limit(limit)
+        rows = self._session.scalars(stmt).all()
+        return [self._run_to_contract(row) for row in rows]
+
+    def list_rollback_events(
+        self,
+        *,
+        dataset_name: str | None = None,
+        request_id: UUID | str | None = None,
+        limit: int = 200,
+    ) -> list[RollbackRecord]:
+        """Every `RollbackRecord` ever performed, most recent first,
+        optionally filtered by `dataset_name` and/or `request_id`.
+
+        `RollbackEventRow` only stores `from_version_id`/`to_version_id`
+        (not the version *numbers*) -- this method looks up the
+        corresponding `DatasetVersionRow`s to fill in
+        `from_version_number`/`to_version_number`, the same information
+        `rollback()` itself computes inline at the moment of the
+        rollback. A version row that has since been deleted (never
+        happens in this codebase -- rows are never deleted, only
+        status-transitioned) would fall back to `0`, matching
+        `rollback()`'s own `from_version_number` fallback.
+        """
+
+        stmt = select(RollbackEventRow)
+        if dataset_name is not None:
+            stmt = stmt.where(RollbackEventRow.dataset_name == dataset_name)
+        if request_id is not None:
+            stmt = stmt.where(RollbackEventRow.request_id == str(request_id))
+        stmt = stmt.order_by(RollbackEventRow.performed_at.desc()).limit(limit)
+        rows = self._session.scalars(stmt).all()
+
+        results: list[RollbackRecord] = []
+        for row in rows:
+            from_version = self._session.get(DatasetVersionRow, row.from_version_id)
+            to_version = self._session.get(DatasetVersionRow, row.to_version_id)
+            results.append(
+                RollbackRecord(
+                    rollback_id=UUID(row.rollback_id),
+                    request_id=UUID(row.request_id),
+                    environment=Environment(row.environment),
+                    dataset_name=row.dataset_name,
+                    from_version_id=UUID(row.from_version_id),
+                    from_version_number=from_version.version_number if from_version else 0,
+                    to_version_id=UUID(row.to_version_id),
+                    to_version_number=to_version.version_number if to_version else 0,
+                    performed_by=row.performed_by,
+                    performed_at=row.performed_at,
+                    reason=row.reason,
+                )
+            )
+        return results
+
+    # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 

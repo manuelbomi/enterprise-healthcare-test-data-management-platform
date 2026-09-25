@@ -318,3 +318,73 @@ def test_scheduler_due_endpoint_lists_and_runs_due_refreshes(client: TestClient)
     body = swept.json()
     assert body["succeeded_count"] == 1
     assert body["failed_count"] == 0
+
+
+# ----------------------------------------------------------------------
+# Phase 13: dataset version access recording + refresh/rollback history
+# ----------------------------------------------------------------------
+
+
+def test_record_dataset_version_access_appends_an_audit_event(client: TestClient) -> None:
+    version = _register_version(client, dataset_name="ds")
+
+    response = client.post(
+        f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/access",
+        json={"accessed_by": "qa-engineer@example.org", "environment": "qa", "purpose": "QA smoke test"},
+    )
+    assert response.status_code == 200
+    assert response.json()["version_id"] == version["version_id"]
+
+    events = client.get(
+        "/api/v1/audit/events",
+        params={"event_type": "dataset_version_accessed", "subject": version["version_id"]},
+    ).json()
+    assert len(events) == 1
+    assert events[0]["actor"] == "qa-engineer@example.org"
+    assert events[0]["detail"]["purpose"] == "QA smoke test"
+
+
+def test_record_access_for_missing_version_returns_404(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/lifecycle/dataset-versions/00000000-0000-0000-0000-000000000000/access",
+        json={"accessed_by": "qa-engineer@example.org"},
+    )
+    assert response.status_code == 404
+
+
+def test_list_refresh_runs_and_rollback_events(client: TestClient) -> None:
+    v1 = _register_version(client, dataset_name="ds")
+    request = client.post(
+        "/api/v1/lifecycle/environment-requests",
+        json={"environment": "dev", "dataset_name": "ds", "requested_by": "a"},
+    ).json()
+    _register_version(client, dataset_name="ds")  # v2
+    client.post(
+        f"/api/v1/lifecycle/environment-requests/{request['request_id']}/refresh",
+        json={"triggered_by": "a", "trigger": "on_demand"},
+    )
+    client.post(
+        f"/api/v1/lifecycle/environment-requests/{request['request_id']}/rollback",
+        json={
+            "to_version_number": 1,
+            "performed_by": "oncall@example.org",
+            "reason": "v2 broke the build",
+            "actor_role": "data_steward",
+        },
+    )
+
+    refresh_runs = client.get("/api/v1/lifecycle/refresh-runs", params={"dataset_name": "ds"}).json()
+    assert len(refresh_runs) == 1
+    assert refresh_runs[0]["resulting_version_id"] is not None
+
+    rollback_events = client.get("/api/v1/lifecycle/rollback-events", params={"dataset_name": "ds"}).json()
+    assert len(rollback_events) == 1
+    assert rollback_events[0]["to_version_number"] == 1
+    assert rollback_events[0]["to_version_id"] == v1["version_id"]
+    assert rollback_events[0]["from_version_number"] == 2
+    assert rollback_events[0]["reason"] == "v2 broke the build"
+
+    scoped = client.get(
+        "/api/v1/lifecycle/refresh-runs", params={"request_id": request["request_id"]}
+    ).json()
+    assert len(scoped) == 1

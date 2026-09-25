@@ -31,7 +31,7 @@ repository going forward.
 | 10 | Centralized enterprise masking standard (multi-business-unit governance) | **Complete** |
 | 11 | Platform integrity (health, resiliency, failure injection) | **Complete** |
 | 12 | Production CI/CD and cloud testing (GitHub Actions, K8s, Terraform) | **Complete** |
-| 13 | Auditability and compliance evidence | Not started |
+| 13 | Auditability and compliance evidence | **Complete** |
 | 14 | Scale and performance engineering (PySpark benchmarks) | Not started |
 | 15 | Complete junior-engineer tutorial (20 chapters) | Not started |
 | 16 | Interview / system design documentation | Not started |
@@ -39,6 +39,73 @@ repository going forward.
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 13 — what was actually delivered
+
+- Audited Phase 11's existing audit log (`control_plane.platform.audit`)
+  against this phase's exact requirement list before writing any new
+  code, and found two genuine, narrow gaps rather than reinventing the
+  mechanism: (1) `AuditEventType.ACCESS_GRANTED`/`ACCESS_REQUESTED` had
+  existed since Phase 0 but were never wired to anything, and nothing
+  recorded "who accessed a provisioned dataset version" specifically;
+  (2) `LifecycleRepository.refresh()`/`rollback()` each returned only
+  the single record they had just created -- there was no read method
+  or endpoint to list refresh/rollback history after the fact.
+- Two new `AuditEventType` values
+  (`healthcare_tdm_contracts.audit`): `DATASET_VERSION_ACCESSED` and
+  `EVIDENCE_PACKAGE_GENERATED`.
+- A new, real mutation closing gap (1):
+  `POST /api/v1/lifecycle/dataset-versions/{version_id}/access`
+  (`control_plane.api.v1.lifecycle.record_dataset_version_access`) --
+  checks the version exists, then appends a real
+  `DATASET_VERSION_ACCESSED` audit event.
+- Two new read methods/endpoints closing gap (2):
+  `LifecycleRepository.list_refresh_runs`/`list_rollback_events`
+  (`services/control-plane/src/control_plane/domain/lifecycle/repository.py`),
+  exposed at `GET /api/v1/lifecycle/refresh-runs` and
+  `GET /api/v1/lifecycle/rollback-events`.
+- A new contract, `healthcare_tdm_contracts.evidence.AuditEvidencePackage`
+  (plus its `COMPLIANCE_DISCLAIMER` constant), and a new control-plane
+  domain, `control_plane.domain.evidence.EvidenceRepository`
+  (`build_evidence_package`, `compute_bundle_checksum`,
+  `verify_bundle_checksum`) -- a real aggregation (not a
+  reimplementation) of the dataset manifest (Phase 7), classification
+  summary (Phase 2), masking policy version + approvals (Phase 10),
+  provisioning/refresh/rollback/revocation history (Phase 7), and the
+  relevant audit trail (Phase 11), joined in one `sqlalchemy.orm.Session`,
+  plus a real SHA-256 bundle checksum and (only when the caller supplies
+  them) the caller's own Phase 6 `CertificationReport`/Phase 4
+  `SubsetManifest` embedded verbatim and used to derive
+  `integrity_report`/`quality_report`. Exposed at
+  `POST /api/v1/evidence/dataset-versions/{version_id}/package`
+  (`control_plane.api.v1.evidence`).
+- [ADR-0016](docs/adr/0016-audit-evidence-lives-in-control-plane.md):
+  why this aggregation lives in `services/control-plane`, mirroring
+  ADR-0014/ADR-0015's reasoning.
+- `docs/COMPLIANCE_EVIDENCE.md`: the honest explanation of what the
+  Audit Evidence Package does and does not claim -- it supports an
+  organization's own privacy/security/compliance program; it is not
+  itself a HIPAA (or any other regulatory) certification, attestation,
+  or guarantee. `ARCHITECTURE.md` section 2.4 updated to point here.
+- `docs/tutorial/13-auditability-and-compliance-evidence.md`.
+- New tests: `libs/contracts/tests/test_evidence_contract.py` (3),
+  `services/control-plane/tests/test_evidence_repository.py` (15),
+  `services/control-plane/tests/test_evidence_api.py` (3), plus
+  additions to `test_lifecycle_repository.py` (2),
+  `test_lifecycle_api.py` (3), and `test_platform_audit.py` (1) for the
+  new read methods/endpoints and event types -- all against real
+  SQLite-backed repositories and real HTTP requests, no mocking of the
+  database layer, per `CONTRIBUTING.md`'s data-quality-test convention.
+  Full workspace suite after this phase: `libs/contracts` 62 passed,
+  `services/control-plane` 195 passed, `services/data-plane` 413
+  passed, `services/governance-service` 2 passed -- no regressions.
+- Left genuinely open, tracked in `problems_phase_13.md`: the Audit
+  Evidence Package can only embed a real `CertificationReport`/
+  `SubsetManifest` if the caller supplies it (control-plane still does
+  not durably store either); the bundle checksum is a SHA-256 integrity
+  check, not a keyed-HMAC non-repudiation signature; the new endpoints
+  this phase adds are not RBAC-gated; and the audit-trail aggregation
+  only finds events under known subject ids.
 
 ## Phase 12 — what was actually delivered
 

@@ -526,3 +526,65 @@ def test_release_driven_uat_is_never_due_automatically(repo: LifecycleRepository
     far_future = datetime.now(timezone.utc) + timedelta(days=365)
     due = orchestrator.due_refreshes(as_of=far_future)
     assert due == []  # release-driven: next_refresh_at is always None, never "due"
+
+
+# ----------------------------------------------------------------------
+# Phase 13: refresh/rollback history read methods
+# ----------------------------------------------------------------------
+
+
+def test_list_refresh_runs_returns_history_most_recent_first(repo: LifecycleRepository) -> None:
+    repo.register_dataset_version(
+        dataset_name="ds", certification_report=make_certified_report(), storage_uri="uri-1",
+        size_bytes=1, row_counts={}, created_by="a",
+    )
+    request = repo.request_environment(environment=Environment.DEV, dataset_name="ds", requested_by="a")
+
+    assert repo.list_refresh_runs(dataset_name="ds") == []  # nothing run yet
+
+    first = repo.refresh(request.request_id, trigger=RefreshTrigger.ON_DEMAND, triggered_by="a")
+    repo.register_dataset_version(
+        dataset_name="ds", certification_report=make_certified_report(), storage_uri="uri-2",
+        size_bytes=1, row_counts={}, created_by="a",
+    )
+    second = repo.refresh(request.request_id, trigger=RefreshTrigger.ON_DEMAND, triggered_by="b")
+
+    runs = repo.list_refresh_runs(dataset_name="ds")
+    assert [r.run_id for r in runs] == [second.run_id, first.run_id]  # most recent first
+    assert all(r.dataset_name == "ds" for r in runs)
+
+    scoped = repo.list_refresh_runs(request_id=request.request_id)
+    assert len(scoped) == 2
+
+    other_dataset = repo.list_refresh_runs(dataset_name="some-other-dataset")
+    assert other_dataset == []
+
+
+def test_list_rollback_events_fills_in_version_numbers(repo: LifecycleRepository) -> None:
+    v1 = repo.register_dataset_version(
+        dataset_name="ds", certification_report=make_certified_report(), storage_uri="uri-1",
+        size_bytes=1, row_counts={}, created_by="a",
+    )
+    request = repo.request_environment(environment=Environment.DEV, dataset_name="ds", requested_by="a")
+    v2 = repo.register_dataset_version(
+        dataset_name="ds", certification_report=make_certified_report(), storage_uri="uri-2",
+        size_bytes=1, row_counts={}, created_by="a",
+    )
+    repo.refresh(request.request_id, trigger=RefreshTrigger.ON_DEMAND, triggered_by="a")  # now on v2
+
+    assert repo.list_rollback_events(dataset_name="ds") == []  # nothing rolled back yet
+
+    rollback = repo.rollback(
+        request.request_id, to_version_number=1, performed_by="oncall@example.org", reason="v2 broke the build"
+    )
+
+    events = repo.list_rollback_events(dataset_name="ds")
+    assert len(events) == 1
+    assert events[0].rollback_id == rollback.rollback_id
+    assert events[0].from_version_id == v2.version_id
+    assert events[0].from_version_number == 2
+    assert events[0].to_version_id == v1.version_id
+    assert events[0].to_version_number == 1
+
+    scoped = repo.list_rollback_events(request_id=request.request_id)
+    assert len(scoped) == 1
