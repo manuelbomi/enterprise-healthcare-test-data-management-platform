@@ -47,7 +47,20 @@ jobs:
         run: python scripts/demo_phase9_console_data.py
 
       - name: Start control-plane (background, port 8010)
-        working-directory: services/control-plane
+        # Deliberately NOT `working-directory: services/control-plane`
+        # (a real bug found and fixed while verifying this workflow --
+        # see problems_phase_12.md): control_plane.config.Settings'
+        # default paths (catalog_path, lifecycle_database_url, the
+        # Phase 9 artifact roots) are plain relative strings resolved
+        # against the process's cwd, not the package's location --
+        # `pip install -e .` makes `control_plane` importable from any
+        # cwd, but running uvicorn from services/control-plane would
+        # resolve those defaults under services/control-plane/data/tmp/...
+        # instead of the repo-root data/tmp/... the demo data step
+        # above just wrote to, leaving the API serving an empty
+        # catalog/lifecycle DB and every data-dependent Playwright spec
+        # failing. Running from the repo root (this job's default cwd)
+        # keeps both steps' relative paths consistent.
         run: |
           nohup uvicorn control_plane.main:app --host 127.0.0.1 --port 8010 \
             > "${{ runner.temp }}/control-plane.log" 2>&1 &

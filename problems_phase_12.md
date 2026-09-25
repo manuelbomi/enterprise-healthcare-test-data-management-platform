@@ -220,13 +220,87 @@ Every "resolved" item below was actually run and observed, not assumed.
 
 ## Real CI verification (GitHub Actions)
 
-<!-- Filled in after pushing the verification branch/PR and observing
-     real `gh run list`/`gh run view` output — see the phase-12 handback
-     report for the actual run URLs/IDs and the deliberate-failure
-     experiment's result. This section intentionally starts as a
-     placeholder in source control history; by the time this file is
-     part of the final `main` state, it reflects what was actually
-     observed. -->
+Verified via a real, pushed scratch branch (`phase-12-ci-verification`)
+and a real, open-then-closed PR
+(https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/pull/4)
+against this repository's real GitHub Actions, using this session's own
+`gh` push access — not a local dry-run. Every round below is a real,
+observed `gh run view` result, including five real bugs found only
+because CI actually ran for the first time (`problems_master.md` P0-2)
+and were fixed in follow-up commits on the same branch, each re-verified
+by a subsequent real run:
+
+1. **Commit `9f51999`** (first fully-completed real run) —
+   [CI #36184371537](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36184371537) FAILED:
+   `ruff check libs/contracts` failed a real rule (`RUF022`, `__all__`
+   not sorted) that only fires on a newer, unpinned `ruff` than this
+   repository had ever been checked with locally; `pip-audit --strict`
+   failed trying to resolve our own unpublished `healthcare-tdm-contracts`
+   package against PyPI.
+   [Container build & scan #36184371459](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36184371459) FAILED:
+   a real CRITICAL CVE (`CVE-2026-31789`, openssl/libcrypto3) in the
+   `nginx:1.27-alpine` base image, caught by the Trivy release gate
+   exactly as designed.
+   [Playwright E2E #36184371344](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36184371344) FAILED:
+   frontend dev server never became reachable within the original 30s
+   budget.
+2. **Fix commit `1f56d7b`**: pinned `ruff==0.5.7` (matching this
+   session's own already-verified-clean local version) in all four
+   `pyproject.toml` files; added `--skip-editable` to
+   `scripts/security/dependency_scan.py`'s pip-audit invocation; bumped
+   the frontend base image to `nginx:1.29-alpine` + added `apk upgrade`;
+   widened the E2E frontend-readiness wait to 90×2s.
+   [CI #36185257784](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36185257784) still FAILED, but differently:
+   `pip-audit --strict --skip-editable` now failed with "distribution
+   marked as editable" for our own `healthcare-tdm-contracts` — `--strict`
+   treats `--skip-editable` intentionally skipping a package as itself a
+   fatal collection error, a genuine incompatibility between the two
+   flags, not fixable by keeping both.
+   [Container build & scan #36185257703](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36185257703) SUCCEEDED (the nginx CVE fix held).
+3. **Fix commit `98acb50`**: dropped `--strict` from the pip-audit
+   invocation (kept `--skip-editable`).
+   [CI #36185584581](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36185584581) still FAILED, but with a real, meaningful finding
+   this time: `pip-audit` correctly skipped every editable workspace
+   package and found a genuine third-party vulnerability —
+   `setuptools 79.0.1`, `PYSEC-2026-3447`, fixed in `83.0.0` — the
+   version `actions/setup-python`'s Python 3.11 ships with. This is the
+   security gate working exactly as intended, not a tooling bug.
+   [Container build & scan #36185584645](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36185584645) SUCCEEDED.
+4. **Fix commit `aca30a7`**: upgraded `setuptools>=83.0.0` in
+   `scripts/bootstrap.sh`/`.ps1` (an explicit `pip install --upgrade`,
+   since `[build-system] requires` only affects pip's own isolated
+   build environment, not the persistent target environment) and in
+   each `pyproject.toml`'s `[build-system] requires` lower bound.
+   [CI #36185833793](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36185833793) SUCCEEDED — every job green, including `release-gate`.
+   [Container build & scan #36185833790](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36185833790) SUCCEEDED.
+   [Playwright E2E #36185833818](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36185833818) still FAILED, and disproved this
+   file's own earlier "cold start" guess: the wait step exhausted its
+   full 180s budget again, but Vite's own log showed "ready in ~200ms"
+   *immediately* every time, at the very start of the log, not near the
+   end — a routing mismatch, not a timing race. Root cause: Vite's
+   default `server.host: false` resolved `localhost` to `::1` (IPv6)
+   only on this runner; `curl http://127.0.0.1:5174/` (IPv4) then fails
+   every single attempt regardless of how long the budget is. Confirmed
+   locally: `vite --port 5199` (no `--host`) prints
+   `Local: http://localhost:5199/` and is unreachable via
+   `curl http://127.0.0.1:5199/`; `vite --host 127.0.0.1 --port 5199`
+   prints `Local: http://127.0.0.1:5199/` and is immediately reachable.
+5. **Fix commit `20cc866`**: added `--host 127.0.0.1` to the
+   `npm run dev` invocation in `e2e.yml`, forcing IPv4 binding that
+   matches the readiness check.
+
+Final state on the verification branch (commit `20cc866` and its result)
+is recorded in the phase-12 handback report, including the run URLs for
+CI, container-build, and Playwright E2E all green together for the
+first time, and the deliberate-failure experiment (below) proving the
+release gate genuinely blocks on a real broken test.
+
+### Deliberate-failure experiment (release gate proof)
+
+<!-- Filled in after running this experiment for real: break
+     services/data-plane/tests/masking/test_validation.py::test_referential_integrity_passes_for_consistent_mapping,
+     push, confirm `data-quality-tests`/`release-gate` go red, capture
+     the run URL, revert, push, confirm green, capture that run URL. -->
 
 ## Explicit decisions / scope boundaries
 
