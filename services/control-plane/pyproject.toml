@@ -17,7 +17,7 @@ dependencies = [
     "sqlalchemy>=2.0",
     "alembic>=1.13",
     "psycopg[binary]>=3.1",
-    "healthcare-tdm-contracts @ file:../../libs/contracts",
+    "healthcare-tdm-contracts",  # workspace-local: installed via scripts/bootstrap-dev (see README)
 ]
 
 [project.optional-dependencies]

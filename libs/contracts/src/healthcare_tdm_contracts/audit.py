@@ -8,7 +8,7 @@ treated as immutable evidence rather than ordinary application logs.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID, uuid4
 
@@ -56,4 +56,4 @@ class AuditEvent(BaseModel):
     detail: dict[str, str] = Field(
         default_factory=dict, description="Additional structured context for this event."
     )
-    occurred_at: datetime = Field(default_factory=datetime.utcnow)
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

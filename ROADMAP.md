@@ -1,41 +1,58 @@
 # Roadmap
 
-This repository is built as a **22-phase promptbook-driven project**. Each
-phase is scoped to be independently completable, testable, and documented
-before the next begins. Phases are not sprints with fixed dates — they are
-ordered units of work. A phase is not "done" until its required tests pass
-(see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the per-phase process).
+This repository is built as a **21-phase promptbook-driven project** (Phase 0
+through Phase 17, split fix/delete cycles 18A/18B, and a Final release
+phase). Each phase is scoped to be independently completable, testable, and
+documented before the next begins. Phases are not sprints with fixed dates —
+they are ordered units of work. A phase is not "done" until its required
+tests pass (see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the per-phase
+process).
 
 This file tracks the *plan*. Day-to-day open issues live in
-[`problems_master.md`](problems_master.md).
+[`problems_master.md`](problems_master.md). The exact phase prompts this
+roadmap follows come from the private planning document that seeded this
+project; the table below is the authoritative phase order and scope for this
+repository going forward.
 
 ## Phase index
 
 | Phase | Theme | Status |
 |---|---|---|
-| 0 | Architecture, repository structure, conventions, ADRs, scaffolding | **Complete** |
-| 1 | Metadata plane: PostgreSQL schema, SQLAlchemy models, Alembic migrations | Not started |
-| 2 | Control plane skeleton: FastAPI app, health/readiness, config, RBAC stubs | Not started |
-| 3 | Security/governance plane: audit event log, secrets adapter, RBAC model | Not started |
-| 4 | Local infrastructure: Docker Compose (Postgres, MinIO), dev bootstrap scripts | Not started |
-| 5 | Object storage abstraction: MinIO adapter + S3/Azure adapter interfaces | Not started |
-| 6 | Synthetic source data: reference synthetic healthcare schema + generators | Not started |
-| 7 | PHI/PII discovery & classification engine | Not started |
-| 8 | Data subsetting engine (single-system, referential-integrity-preserving) | Not started |
-| 9 | Deterministic masking engine (pseudonymization/tokenization) | Not started |
-| 10 | Cross-system referential integrity for masking (multi-source) | Not started |
-| 11 | Masking certification: automated pass/fail evidence generation | Not started |
-| 12 | Synthetic data generation engine (no-source-row scenarios) | Not started |
-| 13 | Snapshot & versioning system, refresh cadence & orchestration | Not started |
-| 14 | Job orchestration in control plane (submit, track, retry, schedule) | Not started |
-| 15 | Storage/compute footprint management & lower-environment capacity planning | Not started |
-| 16 | UI: React/TypeScript/Vite console (request, inspect, certify data) | Not started |
-| 17 | Observability: structured logging, metrics, tracing across planes | Not started |
-| 18 | CI/CD: GitHub Actions (lint, unit, integration, data-quality, E2E gates) | Not started |
-| 19 | Testing depth: contract tests, data-quality tests, Playwright E2E suite | Not started |
-| 20 | Kubernetes/Helm deployment shape + Terraform examples (AWS/Azure) | Not started |
-| 21 | Disaster recovery drills, runbooks, chaos/failure-mode testing | Not started |
-| 22 | Hardening, documentation pass, tutorial completion, portfolio polish | Not started |
+| 0 | Repository operating rules, architecture, conventions, ADRs, scaffolding | **Complete** |
+| 1 | Synthetic healthcare data estate across 5 heterogeneous source systems | **Complete** |
+| 2 | PHI/PII discovery and classification engine + data catalog | Not started |
+| 3 | Enterprise deterministic masking engine (pseudonymization/tokenization) | Not started |
+| 4 | Referentially intact, production-scale data subsetting | Not started |
+| 5 | Synthetic test data generation (scenario/edge-case data) | Not started |
+| 6 | Certified test dataset pipeline (ingest→...→certify→publish) | Not started |
+| 7 | Dataset lifecycle and refresh management (versions, cadence, retention) | Not started |
+| 8 | Storage and compute footprint management / capacity planning | Not started |
+| 9 | React/TypeScript enterprise TDM web console | Not started |
+| 10 | Centralized enterprise masking standard (multi-business-unit governance) | Not started |
+| 11 | Platform integrity (health, resiliency, failure injection) | Not started |
+| 12 | Production CI/CD and cloud testing (GitHub Actions, K8s, Terraform) | Not started |
+| 13 | Auditability and compliance evidence | Not started |
+| 14 | Scale and performance engineering (PySpark benchmarks) | Not started |
+| 15 | Complete junior-engineer tutorial (20 chapters) | Not started |
+| 16 | Interview / system design documentation | Not started |
+| 17 | Principal-engineer production readiness review (findings only, no fixes) | Not started |
+| 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
+| 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
+| Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 1 — what was actually delivered
+
+- A completely synthetic, multi-system healthcare data estate: Member,
+  MemberDemographics, Address, Coverage, Plan, Provider, Claim, ClaimLine,
+  Diagnosis, Procedure, Prescription, Pharmacy, Encounter, LabResult
+- Distributed across 5 simulated heterogeneous sources: PostgreSQL-shaped
+  (SQLAlchemy models), Parquet object storage, S3-compatible NDJSON,
+  Azure/ADLS-compatible CSV, and an external partner file/API feed
+- 4 configurable scale profiles (tiny/developer/qa/performance) and required
+  edge cases (nulls, duplicates, orphans, malformed values, late-arriving
+  data, schema drift), each guaranteed present and covered by tests
+- See `services/data-plane/src/data_plane/reference_data/README.md` and
+  `docs/tutorial/02-synthetic-data-estate.md` for details
 
 ## Phase 0 — what was actually delivered
 

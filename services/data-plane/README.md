@@ -12,19 +12,25 @@ cluster / Databricks runtime (backed by S3 or ADLS) — see
 storage adapter interface in `libs/contracts`, never on a specific cloud
 SDK directly.
 
-## Phase 0 status
+## Status
 
-Structural scaffold only — module placeholders for each responsibility
-area, no working jobs yet. See `problems_master.md` and `ROADMAP.md`
-(Phases 6-13) for what's next.
+`discovery/`, `subsetting/`, `masking/`, `synthetic/`, and `jobs/` remain
+structural placeholders — see `problems_master.md` and `ROADMAP.md`
+(Phases 7-14) for what's next in each.
+
+`reference_data/` is real, working code: it generates the SYNTHETIC
+multi-system healthcare data estate every later phase builds on. See
+`src/data_plane/reference_data/README.md` for the full picture and
+`docs/tutorial/02-synthetic-data-estate.md` for a walkthrough.
 
 ## Layout
 
 ```
 src/data_plane/
+├── reference_data/  # Synthetic multi-system healthcare data estate (real, working)
 ├── discovery/    # PHI/PII discovery & classification (Phase 7)
 ├── subsetting/    # Referential-integrity-preserving subsetting (Phase 8)
 ├── masking/        # Deterministic masking / pseudonymization / tokenization (Phase 9-10)
-├── synthetic/       # Synthetic data generation (Phase 12)
+├── synthetic/       # Synthetic data generation as a masking substitute (Phase 12)
 └── jobs/              # Job entry points / DAG-runnable wrappers (Phase 14)
 ```

@@ -23,8 +23,11 @@ from healthcare_tdm_contracts import (
     MaskingRule,
     MaskingStrategy,
     ObjectRef,
+    ScaleProfileName,
     SnapshotRecord,
     SnapshotStatus,
+    SourceDatasetDescriptor,
+    SourceSystemType,
     StorageBackend,
 )
 
@@ -130,4 +133,29 @@ def test_job_status_enum_values() -> None:
         "succeeded",
         "failed",
         "cancelled",
+    }
+
+
+def test_source_dataset_descriptor_round_trip() -> None:
+    descriptor = SourceDatasetDescriptor(
+        entity="ClaimLine",
+        source_system=SourceSystemType.OBJECT_STORAGE_CLAIMS_PARQUET,
+        storage_format="parquet",
+        location="claims-warehouse/claim_line",
+        row_count=1234,
+        scale_profile=ScaleProfileName.TINY,
+    )
+    assert (
+        SourceDatasetDescriptor.model_validate_json(descriptor.model_dump_json())
+        == descriptor
+    )
+
+
+def test_source_system_type_is_closed_enum() -> None:
+    assert {s.value for s in SourceSystemType} == {
+        "postgres_enrollment",
+        "object_storage_claims_parquet",
+        "s3_clinical_data_lake",
+        "adls_pbm_extract",
+        "partner_lab_feed",
     }

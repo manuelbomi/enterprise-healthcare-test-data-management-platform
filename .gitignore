@@ -74,12 +74,16 @@ _SUCCESS
 
 # ---------------------------------------------------------------------------
 # Data / synthetic data working directories (never commit generated data,
-# even synthetic data — treat local generated output as disposable)
+# even synthetic data — treat local generated output as disposable).
+# Patterns are prefixed with **/ so they match at any depth (e.g. both
+# ./data/tmp/ and services/data-plane/data/tmp/, the default output
+# directory for data_plane.reference_data.cli) rather than only the repo
+# root.
 # ---------------------------------------------------------------------------
-data/raw/
-data/processed/
-data/snapshots/
-data/tmp/
+**/data/raw/
+**/data/processed/
+**/data/snapshots/
+**/data/tmp/
 **/*.parquet
 **/*.delta
 !**/fixtures/**/*.parquet
