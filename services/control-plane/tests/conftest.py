@@ -32,6 +32,8 @@ from healthcare_tdm_contracts import (
     ClassificationMethod,
     ClassificationTier,
     ColumnClassification,
+    MaskingPolicy,
+    MaskingRule,
     MaskingStrategy,
     RetentionClassification,
     SensitivityCategory,
@@ -197,3 +199,50 @@ def make_certified_report(
 @pytest.fixture
 def sample_certification_report() -> CertificationReport:
     return make_certified_report()
+
+
+def make_sample_masking_policy(*, version: int = 1) -> MaskingPolicy:
+    """A small, hand-authored, structurally realistic `MaskingPolicy` --
+    same shape (`name="phase3-default"`) the real Phase 3
+    `data_plane.masking.policy.DEFAULT_POLICY` uses, built without
+    importing `data_plane` (ADR-0003: control-plane tests never depend
+    on the data-plane package). Used by
+    `test_governance_repository.py`/`test_governance_api.py` (Phase 10)
+    to draft/approve a governed `MaskingPolicyVersion`. `version` matches
+    `make_certified_report`'s `masking_policy_version=1` default, so a
+    test can construct a narrative where a certification report and a
+    governed policy version agree on which policy produced the data."""
+
+    return MaskingPolicy(
+        name="phase3-default",
+        version=version,
+        rules=[
+            MaskingRule(
+                tier=ClassificationTier.DIRECT_IDENTIFIER,
+                strategy=MaskingStrategy.DETERMINISTIC_TOKENIZATION,
+                scope="member-id-global",
+                field_pattern=r"^member_id$",
+                preserve_linkage=True,
+            ),
+            MaskingRule(
+                tier=ClassificationTier.DIRECT_IDENTIFIER,
+                strategy=MaskingStrategy.DETERMINISTIC_TOKENIZATION,
+                scope="direct-identifier-default",
+            ),
+            MaskingRule(
+                tier=ClassificationTier.QUASI_IDENTIFIER,
+                strategy=MaskingStrategy.GENERALIZATION,
+                scope="quasi-identifier-default",
+            ),
+            MaskingRule(
+                tier=ClassificationTier.SENSITIVE_CLINICAL_ATTRIBUTE,
+                strategy=MaskingStrategy.SYNTHETIC_REPLACEMENT,
+                scope="sensitive-clinical-default",
+            ),
+            MaskingRule(
+                tier=ClassificationTier.NON_SENSITIVE,
+                strategy=MaskingStrategy.PASSTHROUGH,
+                scope="non-sensitive-default",
+            ),
+        ],
+    )

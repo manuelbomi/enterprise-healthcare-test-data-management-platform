@@ -1,0 +1,233 @@
+"""Tests for the centralized masking governance API (`api/v1/governance.py`,
+Phase 10), exercised through a real FastAPI `TestClient` with
+`get_db_session` overridden to point at a fresh temporary SQLite file per
+test -- the same dependency-override pattern `test_lifecycle_api.py` and
+`test_capacity_api.py` use, confirming all three routers share one
+database/session per test.
+"""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Iterator
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from control_plane.api.v1.lifecycle import get_db_session
+from control_plane.db.models import create_sqlite_engine
+from control_plane.db.session import build_session_factory, session_scope
+from control_plane.main import create_app
+
+from conftest import make_certified_report, make_sample_masking_policy
+
+
+def _client(db_path: Path) -> TestClient:
+    engine = create_sqlite_engine(str(db_path))
+    factory = build_session_factory(engine)
+
+    def _override() -> Iterator[Session]:
+        with session_scope(factory) as session:
+            yield session
+
+    app = create_app()
+    app.dependency_overrides[get_db_session] = _override
+    return TestClient(app)
+
+
+@pytest.fixture
+def client(tmp_path: Path) -> TestClient:
+    return _client(tmp_path / "governance.db")
+
+
+def _draft_and_approve_policy(client: TestClient, *, version: int = 1) -> dict:
+    policy = make_sample_masking_policy(version=version)
+    draft = client.post(
+        "/api/v1/governance/policy-versions",
+        json={
+            "masking_policy": json.loads(policy.model_dump_json()),
+            "masking_engine_version": "1.0.0",
+            "created_by": "governance-admin@example.org",
+        },
+    )
+    assert draft.status_code == 201, draft.text
+    policy_version_id = draft.json()["policy_version_id"]
+
+    submitted = client.post(
+        f"/api/v1/governance/policy-versions/{policy_version_id}/submit",
+        json={"performed_by": "governance-admin@example.org"},
+    )
+    assert submitted.status_code == 200, submitted.text
+
+    approved = client.post(
+        f"/api/v1/governance/policy-versions/{policy_version_id}/approve",
+        json={"performed_by": "compliance-steward@example.org", "comments": "Approved."},
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["approval_status"] == "approved"
+    return approved.json()
+
+
+def _register_consumer(client: TestClient, code: str, display_name: str) -> dict:
+    response = client.post(
+        "/api/v1/governance/business-consumers",
+        json={"code": code, "display_name": display_name},
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def _register_dataset_version(client: TestClient, dataset_name: str) -> dict:
+    report = make_certified_report(dataset_name=dataset_name)
+    response = client.post(
+        "/api/v1/lifecycle/dataset-versions",
+        json={
+            "dataset_name": dataset_name,
+            "certification_report": json.loads(report.model_dump_json()),
+            "storage_uri": f"data/tmp/{dataset_name}-run",
+            "size_bytes": 10_000,
+            "row_counts": {"member": 10, "claim": 40},
+            "created_by": "platform@example.org",
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def test_policy_version_approval_workflow(client: TestClient) -> None:
+    approved = _draft_and_approve_policy(client)
+    approvals = client.get(f"/api/v1/governance/policy-versions/{approved['policy_version_id']}/approvals")
+    assert approvals.status_code == 200
+    assert [a["status"] for a in approvals.json()] == ["pending_approval", "approved"]
+
+    fetched = client.get("/api/v1/governance/policy-versions/approved/phase3-default")
+    assert fetched.status_code == 200
+    assert fetched.json()["policy_version_id"] == approved["policy_version_id"]
+
+
+def test_cannot_approve_a_draft_policy_version(client: TestClient) -> None:
+    policy = make_sample_masking_policy()
+    draft = client.post(
+        "/api/v1/governance/policy-versions",
+        json={
+            "masking_policy": json.loads(policy.model_dump_json()),
+            "masking_engine_version": "1.0.0",
+            "created_by": "admin@example.org",
+        },
+    ).json()
+    response = client.post(
+        f"/api/v1/governance/policy-versions/{draft['policy_version_id']}/approve",
+        json={"performed_by": "reviewer@example.org"},
+    )
+    assert response.status_code == 409
+
+
+def test_business_consumer_duplicate_code_returns_409(client: TestClient) -> None:
+    _register_consumer(client, "LEFT_ARM", "Left Arm")
+    response = client.post(
+        "/api/v1/governance/business-consumers", json={"code": "LEFT_ARM", "display_name": "Left Arm Again"}
+    )
+    assert response.status_code == 409
+
+
+def test_consumer_request_rejected_without_approved_policy(client: TestClient) -> None:
+    consumer = _register_consumer(client, "LEFT_ARM", "Left Arm")
+    policy = make_sample_masking_policy()
+    draft = client.post(
+        "/api/v1/governance/policy-versions",
+        json={
+            "masking_policy": json.loads(policy.model_dump_json()),
+            "masking_engine_version": "1.0.0",
+            "created_by": "admin@example.org",
+        },
+    ).json()
+
+    response = client.post(
+        "/api/v1/governance/consumer-requests",
+        json={
+            "business_consumer_id": consumer["business_consumer_id"],
+            "dataset_name": "left-arm-member-claims-subset",
+            "environment": "dev",
+            "policy_version_id": draft["policy_version_id"],
+            "subset_size_hint": "1% of members",
+            "refresh_cadence_type": "weekly",
+            "requested_by": "left-arm-lead@example.org",
+        },
+    )
+    assert response.status_code == 409
+
+
+def test_both_arms_use_the_same_approved_policy_version_end_to_end(client: TestClient) -> None:
+    """The Phase 10 headline API-level proof: LEFT_ARM and RIGHT_ARM each
+    submit a `ConsumerDatasetRequest` for their own dataset/environment/
+    subset size/cadence, both referencing the same approved
+    `MaskingPolicyVersion`, and both are fulfilled into real Phase 7
+    `EnvironmentDatasetRequest`s."""
+
+    approved = _draft_and_approve_policy(client)
+    left = _register_consumer(client, "LEFT_ARM", "Left Arm Business Unit")
+    right = _register_consumer(client, "RIGHT_ARM", "Right Arm Business Unit")
+
+    _register_dataset_version(client, "left-arm-member-claims-subset")
+    _register_dataset_version(client, "right-arm-member-claims-subset")
+
+    left_request = client.post(
+        "/api/v1/governance/consumer-requests",
+        json={
+            "business_consumer_id": left["business_consumer_id"],
+            "dataset_name": "left-arm-member-claims-subset",
+            "environment": "dev",
+            "policy_version_id": approved["policy_version_id"],
+            "subset_size_hint": "1% of members",
+            "refresh_cadence_type": "weekly",
+            "requested_by": "left-arm-lead@example.org",
+        },
+    )
+    assert left_request.status_code == 201, left_request.text
+
+    right_request = client.post(
+        "/api/v1/governance/consumer-requests",
+        json={
+            "business_consumer_id": right["business_consumer_id"],
+            "dataset_name": "right-arm-member-claims-subset",
+            "environment": "qa",
+            "policy_version_id": approved["policy_version_id"],
+            "subset_size_hint": "8% of members, regression set",
+            "refresh_cadence_type": "biweekly",
+            "performance_requirements": "sub-200ms p95",
+            "requested_by": "right-arm-lead@example.org",
+        },
+    )
+    assert right_request.status_code == 201, right_request.text
+
+    assert (
+        left_request.json()["policy_version_id"]
+        == right_request.json()["policy_version_id"]
+        == approved["policy_version_id"]
+    )
+
+    left_fulfilled = client.post(
+        f"/api/v1/governance/consumer-requests/{left_request.json()['consumer_request_id']}/fulfill",
+        json={"triggered_by": "governance-service"},
+    )
+    right_fulfilled = client.post(
+        f"/api/v1/governance/consumer-requests/{right_request.json()['consumer_request_id']}/fulfill",
+        json={"triggered_by": "governance-service"},
+    )
+    assert left_fulfilled.status_code == 200, left_fulfilled.text
+    assert right_fulfilled.status_code == 200, right_fulfilled.text
+    assert left_fulfilled.json()["environment_request_id"] is not None
+    assert right_fulfilled.json()["environment_request_id"] is not None
+
+    # Confirm both fulfillments are real Phase 7 rows, visible via the
+    # unmodified Phase 7 lifecycle API.
+    env_requests = client.get("/api/v1/lifecycle/environment-requests").json()
+    consumers_seen = {r["consumer"] for r in env_requests}
+    assert {"LEFT_ARM", "RIGHT_ARM"} <= consumers_seen
+
+    # And real Phase 8 capacity accounting picks both up with no
+    # governance-specific capacity endpoint of its own.
+    plan = client.get("/api/v1/capacity/plan").json()
+    assert plan["environment_count"] == 2

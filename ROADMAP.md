@@ -28,7 +28,7 @@ repository going forward.
 | 7 | Dataset lifecycle and refresh management (versions, cadence, retention) | **Complete** |
 | 8 | Storage and compute footprint management / capacity planning | **Complete** |
 | 9 | React/TypeScript enterprise TDM web console | **Complete** |
-| 10 | Centralized enterprise masking standard (multi-business-unit governance) | Not started |
+| 10 | Centralized enterprise masking standard (multi-business-unit governance) | **Complete** |
 | 11 | Platform integrity (health, resiliency, failure injection) | Not started |
 | 12 | Production CI/CD and cloud testing (GitHub Actions, K8s, Terraform) | Not started |
 | 13 | Auditability and compliance evidence | Not started |
@@ -39,6 +39,64 @@ repository going forward.
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 10 — what was actually delivered
+
+- A real, database-backed centralized masking governance domain
+  (`control_plane.domain.governance`, tables added to the same
+  `control_plane.db.models` schema Phase 7 defined): `MaskingPolicyVersion`
+  (a governed, immutable snapshot of a real Phase 3 `MaskingPolicy`),
+  `PolicyApproval` (an append-only approval-decision log), enforced as a
+  real five-state (`draft`/`pending_approval`/`approved`/`rejected`/
+  `superseded`) state machine (`control_plane.domain.governance.state_machine`),
+  mirroring the exact split `data_plane.certification.state_machine`
+  (Phase 6) and `control_plane.domain.lifecycle.state_machine` (Phase 7)
+  already established
+- `BusinessConsumer` (two real seeded rows, `LEFT_ARM`/`RIGHT_ARM`) and
+  `ConsumerDatasetRequest` -- a consumer's request for a dataset into an
+  environment with its own subset-size hint/refresh cadence/performance
+  requirements, referencing an APPROVED `MaskingPolicyVersion` by
+  foreign key only; no field on the model or parameter on
+  `GovernanceRepository.submit_consumer_request` can carry a masking
+  rule, enforced both structurally and by a real
+  `PolicyVersionNotApprovedError` rejection
+- `GovernanceRepository.fulfill_consumer_request`: the real integration
+  point -- calls directly into the unmodified Phase 7
+  `LifecycleRepository` (same `Session`, same transaction) to produce a
+  real `EnvironmentDatasetRequest`, which Phase 8's unmodified
+  `CapacityPlanner` picks up with zero governance-specific capacity code
+- New `libs/contracts` module `governance.py`:
+  `MaskingPolicyVersion`, `PolicyApproval`, `PolicyApprovalStatus`,
+  `POLICY_APPROVAL_STATUS_TRANSITIONS`, `BusinessConsumer`,
+  `ConsumerDatasetRequest`, `ConsumerRequestStatus` -- named
+  `ConsumerDatasetRequest` rather than `DatasetRequest` specifically to
+  avoid colliding with Phase 7's `EnvironmentDatasetRequest`
+- New FastAPI router `control_plane/api/v1/governance.py`
+  (`/api/v1/governance/*`): policy-version draft/submit/approve/reject/
+  list/get, approval history, business-consumer register/list/get,
+  consumer-request submit/fulfill/list/get
+- [ADR-0014](docs/adr/0014-masking-governance-lives-in-control-plane.md):
+  why this domain lives in `services/control-plane` rather than
+  `services/governance-service` (a structural scaffold with no database
+  or FastAPI app as of this phase) -- the same-transaction integration
+  with Phase 7/8 was the deciding factor
+- `scripts/demo_phase10_governance.py`: end-to-end, real (not mocked)
+  demonstration -- drafts/approves the real Phase 3 `DEFAULT_POLICY` as
+  a governed policy version, registers LEFT_ARM/RIGHT_ARM, runs TWO real
+  Phase 6 certification pipelines (different subset sizes, the exact
+  same governed policy object) to produce two real `DatasetVersion`s,
+  has both arms submit and fulfill `ConsumerDatasetRequest`s referencing
+  the identical `policy_version_id`, has RIGHT_ARM request additional QA
+  capacity with its own refresh cadence (shown flowing into a real
+  Phase 7 `EnvironmentDatasetRequest` and a real Phase 8 capacity-plan
+  before/after), and demonstrates a rejected adversarial bypass attempt
+  (HTTP 409) against an unapproved policy version
+- `docs/tutorial/09-centralized-masking-governance.md`
+- 18 new Python tests (`test_governance_repository.py`,
+  `test_governance_api.py`), including
+  `test_left_arm_and_right_arm_resolve_to_same_approved_policy_version`
+  and `test_consumer_cannot_attach_custom_masking_rules`;
+  `services/control-plane` is now 115 tests total, all passing
 
 ## Phase 9 — what was actually delivered
 

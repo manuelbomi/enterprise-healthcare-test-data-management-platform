@@ -106,22 +106,6 @@ resolved and is now verified by a real, passing test:
   service inside `services/governance-service` (not currently scheduled
   by name in `ROADMAP.md`; tracked here so it isn't forgotten).
 
-### P3-3 — Masking policy is not yet control-plane-managed/versioned in a database
-
-- **Status:** open (deliberately deferred; same shape of problem as
-  ADR-0009's catalog handoff)
-- **Description:** `data_plane/masking/policy.py`'s `DEFAULT_POLICY` is a
-  Python constant, not a control-plane-approved, database-stored,
-  versioned policy an operator can edit without a code change. The
-  `MaskingPolicy` contract already supports `approved_by`/`version`, but
-  nothing today persists or serves policy versions the way ADR-0009
-  describes for the catalog.
-- **Repro / detail:** N/A — matches Phase 2's own catalog-handoff
-  tradeoff; not a regression introduced by this phase.
-- **Affected files:** `services/data-plane/src/data_plane/masking/policy.py`
-- **Owner for resolution:** Phase 10 (centralized enterprise masking
-  standard / multi-business-unit governance) per `ROADMAP.md`.
-
 ### P3-4 — Format-preserving synthetic replacement for money amounts is a simple magnitude-preserving heuristic
 
 - **Status:** open (documented limitation, not a defect)
@@ -138,3 +122,16 @@ resolved and is now verified by a real, passing test:
 - **Owner for resolution:** Distribution-shape preservation is explicitly
   a data-quality/certification concern (`ARCHITECTURE.md` section 3.2,
   `DATA_GOVERNANCE.md` B.3) for a later phase, not this one.
+
+## Resolved problems
+
+- **P3-3** (masking policy was not control-plane-managed/versioned in a
+  database) — resolved in Phase 10:
+  `control_plane.domain.governance.MaskingPolicyVersion`/`PolicyApproval`
+  now provide a real, database-backed, versioned, approval-gated masking
+  policy registry (`services/control-plane/src/control_plane/domain/governance/`,
+  `/api/v1/governance/policy-versions`). An operator can draft/submit/
+  approve a new `MaskingPolicy` revision entirely through the API,
+  without a code change to `data_plane/masking/policy.py`. See
+  `problems_phase_10.md` and
+  `docs/adr/0014-masking-governance-lives-in-control-plane.md`.
