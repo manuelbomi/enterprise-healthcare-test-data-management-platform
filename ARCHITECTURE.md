@@ -313,6 +313,22 @@ governance-plane infrastructure); Phase 3's masking runs write a plain
 JSON run summary (`masking_run_summary.json`) next to the masked output
 instead. See `problems_phase_03.md` P3-1 and P3-3.
 
+Phase 4 note: the `Subsetting` component in the diagram above is
+implemented and real
+(`services/data-plane/src/data_plane/subsetting/`). Like `Discovery` and
+`Masking` before it, it is run directly today
+(`python -m data_plane.subsetting.cli`), not yet submitted as a job by
+the control plane's orchestrator (`JobType.SUBSETTING` exists in
+`libs/contracts` but nothing yet translates a `JobRequest.sizing_rule`
+into a `SubsettingStrategy`/parameters — see `problems_phase_04.md`
+P4-1). The `Subsetting` -> `Snapshots` edge and the audit-log edge are
+not yet implemented for the same reason Phase 3 documents for masking:
+there is no snapshot registry or audit event log to write to yet.
+Subsetting runs write a plain JSON manifest (`subset_manifest.json`,
+`healthcare_tdm_contracts.SubsetManifest`) next to the subset output
+instead, following the same interim pattern Phase 3 established with
+`masking_run_summary.json` — see `problems_phase_04.md` P4-2.
+
 ## 5. Why this stack
 
 See the ADRs in `docs/adr/` for the reasoning behind each major choice
