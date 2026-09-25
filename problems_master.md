@@ -73,11 +73,16 @@ Each entry should have:
   own real, on-disk local-filesystem reads/writes -- see
   `services/data-plane/src/data_plane/synthetic/` -- do not touch this
   gap. Every data-plane phase through Phase 5 continues to read/write a
-  local filesystem path directly, not through a `StorageBackend` adapter;
-  closest current candidate is Phase 8, "Storage and compute footprint
-  management / capacity planning," though that phase's own scope is
-  capacity planning, not necessarily implementing the adapters
-  themselves.)
+  local filesystem path directly, not through a `StorageBackend` adapter.
+  Phase 8, "Storage and compute footprint management / capacity
+  planning," was the closest candidate and is now complete -- as
+  anticipated, its scope was real footprint *measurement* and *planning*
+  (`data_plane.capacity`, `control_plane.domain.capacity`), not
+  implementing this adapter; see `problems_phase_08.md` P8-2 for the
+  concrete way that gap continues to matter (`CapacityPlanner` still
+  trusts caller-supplied `size_bytes` rather than independently
+  re-deriving it through a storage adapter). This entry remains open,
+  not scheduled by name.)
 
 ### P0-4 — Diagrams are Mermaid source only; no rendered/exported images yet
 

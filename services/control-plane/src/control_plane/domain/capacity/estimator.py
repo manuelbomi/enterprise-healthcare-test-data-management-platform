@@ -1,0 +1,85 @@
+"""Compute-demand and processing-volume heuristics (Phase 8).
+
+Pure, dependency-free functions turning real row counts and a real
+`RefreshPolicy` cadence (both already-registered Phase 7 data) into
+illustrative compute-demand figures. These are honestly a documented
+*assumption*, not a benchmark: `ROWS_PER_COMPUTE_UNIT_HOUR` is a
+plausible, stated throughput figure for the kind of row-level work this
+platform's pipeline does (subset + mask + certify), not a number derived
+from any real job run in this repository. `ROADMAP.md` Phase 14 ("Scale
+and performance engineering, PySpark benchmarks") is where a real
+measured throughput figure would replace this constant -- see
+`problems_phase_08.md` P8-1.
+
+What *is* real here: the row counts and cadence data this module
+consumes (`DatasetVersion.row_counts`, `RefreshPolicy.cadence_type`/
+`interval_days`), and the arithmetic applied to them. Only the
+throughput assumption itself is illustrative.
+"""
+
+from __future__ import annotations
+
+from healthcare_tdm_contracts import RefreshCadenceType
+
+from control_plane.domain.lifecycle import cadence as cadence_mod
+
+#: Illustrative assumption: how many rows one "compute unit" (loosely, a
+#: single Spark executor doing subset+mask+certify row-level work) can
+#: process in one hour. See this module's docstring -- not a benchmarked
+#: figure.
+ROWS_PER_COMPUTE_UNIT_HOUR: float = 5_000_000.0
+
+
+def estimate_compute_unit_hours(total_row_count: int) -> float:
+    """Illustrative compute-unit-hours to process `total_row_count` rows
+    once, using `ROWS_PER_COMPUTE_UNIT_HOUR`."""
+
+    if total_row_count <= 0:
+        return 0.0
+    return total_row_count / ROWS_PER_COMPUTE_UNIT_HOUR
+
+
+def estimate_refreshes_per_year(
+    cadence_type: RefreshCadenceType, interval_days: int | None
+) -> float | None:
+    """365 / the resolved refresh interval, or `None` for cadences with
+    no fixed interval (RELEASE_DRIVEN, ON_DEMAND) -- reuses
+    `control_plane.domain.lifecycle.cadence.resolve_interval_days` so
+    this module's notion of "the interval" never drifts from the one the
+    real scheduler (`RefreshOrchestrator`) actually uses."""
+
+    resolved = cadence_mod.resolve_interval_days(cadence_type, interval_days)
+    if resolved is None or resolved <= 0:
+        return None
+    return 365.0 / resolved
+
+
+def estimate_annual_processing_volume_rows(
+    total_row_count: int, refreshes_per_year: float | None
+) -> float | None:
+    """`total_row_count * refreshes_per_year`, or `None` if there is no
+    fixed refresh cadence to project from."""
+
+    if refreshes_per_year is None:
+        return None
+    return total_row_count * refreshes_per_year
+
+
+def estimate_annual_compute_unit_hours(
+    total_row_count: int, refreshes_per_year: float | None
+) -> float | None:
+    """`estimate_compute_unit_hours(total_row_count) * refreshes_per_year`,
+    or `None` if there is no fixed refresh cadence to project from."""
+
+    if refreshes_per_year is None:
+        return None
+    return estimate_compute_unit_hours(total_row_count) * refreshes_per_year
+
+
+__all__ = [
+    "ROWS_PER_COMPUTE_UNIT_HOUR",
+    "estimate_annual_compute_unit_hours",
+    "estimate_annual_processing_volume_rows",
+    "estimate_compute_unit_hours",
+    "estimate_refreshes_per_year",
+]
