@@ -49,6 +49,7 @@ from datetime import datetime, timezone
 from healthcare_tdm_contracts import EnvironmentDatasetRequest, RefreshRunRecord, RefreshTrigger
 
 from control_plane.domain.lifecycle.repository import LifecycleRepository
+from control_plane.platform.dead_letter import DeadLetterStore
 
 
 @dataclass
@@ -119,6 +120,13 @@ class LocalRefreshOrchestrator(RefreshOrchestrator):
         due = self.due_refreshes(as_of)
         results: list[RefreshRunRecord] = []
         errors: dict[str, str] = {}
+        # Phase 11: in addition to isolating one request's failure from
+        # the sweep (unchanged from Phase 7), a failure is now also
+        # durably recorded -- see `control_plane.platform.dead_letter`'s
+        # module docstring for why `RefreshSweepResult.errors` alone
+        # (an in-memory dict returned to one caller) was not a real
+        # dead-letter concept.
+        dead_letters = DeadLetterStore(self._repository.session)
         for request in due:
             try:
                 run = self._repository.refresh(
@@ -129,6 +137,16 @@ class LocalRefreshOrchestrator(RefreshOrchestrator):
                 results.append(run)
             except Exception as exc:  # noqa: BLE001 -- isolate one request's failure from the sweep
                 errors[str(request.request_id)] = str(exc)
+                dead_letters.record(
+                    event_type="scheduled_refresh_failed",
+                    subject=str(request.request_id),
+                    reason=str(exc),
+                    payload={
+                        "environment": request.environment.value,
+                        "dataset_name": request.dataset_name,
+                        "triggered_by": triggered_by,
+                    },
+                )
         return RefreshSweepResult(as_of=as_of, attempted=due, results=results, errors=errors)
 
 

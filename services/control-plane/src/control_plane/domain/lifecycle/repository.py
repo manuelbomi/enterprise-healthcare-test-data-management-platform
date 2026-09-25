@@ -74,6 +74,19 @@ class LifecycleRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
+    @property
+    def session(self) -> Session:
+        """The `Session` this repository was constructed with. Exposed
+        (Phase 11) so cross-cutting platform helpers that must share
+        the exact same transaction --
+        `control_plane.platform.dead_letter.DeadLetterStore`,
+        `control_plane.platform.audit.AuditLogRepository` -- can be
+        constructed from it without reaching into a private attribute,
+        the same reasoning `GovernanceRepository` already composes a
+        `LifecycleRepository` sharing one `Session` (see ADR-0014)."""
+
+        return self._session
+
     # ------------------------------------------------------------------
     # Dataset versions
     # ------------------------------------------------------------------
@@ -110,6 +123,19 @@ class LifecycleRepository:
         `current_version_id` at *this* row. That reference, not a copy,
         is the "avoid unnecessary duplicate physical copies" mechanism
         this phase requires; see `docs/adr/0012-refresh-orchestration-abstraction.md`.
+
+        **Idempotent per `certification_report_id`** (Phase 11): if a
+        `DatasetVersionRow` already exists for this exact
+        `certification_report.report_id`, that existing row is returned
+        unchanged rather than creating a second one. This closes a real
+        gap found while writing this phase's job-idempotency
+        failure-injection test -- a caller that retries this call after
+        an ambiguous failure (e.g. a network timeout where the first
+        call actually succeeded server-side) used to create two
+        distinct, differently-numbered versions pointing at the same
+        `storage_uri`, mirroring the exact idempotency convention
+        `request_environment` already documents for itself below. See
+        `problems_phase_11.md`'s "Resolved problems" section.
         """
 
         if certification_report.status not in (
@@ -121,6 +147,14 @@ class LifecycleRepository:
                 f"CertificationReport; got status={certification_report.status.value!r} "
                 f"for report {certification_report.report_id}."
             )
+
+        existing = self._session.scalars(
+            select(DatasetVersionRow).where(
+                DatasetVersionRow.certification_report_id == str(certification_report.report_id)
+            )
+        ).first()
+        if existing is not None:
+            return self._version_to_contract(existing)
 
         max_version = self._session.scalar(
             select(func.max(DatasetVersionRow.version_number)).where(

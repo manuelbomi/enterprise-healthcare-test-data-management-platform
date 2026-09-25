@@ -1,12 +1,17 @@
 # Runbooks
 
-Operational runbooks for running and recovering this platform. As of
-Phase 0, no part of the platform is actually deployed anywhere, so these
-runbooks describe *intended* procedures — written now, ahead of
-implementation, so later phases build toward a known operational target
-rather than bolting on operations as an afterthought. Each runbook will be
-validated against the real system (and corrected if reality diverges) as
-the phase that implements the relevant capability lands.
+Operational runbooks for running and recovering this platform. Most of
+these were written in Phase 0, ahead of implementation, describing
+*intended* procedures so later phases build toward a known operational
+target rather than bolting on operations as an afterthought — each is
+marked with its own status line noting whether it has since been
+validated against real, running code. As of Phase 11, three runbooks
+are REAL, tested procedures against the actual Phase 7/10/11 schema and
+code (see their own status lines); the rest remain intended procedures
+pending the phase that implements the relevant capability
+(`snapshot-refresh-failure.md`/`disaster-recovery.md`, both still
+written against not-yet-built orchestration/multi-region
+infrastructure).
 
 ## Index
 
@@ -16,6 +21,17 @@ the phase that implements the relevant capability lands.
   when a scheduled snapshot refresh fails
 - [`disaster-recovery.md`](disaster-recovery.md) — recovering the platform
   after loss of the metadata database or object storage
+- [`backup-and-restore.md`](backup-and-restore.md) — **REAL (Phase 11)**:
+  taking and restoring a backup of the actual metadata-plane database
+  (SQLite locally, PostgreSQL for a real deployment)
+- [`masking-job-failure-recovery.md`](masking-job-failure-recovery.md) —
+  **REAL (Phase 11)**: diagnosing and recovering from a masking job that
+  crashed mid-run or produced corrupted output, backed by real
+  failure-injection tests
+- [`duplicate-requests-and-revoked-datasets.md`](duplicate-requests-and-revoked-datasets.md) —
+  **REAL (Phase 11)**: a duplicate refresh/registration request, and a
+  business consumer requesting a dataset whose only version was
+  revoked, both backed by real failure-injection tests
 
 ## Conventions
 

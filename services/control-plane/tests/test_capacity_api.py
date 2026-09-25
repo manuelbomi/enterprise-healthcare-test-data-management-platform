@@ -118,7 +118,7 @@ def test_vacuum_candidates_endpoint(client: TestClient) -> None:
     version = _register_version(client, dataset_name="claims")
     resp = client.post(
         f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/revoke",
-        json={"reason": "superseded", "revoked_by": "sec@example.org"},
+        json={"reason": "superseded", "revoked_by": "sec@example.org", "actor_role": "compliance_approver"},
     )
     assert resp.status_code == 200, resp.text
 
@@ -135,7 +135,7 @@ def test_vacuum_candidates_excludes_still_referenced(client: TestClient) -> None
     _request_environment(client, "dev", dataset_name="claims")
     client.post(
         f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/revoke",
-        json={"reason": "policy defect", "revoked_by": "sec@example.org"},
+        json={"reason": "policy defect", "revoked_by": "sec@example.org", "actor_role": "compliance_approver"},
     )
     resp = client.get("/api/v1/capacity/vacuum-candidates", params={"dataset_name": "claims"})
     assert resp.json() == []

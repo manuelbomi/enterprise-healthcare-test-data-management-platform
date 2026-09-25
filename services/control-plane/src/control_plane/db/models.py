@@ -51,6 +51,30 @@ integration rather than a two-database integration masquerading as one:
   foreign key and, once fulfilled, an `EnvironmentDatasetRequestRow` by
   foreign key -- never a masking rule of its own.
 
+Phase 11 (`control_plane.platform`) adds two more tables to this same
+schema/engine, for the same same-transaction reason Phase 10's tables
+were added here rather than to a separate service (see ADR-0014 and
+`docs/adr/0015-platform-integrity-controls-in-control-plane.md`):
+
+- `AuditEventRow` -- an append-only log of security/governance-relevant
+  actions (`healthcare_tdm_contracts.AuditEvent`), written by
+  `control_plane.platform.audit.AuditLogRepository`. No code path in
+  this module or `AuditLogRepository` ever updates or deletes a row --
+  immutability is structural (no method exists to do it), the same
+  property `THREAT_MODEL.md`'s "Repudiation" mitigation for the
+  security/governance plane requires.
+- `DeadLetterEventRow` -- an append-only log of individually-isolated
+  job/sweep failures (e.g. one failed request inside a
+  `LocalRefreshOrchestrator.run_due_refreshes` sweep -- see
+  `docs/adr/0012-refresh-orchestration-abstraction.md`'s "isolate one
+  request's failure from the others" principle), written by
+  `control_plane.platform.dead_letter.DeadLetterStore`. This is this
+  phase's concrete answer to "dead-letter handling concepts": a
+  durable, queryable record of *what failed and why*, distinct from
+  the audit log (which records actions taken, not failures) and from
+  `RefreshSweepResult.errors` (which is only visible to the single
+  caller of that one sweep and is never persisted).
+
 Real PostgreSQL verification remains deferred, same honest pattern
 `problems_phase_01.md` P1-1 established: these models and
 `create_sqlite_engine`/`create_postgres_engine` below are exercised
@@ -257,6 +281,37 @@ class ConsumerDatasetRequestRow(Base):
     notes: Mapped[str] = mapped_column(Text, default="")
 
 
+class AuditEventRow(Base):
+    """See the module docstring's "Phase 11" note. Append-only by
+    construction: `AuditLogRepository` (`control_plane.platform.audit`)
+    only ever `INSERT`s a row here -- there is no update/delete method
+    anywhere in this codebase for this table."""
+
+    __tablename__ = "audit_event"
+
+    event_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    event_type: Mapped[str] = mapped_column(String(64), index=True)
+    actor: Mapped[str] = mapped_column(String(255), index=True)
+    subject: Mapped[str] = mapped_column(String(512), index=True)
+    outcome: Mapped[str] = mapped_column(String(64))
+    detail_json: Mapped[str] = mapped_column(Text, default="{}")
+    occurred_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+
+
+class DeadLetterEventRow(Base):
+    """See the module docstring's "Phase 11" note. Append-only, written
+    by `control_plane.platform.dead_letter.DeadLetterStore`."""
+
+    __tablename__ = "dead_letter_event"
+
+    dead_letter_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    event_type: Mapped[str] = mapped_column(String(64), index=True)
+    subject: Mapped[str] = mapped_column(String(512), index=True)
+    reason: Mapped[str] = mapped_column(Text)
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+    occurred_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+
+
 def create_sqlite_engine(db_path: str) -> Engine:
     """Create a local SQLite engine at ``db_path`` (or ``:memory:``) --
     the default, zero-infrastructure path used by tests and local dev.
@@ -286,10 +341,12 @@ def init_schema(engine: Engine) -> None:
 
 
 __all__ = [
+    "AuditEventRow",
     "Base",
     "BusinessConsumerRow",
     "ConsumerDatasetRequestRow",
     "DatasetVersionRow",
+    "DeadLetterEventRow",
     "EnvironmentDatasetRequestRow",
     "MaskingPolicyVersionRow",
     "PolicyApprovalRow",

@@ -21,6 +21,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from healthcare_tdm_contracts import (
+    AuditEventType,
     CertificationReport,
     DatasetVersion,
     DatasetVersionStatus,
@@ -47,6 +48,8 @@ from control_plane.domain.lifecycle import (
     NoActiveDatasetVersionError,
     OnDemandRefreshNotAllowedError,
 )
+from control_plane.platform.audit import AuditLogRepository
+from control_plane.platform.rbac import AuthorizationError, Permission, Role, authorize
 
 router = APIRouter(prefix="/lifecycle", tags=["lifecycle"])
 
@@ -78,6 +81,17 @@ def get_lifecycle_repository(session: Session = Depends(get_db_session)) -> Life
     return LifecycleRepository(session)
 
 
+def get_audit_log(session: Session = Depends(get_db_session)) -> AuditLogRepository:
+    """Phase 11: FastAPI caches a given `Depends()` callable's result
+    per request, so this resolves to the *same* `Session` instance
+    `get_lifecycle_repository` above uses within one request -- an
+    audited mutation and its audit event (or a rejected mutation and
+    its `ACCESS_DENIED` event) commit, or roll back, together. See
+    `control_plane.platform.audit`'s module docstring."""
+
+    return AuditLogRepository(session)
+
+
 # ----------------------------------------------------------------------
 # Request bodies
 # ----------------------------------------------------------------------
@@ -99,6 +113,11 @@ class RegisterDatasetVersionRequest(BaseModel):
 class RevokeVersionRequest(BaseModel):
     reason: str
     revoked_by: str
+    #: Phase 11: required, checked via `control_plane.platform.rbac.authorize`
+    #: against `Permission.REVOKE_DATASET_VERSION` before the revocation
+    #: is attempted. Not a no-op -- see `test_failure_injection.py`'s
+    #: RBAC-rejection test.
+    actor_role: Role
 
 
 class UpsertPolicyRequest(BaseModel):
@@ -127,6 +146,8 @@ class RollbackRequestBody(BaseModel):
     to_version_number: int = Field(..., ge=1)
     performed_by: str
     reason: str
+    #: Phase 11: required, checked against `Permission.ROLLBACK_DATASET_VERSION`.
+    actor_role: Role
 
 
 # ----------------------------------------------------------------------
@@ -138,13 +159,16 @@ class RollbackRequestBody(BaseModel):
 def register_dataset_version(
     body: RegisterDatasetVersionRequest,
     repository: LifecycleRepository = Depends(get_lifecycle_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
 ) -> DatasetVersion:
     """Register a new immutable dataset version. Requires a `CERTIFIED`
     or `PUBLISHED` Phase 6 `CertificationReport` -- see
-    `LifecycleRepository.register_dataset_version`."""
+    `LifecycleRepository.register_dataset_version`, which is now
+    idempotent per `certification_report_id` (Phase 11 -- see
+    `problems_phase_11.md`'s "Resolved problems")."""
 
     try:
-        return repository.register_dataset_version(
+        version = repository.register_dataset_version(
             dataset_name=body.dataset_name,
             certification_report=body.certification_report,
             storage_uri=body.storage_uri,
@@ -156,6 +180,22 @@ def register_dataset_version(
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    audit.record(
+        event_type=AuditEventType.DATASET_VERSION_REGISTERED,
+        actor=body.created_by,
+        # Subject is the version_id (not "dataset_name:vN") so every
+        # audit event about the same dataset version -- registration,
+        # a later revocation -- shares one `subject` an auditor can
+        # query by (`GET /api/v1/audit/events?subject=<version_id>`).
+        subject=str(version.version_id),
+        outcome="allowed",
+        detail={
+            "dataset_name": body.dataset_name,
+            "version_number": str(version.version_number),
+            "storage_uri": body.storage_uri,
+        },
+    )
+    return version
 
 
 @router.get("/dataset-versions", response_model=list[DatasetVersion])
@@ -185,20 +225,56 @@ def revoke_dataset_version(
     version_id: UUID,
     body: RevokeVersionRequest,
     repository: LifecycleRepository = Depends(get_lifecycle_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
+    session: Session = Depends(get_db_session),
 ) -> DatasetVersion:
     """Revoke a version. Environments already pointed at it are left
     alone (see `DatasetVersionStatus.REVOKED`'s docstring); a revoked
     version can never again be selected by `request_environment`,
-    `refresh`, or `rollback`."""
+    `refresh`, or `rollback`.
+
+    Phase 11: requires `body.actor_role` to hold
+    `Permission.REVOKE_DATASET_VERSION` (only `COMPLIANCE_APPROVER`/
+    `PLATFORM_ADMIN` do -- see `control_plane.platform.rbac`). An
+    unauthorized attempt is rejected with HTTP 403 *before* the
+    repository is called at all, and is itself recorded as an
+    `ACCESS_DENIED` audit event (committed immediately so the denial
+    record survives the exception this handler then raises -- see
+    `control_plane.platform.audit`'s module docstring for why this is
+    the one handler in this router that calls `session.commit()`
+    directly instead of relying on `session_scope`'s end-of-request
+    commit)."""
 
     try:
-        return repository.revoke_version(version_id, reason=body.reason, revoked_by=body.revoked_by)
+        authorize(body.actor_role, Permission.REVOKE_DATASET_VERSION)
+    except AuthorizationError as exc:
+        audit.record(
+            event_type=AuditEventType.ACCESS_DENIED,
+            actor=body.revoked_by,
+            subject=str(version_id),
+            outcome="denied",
+            detail={"permission": Permission.REVOKE_DATASET_VERSION.value, "actor_role": body.actor_role.value},
+        )
+        session.commit()
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    try:
+        version = repository.revoke_version(version_id, reason=body.reason, revoked_by=body.revoked_by)
     except DatasetVersionNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except InvalidDatasetVersionTransitionError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    audit.record(
+        event_type=AuditEventType.DATASET_VERSION_REVOKED,
+        actor=body.revoked_by,
+        subject=str(version_id),
+        outcome="allowed",
+        detail={"reason": body.reason, "actor_role": body.actor_role.value},
+    )
+    return version
 
 
 # ----------------------------------------------------------------------
@@ -257,7 +333,9 @@ def upsert_refresh_policy(
 
 @router.post("/environment-requests", response_model=EnvironmentDatasetRequest, status_code=201)
 def request_dataset_into_environment(
-    body: RequestDatasetRequest, repository: LifecycleRepository = Depends(get_lifecycle_repository)
+    body: RequestDatasetRequest,
+    repository: LifecycleRepository = Depends(get_lifecycle_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
 ) -> EnvironmentDatasetRequest:
     """Request a dataset into an environment. Idempotent per
     `(environment, dataset_name)`; points at the dataset's current
@@ -265,7 +343,7 @@ def request_dataset_into_environment(
     `LifecycleRepository.request_environment`."""
 
     try:
-        return repository.request_environment(
+        result = repository.request_environment(
             environment=body.environment,
             dataset_name=body.dataset_name,
             requested_by=body.requested_by,
@@ -273,6 +351,14 @@ def request_dataset_into_environment(
         )
     except NoActiveDatasetVersionError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    audit.record(
+        event_type=AuditEventType.ENVIRONMENT_REQUEST_CREATED,
+        actor=body.requested_by,
+        subject=f"{body.environment.value}:{body.dataset_name}",
+        outcome="allowed",
+        detail={"request_id": str(result.request_id)},
+    )
+    return result
 
 
 @router.get("/environment-requests", response_model=list[EnvironmentDatasetRequest])
@@ -299,16 +385,39 @@ def refresh_environment_request(
     request_id: UUID,
     body: RefreshRequestBody,
     repository: LifecycleRepository = Depends(get_lifecycle_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
 ) -> RefreshRunRecord:
     """Trigger a refresh (on-demand by default). Rejected with 409 if
-    the applicable policy disallows on-demand refresh."""
+    the applicable policy disallows on-demand refresh.
+
+    Phase 11 "duplicate refresh request" failure-injection note: this
+    call is safe to repeat -- `LifecycleRepository.refresh` never
+    creates a duplicate `EnvironmentDatasetRequestRow` (there is only
+    ever one, enforced by a unique constraint on
+    `(environment, dataset_name)`) and never creates a duplicate
+    `DatasetVersionRow`; two rapid/duplicate calls simply produce two
+    `RefreshRunRow` log entries, which is correct (each is a real,
+    distinct execution), not corruption. See
+    `test_failure_injection.py::test_duplicate_refresh_requests_do_not_corrupt_state`
+    and `problems_phase_07.md` P7-2 for the one remaining, honestly
+    documented gap this does *not* close (no distributed lock across
+    concurrent *scheduler sweeps*, as opposed to this single-request
+    endpoint)."""
 
     try:
-        return repository.refresh(request_id, trigger=body.trigger, triggered_by=body.triggered_by)
+        run = repository.refresh(request_id, trigger=body.trigger, triggered_by=body.triggered_by)
     except EnvironmentRequestNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except OnDemandRefreshNotAllowedError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    audit.record(
+        event_type=AuditEventType.REFRESH_EXECUTED,
+        actor=body.triggered_by,
+        subject=str(request_id),
+        outcome="allowed" if run.succeeded else "failed",
+        detail={"trigger": body.trigger.value, "run_id": str(run.run_id)},
+    )
+    return run
 
 
 @router.post("/environment-requests/{request_id}/rollback", response_model=RollbackRecord)
@@ -316,12 +425,32 @@ def rollback_environment_request(
     request_id: UUID,
     body: RollbackRequestBody,
     repository: LifecycleRepository = Depends(get_lifecycle_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
+    session: Session = Depends(get_db_session),
 ) -> RollbackRecord:
     """Roll one environment's request back to an earlier version of the
-    same dataset. Rejected with 409 if the target version is REVOKED."""
+    same dataset. Rejected with 409 if the target version is REVOKED.
+
+    Phase 11: requires `body.actor_role` to hold
+    `Permission.ROLLBACK_DATASET_VERSION` (`DATA_STEWARD`/
+    `PLATFORM_ADMIN`). See `revoke_dataset_version`'s docstring for why
+    the denial audit event is committed immediately."""
 
     try:
-        return repository.rollback(
+        authorize(body.actor_role, Permission.ROLLBACK_DATASET_VERSION)
+    except AuthorizationError as exc:
+        audit.record(
+            event_type=AuditEventType.ACCESS_DENIED,
+            actor=body.performed_by,
+            subject=str(request_id),
+            outcome="denied",
+            detail={"permission": Permission.ROLLBACK_DATASET_VERSION.value, "actor_role": body.actor_role.value},
+        )
+        session.commit()
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    try:
+        result = repository.rollback(
             request_id,
             to_version_number=body.to_version_number,
             performed_by=body.performed_by,
@@ -335,6 +464,15 @@ def rollback_environment_request(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    audit.record(
+        event_type=AuditEventType.DATASET_VERSION_ROLLED_BACK,
+        actor=body.performed_by,
+        subject=str(request_id),
+        outcome="allowed",
+        detail={"to_version_number": str(body.to_version_number), "reason": body.reason},
+    )
+    return result
 
 
 # ----------------------------------------------------------------------

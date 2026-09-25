@@ -63,7 +63,11 @@ def _draft_and_approve_policy(client: TestClient, *, version: int = 1) -> dict:
 
     approved = client.post(
         f"/api/v1/governance/policy-versions/{policy_version_id}/approve",
-        json={"performed_by": "compliance-steward@example.org", "comments": "Approved."},
+        json={
+            "performed_by": "compliance-steward@example.org",
+            "comments": "Approved.",
+            "actor_role": "compliance_approver",
+        },
     )
     assert approved.status_code == 200, approved.text
     assert approved.json()["approval_status"] == "approved"
@@ -119,7 +123,7 @@ def test_cannot_approve_a_draft_policy_version(client: TestClient) -> None:
     ).json()
     response = client.post(
         f"/api/v1/governance/policy-versions/{draft['policy_version_id']}/approve",
-        json={"performed_by": "reviewer@example.org"},
+        json={"performed_by": "reviewer@example.org", "actor_role": "compliance_approver"},
     )
     assert response.status_code == 409
 

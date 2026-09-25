@@ -249,6 +249,10 @@ def main() -> int:
             "to_version_number": 1,
             "performed_by": "oncall@example.org",
             "reason": "version 2 introduced a regression in DEV smoke tests",
+            # Phase 11: rollback now requires a real, checked actor_role
+            # (control_plane.platform.rbac) -- see ARCHITECTURE.md's
+            # Phase 11 note.
+            "actor_role": "data_steward",
         },
     )
     assert resp.status_code == 200, resp.text
@@ -267,7 +271,12 @@ def main() -> int:
     # version currently in use is exactly the scenario this step demonstrates.
     resp = client.post(
         f"/api/v1/lifecycle/dataset-versions/{version_1['version_id']}/revoke",
-        json={"reason": "demonstration: simulated post-publication policy defect", "revoked_by": "security@example.org"},
+        json={
+            "reason": "demonstration: simulated post-publication policy defect",
+            "revoked_by": "security@example.org",
+            # Phase 11: revoke now requires a real, checked actor_role.
+            "actor_role": "compliance_approver",
+        },
     )
     assert resp.status_code == 200, resp.text
     print(f"Version 1 status: {resp.json()['status']}")
@@ -285,7 +294,12 @@ def main() -> int:
 
     blocked_rollback = client.post(
         f"/api/v1/lifecycle/environment-requests/{requests['qa']['request_id']}/rollback",
-        json={"to_version_number": 1, "performed_by": "a", "reason": "try to select the revoked version"},
+        json={
+            "to_version_number": 1,
+            "performed_by": "a",
+            "reason": "try to select the revoked version",
+            "actor_role": "data_steward",
+        },
     )
     print(f"Attempting to roll QA back to the now-revoked version 1: HTTP {blocked_rollback.status_code} "
           f"({blocked_rollback.json()['detail'][:90]}...)")
