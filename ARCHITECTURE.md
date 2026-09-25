@@ -344,6 +344,35 @@ Subsetting runs write a plain JSON manifest (`subset_manifest.json`,
 instead, following the same interim pattern Phase 3 established with
 `masking_run_summary.json` — see `problems_phase_04.md` P4-2.
 
+Phase 6 note: the `Certifier` component in the diagram above
+(`services/data-plane/src/data_plane/certification/`) is implemented and
+real, and it is the pipeline that actually runs the
+`INGEST -> PROFILE -> CLASSIFY -> SUBSET -> MASK -> GENERATE OPTIONAL
+SYNTHETIC DATA -> VALIDATE -> CERTIFY -> PUBLISH` sequence this document's
+introduction describes, end to end, against a real generated estate --
+see `docs/tutorial/06-certification-pipeline.md`. Like Phases 3/4/5
+before it, it is run directly today
+(`python -m data_plane.certification.cli`), not yet submitted as a job by
+the control plane's orchestrator (`JobType.CERTIFICATION` exists in
+`libs/contracts` but nothing yet translates a `JobRequest` into a
+certification pipeline invocation -- see `problems_phase_06.md` P6-1).
+The `Certifier -> Evidence` edge (security/governance plane) and the
+`Certifier -> AuditLog` edge are not yet implemented for the same reason
+Phases 3/4 document for their own edges: there is no certification
+evidence store or audit event log to write to yet. A certification run
+today writes a self-contained `certification_report.json`
+(`healthcare_tdm_contracts.CertificationReport`), signed with a keyed
+HMAC for tamper evidence (`data_plane.certification.signing`) rather than
+relying on a governed evidence store, following the same interim pattern
+Phase 3 established with `masking_run_summary.json` and Phase 4 with
+`subset_manifest.json`. Critically, and unlike those two phases'
+outputs, this report's own `status` field IS a real, enforced lifecycle
+(`CertificationStatus`, `data_plane.certification.state_machine`) --
+`ARCHITECTURE.md` section 2.2's requirement that a real certifier "must
+not simply trust [masking's] own report" is what this phase's gates
+(`data_plane/certification/gates.py`) exist to satisfy; see
+`docs/CERTIFICATION_VS_MASKING.md` for the full reasoning.
+
 ## 5. Why this stack
 
 See the ADRs in `docs/adr/` for the reasoning behind each major choice

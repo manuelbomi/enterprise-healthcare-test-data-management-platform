@@ -35,7 +35,7 @@ import pandas as pd
 
 from healthcare_tdm_contracts import CatalogEntry, MaskingPolicy
 
-from data_plane.masking.engine import MaskingEngine, MaskingWarning
+from data_plane.masking.engine import MASKING_ENGINE_VERSION, MaskingEngine, MaskingWarning
 from data_plane.masking.policy import DEFAULT_POLICY, resolve_rule
 
 
@@ -55,6 +55,14 @@ class MaskingRunReport:
     #: small cap, so validation/tests can check cross-system consistency
     #: without holding the whole estate's value space in memory.
     linkage_samples: dict[tuple[str, str, str], dict[str, str]] = field(default_factory=dict)
+    #: Which version of `data_plane.masking.engine.MaskingEngine`'s code
+    #: produced this run -- see `MASKING_ENGINE_VERSION`'s docstring for
+    #: why this is tracked separately from the policy's own `version`.
+    #: Recorded here (not just read from the module constant by callers)
+    #: so a `masking_run_summary.json`/certification report is a
+    #: self-contained record of what ran, without needing to cross-
+    #: reference the engine's source code at read time.
+    masking_engine_version: str = MASKING_ENGINE_VERSION
 
     def record(self, technique_value: str) -> None:
         self.columns_masked += 1

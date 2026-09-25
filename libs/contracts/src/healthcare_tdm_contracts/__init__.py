@@ -11,6 +11,14 @@ database, API, or storage backend.
 
 from healthcare_tdm_contracts.audit import AuditEvent, AuditEventType
 from healthcare_tdm_contracts.catalog import CatalogEntry, RetentionClassification
+from healthcare_tdm_contracts.certification import (
+    CERTIFICATION_STATUS_TRANSITIONS,
+    CertificationGateResult,
+    CertificationGateType,
+    CertificationReport,
+    CertificationStatus,
+    CertificationStatusEvent,
+)
 from healthcare_tdm_contracts.classification import (
     TIER_BY_CATEGORY,
     ClassificationMethod,
@@ -49,9 +57,15 @@ from healthcare_tdm_contracts.synthetic import (
 
 __all__ = [
     "TIER_BY_CATEGORY",
+    "CERTIFICATION_STATUS_TRANSITIONS",
     "AuditEvent",
     "AuditEventType",
     "CatalogEntry",
+    "CertificationGateResult",
+    "CertificationGateType",
+    "CertificationReport",
+    "CertificationStatus",
+    "CertificationStatusEvent",
     "ClassificationMethod",
     "ClassificationTier",
     "ColumnClassification",

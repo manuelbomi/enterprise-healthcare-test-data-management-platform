@@ -44,6 +44,17 @@ its own package.
   concrete backend (MinIO/S3/Azure) will implement in a later phase.
 - `snapshots` — the `SnapshotRecord` shape used by the metadata plane's
   snapshot registry.
+- `subsetting` — the `SubsettingStrategy`/`SubsetManifest` shapes.
+  Implemented in Phase 4 — see
+  `services/data-plane/src/data_plane/subsetting/`.
+- `synthetic` — the `DataProvenance`/`ScenarioType`/
+  `SyntheticGenerationManifest` shapes. Implemented in Phase 5 — see
+  `services/data-plane/src/data_plane/synthetic/`.
+- `certification` — the `CertificationStatus`/`CertificationGateResult`/
+  `CertificationReport` shapes for the certified test dataset pipeline.
+  Implemented in Phase 6 — see
+  `services/data-plane/src/data_plane/certification/` and
+  `docs/CERTIFICATION_VS_MASKING.md`.
 
 None of these are wired to a real database, API, or storage backend yet —
 that begins in Phase 1 onward. This package currently defines the

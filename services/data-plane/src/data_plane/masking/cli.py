@@ -37,6 +37,7 @@ from data_plane.discovery.catalog_builder import load_catalog
 from data_plane.masking import secrets as masking_secrets
 from data_plane.masking.dataset_masker import mask_estate
 from data_plane.masking.engine import MaskingEngine
+from data_plane.masking.policy import DEFAULT_POLICY
 from data_plane.masking.validation import validate_masking_run
 
 
@@ -112,7 +113,8 @@ def main(argv: list[str] | None = None) -> int:
 
     engine = MaskingEngine(key=key)
     catalog_entries = load_catalog(catalog_path)
-    report = mask_estate(estate_dir, catalog_entries, out_dir, engine)
+    policy_used = DEFAULT_POLICY
+    report = mask_estate(estate_dir, catalog_entries, out_dir, engine, policy=policy_used)
 
     validation = validate_masking_run(linkage_samples=report.linkage_samples)
 
@@ -139,6 +141,9 @@ def main(argv: list[str] | None = None) -> int:
                 "technique_counts": report.technique_counts,
                 "files_written": [str(p) for p in report.files_written],
                 "warning_count": len(report.warnings),
+                "masking_engine_version": report.masking_engine_version,
+                "policy_name": (policy_used.name if policy_used else None),
+                "policy_version": (policy_used.version if policy_used else None),
                 "validation_passed": validation.passed,
                 "validation_checks": validation.checks_run,
                 "validation_failures": validation.failures,

@@ -24,7 +24,7 @@ repository going forward.
 | 3 | Enterprise deterministic masking engine (pseudonymization/tokenization) | **Complete** |
 | 4 | Referentially intact, production-scale data subsetting | **Complete** |
 | 5 | Synthetic test data generation (scenario/edge-case data) | **Complete** |
-| 6 | Certified test dataset pipeline (ingest→...→certify→publish) | Not started |
+| 6 | Certified test dataset pipeline (ingest→...→certify→publish) | **Complete** |
 | 7 | Dataset lifecycle and refresh management (versions, cadence, retention) | Not started |
 | 8 | Storage and compute footprint management / capacity planning | Not started |
 | 9 | React/TypeScript enterprise TDM web console | Not started |
@@ -39,6 +39,63 @@ repository going forward.
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 6 — what was actually delivered
+
+- A real certification pipeline
+  (`services/data-plane/src/data_plane/certification/`) that orchestrates
+  every prior phase's real engine in sequence against a real Phase 1
+  estate -- `data_plane.reference_data` (INGEST), `data_plane.discovery`
+  (PROFILE + CLASSIFY), `data_plane.subsetting` (SUBSET),
+  `data_plane.masking` (MASK), `data_plane.synthetic` (optional
+  GENERATE) -- and then adds the genuinely new work: an independent
+  VALIDATE gate layer, a CERTIFY stage, and an enforced PUBLISH state
+  transition, run end to end against a real `tiny`-scale estate and
+  demonstrated reaching `CERTIFIED`/`PUBLISHED` for a healthy run and
+  `FAILED` (never publishable) for a run with a deliberately broken
+  masking policy -- see `docs/tutorial/06-certification-pipeline.md`
+- Eleven real, independent certification gates
+  (`data_plane/certification/gates.py`): PHI/PII policy coverage,
+  masking completion, referential integrity, schema validation,
+  data-quality thresholds, row-count reconciliation, orphan detection,
+  provenance, manifest generation, policy version recorded, masking
+  version recorded -- each re-derives its answer independently rather
+  than trusting an earlier phase's own report, per
+  `docs/CERTIFICATION_VS_MASKING.md`
+- A real, enforced six-state `CertificationStatus` lifecycle (`DRAFT` ->
+  `PROCESSING` -> `CERTIFIED`/`FAILED`; `CERTIFIED` -> `PUBLISHED`/
+  `REVOKED`; `PUBLISHED` -> `REVOKED`)
+  (`data_plane/certification/state_machine.py`): invalid transitions
+  (publishing a DRAFT/PROCESSING/FAILED/REVOKED report, skipping
+  CERTIFIED entirely, revoking without a reason) are rejected by code
+  and covered by adversarial tests, not merely documented as a
+  convention
+- A keyed-HMAC tamper-evidence mechanism for a persisted
+  `certification_report.json`
+  (`data_plane/certification/signing.py`) -- a hand-edited status field
+  is caught by signature re-verification before any further transition
+  is accepted, with its real limitation (key secrecy) documented
+  honestly rather than oversold
+- Extended `libs/contracts`: `CertificationStatus`,
+  `CERTIFICATION_STATUS_TRANSITIONS`, `CertificationGateType`,
+  `CertificationGateResult`, `CertificationReport`,
+  `CertificationStatusEvent`
+  (`libs/contracts/src/healthcare_tdm_contracts/certification.py`)
+- Two separately tracked version identifiers on every certification
+  report -- masking policy version (already existed,
+  `MaskingPolicy.version`) and a new masking engine version
+  (`data_plane.masking.engine.MASKING_ENGINE_VERSION`) -- per
+  [ADR-0011](docs/adr/0011-masking-and-policy-versioning-for-certification.md)
+- `docs/CERTIFICATION_VS_MASKING.md`: an honest account of why "masking
+  ran" does not mean "certified," the new policy decisions the
+  certification gates had to make (e.g. whether
+  `passed_with_known_orphans` is acceptable for certification), and the
+  tamper-evidence mechanism's real limits -- consistent with the honest
+  tone `DATA_GOVERNANCE.md`/`docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md`
+  already set
+- 91 new tests (80 in `services/data-plane`'s new `tests/certification/`
+  suite, 11 new in `libs/contracts`) -- see `problems_phase_06.md` for
+  what's still open
 
 ## Phase 5 — what was actually delivered
 
