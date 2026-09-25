@@ -14,23 +14,32 @@ SDK directly.
 
 ## Status
 
-`discovery/`, `subsetting/`, `masking/`, `synthetic/`, and `jobs/` remain
-structural placeholders — see `problems_master.md` and `ROADMAP.md`
-(Phases 7-14) for what's next in each.
+`reference_data/`, `discovery/`, `masking/`, `subsetting/`, `synthetic/`,
+and `certification/` are all real, working code, implemented in Phases
+1-6 respectively — each has its own README with a full module map and
+worked examples. `jobs/` remains a structural placeholder: none of the
+above are yet submitted as control-plane-orchestrated jobs (each has its
+own standalone CLI instead) — see `problems_master.md`,
+`problems_phase_06.md` P6-1, and `ROADMAP.md` Phase 14.
 
-`reference_data/` is real, working code: it generates the SYNTHETIC
-multi-system healthcare data estate every later phase builds on. See
-`src/data_plane/reference_data/README.md` for the full picture and
-`docs/tutorial/02-synthetic-data-estate.md` for a walkthrough.
+| Package | Phase | What it does |
+|---|---|---|
+| `reference_data/` | 1 | Generates the SYNTHETIC multi-system healthcare data estate every later phase builds on. |
+| `discovery/` | 2 | PHI/PII discovery and classification; produces the data catalog. |
+| `masking/` | 3 | Policy-driven, deterministic masking/pseudonymization/tokenization. |
+| `subsetting/` | 4 | Referential-integrity-preserving population subsetting. |
+| `synthetic/` | 5 | Optional synthetic test-scenario generation, layered on top of a masked/subsetted estate. |
+| `certification/` | 6 | Orchestrates all of the above end to end and adds VALIDATE/CERTIFY/PUBLISH — see `src/data_plane/certification/README.md` and `docs/CERTIFICATION_VS_MASKING.md`. |
 
 ## Layout
 
 ```
 src/data_plane/
-├── reference_data/  # Synthetic multi-system healthcare data estate (real, working)
-├── discovery/    # PHI/PII discovery & classification (Phase 7)
-├── subsetting/    # Referential-integrity-preserving subsetting (Phase 8)
-├── masking/        # Deterministic masking / pseudonymization / tokenization (Phase 9-10)
-├── synthetic/       # Synthetic data generation as a masking substitute (Phase 12)
+├── reference_data/  # Synthetic multi-system healthcare data estate (Phase 1)
+├── discovery/       # PHI/PII discovery & classification (Phase 2)
+├── masking/         # Deterministic masking / pseudonymization / tokenization (Phase 3)
+├── subsetting/      # Referential-integrity-preserving subsetting (Phase 4)
+├── synthetic/        # Optional synthetic scenario generation (Phase 5)
+├── certification/    # Certified test dataset pipeline: VALIDATE -> CERTIFY -> PUBLISH (Phase 6)
 └── jobs/              # Job entry points / DAG-runnable wrappers (Phase 14)
 ```

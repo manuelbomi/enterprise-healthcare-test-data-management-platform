@@ -50,6 +50,19 @@ INVALID_DATE_MARKER = "INVALID-DATE-REDACTED"
 #: Default deterministic date-shift window: +/- 365 days.
 DEFAULT_MAX_SHIFT_DAYS = 365
 
+#: Identifies which version of *this engine's code* produced a masking run,
+#: independent of `data_plane.masking.policy.MaskingPolicy.version` (which
+#: identifies which *policy* was applied). The two answer different
+#: questions a certification report (`ROADMAP.md` Phase 6) needs to record
+#: separately: "which rules were configured?" (policy version) vs. "which
+#: implementation of those rules actually ran?" (engine version) -- a
+#: policy version left unchanged could still produce different masked
+#: output if the engine's technique implementations changed (e.g. a bug
+#: fix in `_date_shift`'s offset calculation). Bumped whenever a change to
+#: this module could change masked output for the same policy/key/input.
+#: See `docs/adr/0011-masking-and-policy-versioning-for-certification.md`.
+MASKING_ENGINE_VERSION = "1.0.0"
+
 
 @dataclass
 class MaskingWarning:
@@ -228,6 +241,7 @@ class MaskingEngine:
 __all__ = [
     "DEFAULT_MAX_SHIFT_DAYS",
     "INVALID_DATE_MARKER",
+    "MASKING_ENGINE_VERSION",
     "REDACTION_MARKER",
     "MaskingEngine",
     "MaskingWarning",
