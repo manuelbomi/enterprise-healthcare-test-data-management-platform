@@ -78,10 +78,24 @@ def run_pip_audit_for_package(pip_audit_cmd: list[str], package_root: Path) -> t
     invocation: scanning the currently-active environment's installed
     packages while `cwd` is set to the package root (so a local venv
     with that package installed reflects its actual dependency set).
+
+    `--skip-editable` is required, not optional: every workspace
+    package in this repository (`healthcare-tdm-contracts` and the
+    three services) is installed editable (`pip install -e ".[dev]"`,
+    `scripts/bootstrap.sh`) and is not published to PyPI. Without this
+    flag, `--strict` pip-audit tries to resolve `healthcare-tdm-contracts`
+    itself against PyPI to audit it and fails with "Dependency not
+    found on PyPI and could not be audited" -- a real failure hit and
+    fixed while verifying this script's first real CI run (Phase 12;
+    see problems_phase_12.md). This is the semantically correct fix,
+    not a workaround: this scan's job is to audit *third-party*
+    dependencies for known vulnerabilities, and our own workspace
+    packages are neither third-party nor published, so they have no
+    PyPI-tracked CVE history to audit in the first place.
     """
 
     result = subprocess.run(
-        [*pip_audit_cmd, "--strict"],
+        [*pip_audit_cmd, "--strict", "--skip-editable"],
         cwd=package_root,
         capture_output=True,
         text=True,

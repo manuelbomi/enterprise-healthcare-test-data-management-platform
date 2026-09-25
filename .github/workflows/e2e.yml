@@ -73,13 +73,18 @@ jobs:
           nohup npm run dev -- --port 5174 > "${{ runner.temp }}/frontend.log" 2>&1 &
           echo $! > "${{ runner.temp }}/frontend.pid"
       - name: Wait for frontend
+        # 90 x 2s = 180s. A real, observed CI run needed more than the
+        # original 30s budget here (Vite itself reported "ready in
+        # ~200ms" once it actually started, but `npm run dev`'s own
+        # cold-start overhead on a fresh CI runner took closer to 30s
+        # before that point) -- see problems_phase_12.md.
         run: |
-          for i in $(seq 1 30); do
+          for i in $(seq 1 90); do
             if curl -sf http://127.0.0.1:5174/ > /dev/null; then
               echo "frontend is up."
               exit 0
             fi
-            sleep 1
+            sleep 2
           done
           echo "::error::frontend dev server never became reachable"
           cat "${{ runner.temp }}/frontend.log" || true
