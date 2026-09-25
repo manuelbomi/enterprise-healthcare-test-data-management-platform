@@ -5,16 +5,30 @@ only `healthcare_tdm_contracts` (never `data_plane` -- see ADR-0003: the
 control plane's tests must not depend on the data plane's package). It
 covers a deliberate mix of categories/tiers/review states so the catalog
 API's filtering can be exercised meaningfully.
+
+`sample_certification_report` (Phase 7) is the same idea applied to a
+Phase 6 `CertificationReport`: a small, hand-authored, `CERTIFIED` report
+built only from `healthcare_tdm_contracts`, standing in for a real
+`data_plane.certification` pipeline run so `services/control-plane`'s
+tests never import `data_plane` (ADR-0003). A *real* pipeline run against
+a real estate is exercised separately, outside either service's own test
+suite -- see `scripts/demo_phase7_lifecycle.py` and
+`docs/tutorial/07-dataset-lifecycle-and-refresh.md`.
 """
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from healthcare_tdm_contracts import (
     CatalogEntry,
+    CertificationGateResult,
+    CertificationGateType,
+    CertificationReport,
+    CertificationStatus,
     ClassificationMethod,
     ClassificationTier,
     ColumnClassification,
@@ -152,3 +166,34 @@ def sample_catalog_path(tmp_path: Path) -> Path:
     payload = [json.loads(entry.model_dump_json()) for entry in SAMPLE_ENTRIES]
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return path
+
+
+def make_certified_report(
+    *, dataset_name: str = "tiny-fixed_population", status: CertificationStatus = CertificationStatus.CERTIFIED
+) -> CertificationReport:
+    """A hand-authored, structurally realistic `CertificationReport` --
+    same shape a real `data_plane.certification.pipeline.run_certification_pipeline`
+    run produces (see `docs/tutorial/06-certification-pipeline.md`'s real
+    sample output), built without importing `data_plane` (ADR-0003)."""
+
+    return CertificationReport(
+        report_id=uuid4(),
+        dataset_name=dataset_name,
+        scale_profile="tiny",
+        status=status,
+        masking_policy_name="phase3-default",
+        masking_policy_version=1,
+        masking_engine_version="1.0.0",
+        gates=[
+            CertificationGateResult(gate=CertificationGateType.PHI_PII_POLICY_COVERAGE, passed=True, detail="ok"),
+            CertificationGateResult(gate=CertificationGateType.MASKING_COMPLETION, passed=True, detail="ok"),
+            CertificationGateResult(gate=CertificationGateType.REFERENTIAL_INTEGRITY, passed=True, detail="ok"),
+        ],
+        row_count_reconciliation={"member": "source=26 selected=10 final=10"},
+        integrity_signature="deadbeef",
+    )
+
+
+@pytest.fixture
+def sample_certification_report() -> CertificationReport:
+    return make_certified_report()

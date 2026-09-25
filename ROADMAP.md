@@ -25,7 +25,7 @@ repository going forward.
 | 4 | Referentially intact, production-scale data subsetting | **Complete** |
 | 5 | Synthetic test data generation (scenario/edge-case data) | **Complete** |
 | 6 | Certified test dataset pipeline (ingest→...→certify→publish) | **Complete** |
-| 7 | Dataset lifecycle and refresh management (versions, cadence, retention) | Not started |
+| 7 | Dataset lifecycle and refresh management (versions, cadence, retention) | **Complete** |
 | 8 | Storage and compute footprint management / capacity planning | Not started |
 | 9 | React/TypeScript enterprise TDM web console | Not started |
 | 10 | Centralized enterprise masking standard (multi-business-unit governance) | Not started |
@@ -39,6 +39,73 @@ repository going forward.
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 7 — what was actually delivered
+
+- The control plane's first real, database-backed domain model
+  (`services/control-plane/src/control_plane/db/models.py`,
+  `control_plane/domain/lifecycle/`) -- every prior control-plane
+  capability (the Phase 2 catalog) was a read-only view over a JSON
+  artifact another plane produced; this phase's tables (dataset
+  versions, refresh policies, environment dataset requests, refresh
+  runs, rollback events) are the metadata plane's first real
+  persistent, queryable state, per `ARCHITECTURE.md` section 2.3 and
+  [ADR-0004](docs/adr/0004-postgresql-metadata-store.md) -- SQLite
+  locally (zero infrastructure, same Phase 1 pattern), Postgres-portable
+  by construction (no `JSONB`, no native `UUID` columns, mirroring
+  `data_plane.reference_data.postgres_models`)
+- `DatasetVersion` registered directly from a real Phase 6
+  `CertificationReport` (`CERTIFIED`/`PUBLISHED` only, enforced), and
+  `EnvironmentDatasetRequest` as a *separate*, per-environment pointer
+  to it -- the concrete mechanism behind "avoid unnecessary duplicate
+  physical copies": many environments reference one `storage_uri` via
+  foreign key, never a copy, verified end to end against two real
+  certification pipeline runs
+  (`scripts/demo_phase7_lifecycle.py`, all 5 example environments
+  sharing one dataset version's storage location)
+- All five example environments' refresh cadences (DEV/QA weekly, SIT
+  biweekly, UAT release-driven, PERFORMANCE monthly/on-demand), fully
+  runtime-configurable via `PUT /api/v1/lifecycle/refresh-policies`
+  (never hardcoded), with correct `next_refresh_at` computation
+  demonstrated for every one of the five in a real run
+  (`control_plane/domain/lifecycle/cadence.py`)
+- A real, enforced `DatasetVersionStatus` lifecycle (`ACTIVE` ->
+  `EXPIRED`/`REVOKED`/`ROLLED_BACK`; `ROLLED_BACK` -> `ACTIVE`/`REVOKED`;
+  `EXPIRED` -> `REVOKED`), mirroring Phase 6's
+  `CertificationStatus`/`state_machine` split
+  (`control_plane/domain/lifecycle/state_machine.py`) -- an invalid
+  transition (e.g. revoking an already-revoked version) is rejected by
+  code, not merely documented, and covered by adversarial tests
+- Real rollback (`POST /environment-requests/{id}/rollback`) and
+  revocation (`POST /dataset-versions/{id}/revoke`) demonstrated end to
+  end against real data, including the documented, deliberate decision
+  that revocation never silently migrates an environment already using
+  the revoked version (visibility over automation -- see
+  `docs/tutorial/07-dataset-lifecycle-and-refresh.md`) while still
+  blocking that version from being newly *selected* by any future
+  request/refresh/rollback
+- `RefreshOrchestrator` (`control_plane/domain/lifecycle/scheduler.py`):
+  a two-method orchestration abstraction (`due_refreshes`,
+  `run_due_refreshes`) with a real, tested `LocalRefreshOrchestrator`
+  implementation and a documented (not faked) seam for a future Airflow
+  DAG, Databricks Workflow, or cloud scheduler to plug into --
+  [ADR-0012](docs/adr/0012-refresh-orchestration-abstraction.md)
+- Extended `libs/contracts`:
+  `Environment`, `RefreshCadenceType`, `DatasetVersionStatus`,
+  `DATASET_VERSION_STATUS_TRANSITIONS`, `DatasetVersion`,
+  `RefreshPolicy`, `EnvironmentDatasetRequest`, `RefreshRunRecord`,
+  `RollbackRecord`, `RefreshTrigger`, `EnvironmentRequestStatus`
+  (`libs/contracts/src/healthcare_tdm_contracts/lifecycle.py`)
+- 12 new FastAPI endpoints under `/api/v1/lifecycle` (register/list/get/
+  revoke dataset versions; list/get-default/upsert refresh policies;
+  request/list/get/refresh/rollback environment requests;
+  list-due/run-due scheduler orchestration)
+- 52 new tests (21 in `services/control-plane`'s new
+  `test_lifecycle_repository.py`, 14 in its new `test_lifecycle_api.py`,
+  17 in `libs/contracts`'s new `test_lifecycle_contract.py`;
+  `services/control-plane` is now 55 tests total, `libs/contracts` 46
+  total, and `services/data-plane`'s pre-existing 378 tests continue to
+  pass unmodified) -- see `problems_phase_07.md` for what's still open
 
 ## Phase 6 — what was actually delivered
 

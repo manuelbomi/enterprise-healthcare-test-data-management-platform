@@ -40,6 +40,15 @@ class Settings(BaseSettings):
     # (`docs/adr/0009-catalog-artifact-handoff.md`) for why this is a file
     # path rather than a database connection in Phase 2.
     catalog_path: str = "data/tmp/synthetic-estate/catalog.json"
+    # SQLAlchemy database URL for the Phase 7 dataset lifecycle schema
+    # (`control_plane.db.models`). Defaults to a local SQLite file --
+    # zero infrastructure required, consistent with Phase 1's
+    # `data_plane.reference_data` approach -- but the schema itself is
+    # Postgres-portable (no JSONB/native UUID columns); pointing this at
+    # a real `postgresql+psycopg://...` DSN (per ADR-0004) works
+    # unmodified. See `problems_phase_07.md` for what remains unverified
+    # against a real Postgres instance.
+    lifecycle_database_url: str = "sqlite:///data/tmp/control-plane/lifecycle.db"
 
 
 def get_settings() -> Settings:
