@@ -70,14 +70,21 @@ jobs:
         env:
           VITE_API_BASE_URL: "http://127.0.0.1:8010"
         run: |
-          nohup npm run dev -- --port 5174 > "${{ runner.temp }}/frontend.log" 2>&1 &
+          nohup npm run dev -- --host 127.0.0.1 --port 5174 > "${{ runner.temp }}/frontend.log" 2>&1 &
           echo $! > "${{ runner.temp }}/frontend.pid"
       - name: Wait for frontend
-        # 90 x 2s = 180s. A real, observed CI run needed more than the
-        # original 30s budget here (Vite itself reported "ready in
-        # ~200ms" once it actually started, but `npm run dev`'s own
-        # cold-start overhead on a fresh CI runner took closer to 30s
-        # before that point) -- see problems_phase_12.md.
+        # The REAL root cause of two real failed CI runs here (not cold
+        # start, as an earlier fix attempt guessed): Vite's default
+        # `server.host: false` resolves "localhost" per the runner's
+        # OS/Node resolver order, which bound the dev server to `::1`
+        # (IPv6) only -- `curl http://127.0.0.1:5174/` (IPv4) then
+        # fails for the *entire* wait budget every time, regardless of
+        # how long the budget is, because it is a routing mismatch, not
+        # a timing race (Vite's own log always showed "ready in
+        # ~200ms", immediately, in every failed run). Fixed by passing
+        # `--host 127.0.0.1` explicitly above, forcing IPv4 binding
+        # that matches this curl check. See problems_phase_12.md for
+        # both real failed run URLs and this diagnosis.
         run: |
           for i in $(seq 1 90); do
             if curl -sf http://127.0.0.1:5174/ > /dev/null; then
