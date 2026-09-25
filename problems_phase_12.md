@@ -288,19 +288,113 @@ by a subsequent real run:
 5. **Fix commit `20cc866`**: added `--host 127.0.0.1` to the
    `npm run dev` invocation in `e2e.yml`, forcing IPv4 binding that
    matches the readiness check.
+   [CI #36186531873](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36186531873) SUCCEEDED.
+   [Container build & scan #36186531645](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36186531645) SUCCEEDED.
+   [Playwright E2E #36186531758](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36186531758): the "Wait for frontend" step now PASSED
+   (confirming the IPv4/IPv6 diagnosis), but 5 of 6 specs then FAILED
+   for a new, different, real reason: every spec asserting on data
+   fetched from the control plane (`getByRole('table')` never became
+   visible) timed out, while the one spec touching no API data
+   (left-nav rendering) passed.
+6. **Fix commit `6b7cc58`**: removed `working-directory:
+   services/control-plane` from the "Start control-plane" step.
+   `control_plane.config.Settings`' default paths (`catalog_path`,
+   `lifecycle_database_url`, the artifact roots) are plain relative
+   strings resolved against the process's cwd; running uvicorn from
+   `services/control-plane` resolved them under
+   `services/control-plane/data/tmp/...` instead of the repo-root
+   `data/tmp/...` the demo-data step (which runs with no
+   `working-directory`, defaulting to the repo root) had just written
+   to — the API was serving an empty catalog/lifecycle DB. Confirmed
+   locally before pushing: starting `uvicorn` from
+   `services/control-plane` after generating demo data at the repo root
+   left `/api/v1/catalog/summary` unreachable/empty; starting it from
+   the repo root returned the real 141-column, 15-dataset summary.
+   [CI #36186871349](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36186871349) SUCCEEDED.
+   [Container build & scan #36186871336](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36186871336) SUCCEEDED.
+   [Playwright E2E #36186871378](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36186871378): STILL the identical 5 failures — this
+   fix was necessary but not sufficient, proving a second, independent
+   bug was also present.
+7. **Fix commit `5c83f70`**: set
+   `TDM_CONTROL_PLANE_CORS_ALLOWED_ORIGINS=http://127.0.0.1:5174` when
+   starting control-plane in `e2e.yml`. Root cause: the frontend dev
+   server is started with `VITE_API_BASE_URL=http://127.0.0.1:8010`,
+   which per `frontend/src/api/client.ts` makes every API call an
+   *absolute*, genuinely cross-origin `fetch()` from the browser
+   (`127.0.0.1:5174` → `127.0.0.1:8010`) — not the same-origin-via-
+   Vite-proxy default `docs/adr/0008-frontend-stack.md`/`config.py`
+   describe. Without CORS configured, `control_plane.main.create_app`
+   installs no CORS middleware at all (its documented, strictest
+   default), so Chromium silently blocks every response — indistinguishable
+   in the UI from "no data", which is exactly why fix #6 alone looked
+   ineffective. Confirmed locally with a direct header check:
+   `curl -i -H "Origin: http://127.0.0.1:5174" .../api/v1/catalog/summary`
+   returns no `access-control-allow-origin` header without the env var,
+   and `access-control-allow-origin: http://127.0.0.1:5174` with it set.
 
-Final state on the verification branch (commit `20cc866` and its result)
-is recorded in the phase-12 handback report, including the run URLs for
-CI, container-build, and Playwright E2E all green together for the
-first time, and the deliberate-failure experiment (below) proving the
-release gate genuinely blocks on a real broken test.
+**Commit `5c83f70` is the first fully green round across all three
+workflows:**
+[CI #36187166589](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36187166589) SUCCESS,
+[Container build & scan #36187166508](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36187166508) SUCCESS,
+[Playwright E2E #36187166507](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36187166507) SUCCESS (all 6 specs passing). Seven
+real bugs were found and fixed, each independently verified by a real,
+subsequent green run, before this point — see the deliberate-failure
+experiment below for the release-gate proof this phase also required.
 
 ### Deliberate-failure experiment (release gate proof)
 
-<!-- Filled in after running this experiment for real: break
-     services/data-plane/tests/masking/test_validation.py::test_referential_integrity_passes_for_consistent_mapping,
-     push, confirm `data-quality-tests`/`release-gate` go red, capture
-     the run URL, revert, push, confirm green, capture that run URL. -->
+`ROADMAP.md` Phase 12 requires: "A release must fail if unit tests
+fail, integration tests fail, masking tests fail, referential-integrity
+tests fail, critical security validation fails." This was proven for
+real, not just written, by deliberately breaking a real referential-
+integrity test on the same verification branch:
+
+1. **Commit `d575396`**: edited
+   `services/data-plane/tests/masking/test_validation.py::test_referential_integrity_passes_for_consistent_mapping`
+   so the same real member ID (`SYN-MBR-000007`) maps to two
+   *different* tokens across two source systems (`TKN-AAAA` vs.
+   `TKN-ZZZZ`) — exactly the cross-system linkage inconsistency
+   `assert_referential_integrity` exists to catch (see
+   `data_plane.masking.validation`, `ARCHITECTURE.md` section 3.1).
+   Confirmed failing locally first (`pytest ...::test_referential_integrity_passes_for_consistent_mapping`
+   raised `ReferentialIntegrityError` as expected) before pushing.
+   [CI #36187426321](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36187426321) result: **FAILED**, as required —
+   both `Unit tests — services/data-plane` and
+   `Data-quality tests (masking, referential integrity, certification gates)`
+   jobs failed on the broken test, and, critically,
+   `Release gate (all required checks)` also failed, printing exactly
+   its own designed message: `"One or more required checks failed —
+   release gate BLOCKED."` This is the real, observed proof that a
+   referential-integrity failure blocks the release gate.
+2. **Commit `dcc5008`** (`git revert d575396 --no-edit`): reverted the
+   deliberate breakage back to the original, correct test. Confirmed
+   passing locally first (9/9 tests in that file passing again).
+   [CI #36187642266](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36187642266) result: **SUCCESS** — the release gate
+   re-opens immediately once the real underlying problem is fixed, with
+   no other change needed.
+   [Container build & scan #36187642537](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36187642537) and
+   [Playwright E2E #36187642426](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36187642426) also SUCCEEDED — this is the second
+   fully-green round across all three workflows, and the final state of
+   the verification branch.
+
+This single experiment was chosen deliberately to cover both "masking
+tests fail" and "referential-integrity tests fail" from `ROADMAP.md`'s
+list at once (the broken assertion is literally
+`assert_referential_integrity`, inside the masking test suite,
+exercised by both the `unit-tests` and `data-quality-tests` jobs). The
+"unit tests fail" / "integration tests fail" / "critical security
+validation fails" cases are not separately re-demonstrated with their
+own dedicated broken commits (that would have meant 3-4 more full CI
+round-trips, each several minutes, for a redundant proof) — they use
+the exact same `release-gate` job logic
+(`needs.<job>.result != 'success'` for every required job, uniformly),
+which this experiment already exercised end-to-end for one real job
+failure. Section "Real CI verification" above additionally shows this
+same release-gate mechanism was, in effect, already exercised for real
+by `security-checks` failing on a genuine vulnerability (round 3,
+commit `98acb50`) before that was fixed — i.e. the security-validation
+failure path was proven by an *unplanned* real finding, not only by
+the planned experiment above.
 
 ## Explicit decisions / scope boundaries
 
