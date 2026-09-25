@@ -17,6 +17,11 @@ from healthcare_tdm_contracts.classification import (
 from healthcare_tdm_contracts.jobs import JobRequest, JobResult, JobStatus, JobType
 from healthcare_tdm_contracts.masking import MaskingPolicy, MaskingRule, MaskingStrategy
 from healthcare_tdm_contracts.snapshots import SnapshotRecord, SnapshotStatus
+from healthcare_tdm_contracts.source_systems import (
+    ScaleProfileName,
+    SourceDatasetDescriptor,
+    SourceSystemType,
+)
 from healthcare_tdm_contracts.storage import ObjectRef, StorageBackend
 
 __all__ = [
@@ -32,8 +37,11 @@ __all__ = [
     "MaskingRule",
     "MaskingStrategy",
     "ObjectRef",
+    "ScaleProfileName",
     "SnapshotRecord",
     "SnapshotStatus",
+    "SourceDatasetDescriptor",
+    "SourceSystemType",
     "StorageBackend",
 ]
 

@@ -8,7 +8,7 @@ security/governance plane's access-control checks.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -59,4 +59,4 @@ class ColumnClassification(BaseModel):
         ),
     )
     confirmed_at: datetime | None = None
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

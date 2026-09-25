@@ -9,7 +9,7 @@ identifiers must be deterministic and keyed rather than random.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -74,4 +74,4 @@ class MaskingPolicy(BaseModel):
     approved_by: str | None = Field(
         default=None, description="Identity that approved this policy version, if approved."
     )
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

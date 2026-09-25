@@ -8,7 +8,7 @@ for how these are used in a real request.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID, uuid4
 
@@ -68,7 +68,7 @@ class JobRequest(BaseModel):
         ..., description="Caller-supplied key; resubmitting the same key must not duplicate work."
     )
     requested_by: str = Field(..., description="Identity of the requesting user or system.")
-    requested_at: datetime = Field(default_factory=datetime.utcnow)
+    requested_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class JobResult(BaseModel):

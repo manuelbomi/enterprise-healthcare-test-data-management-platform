@@ -15,7 +15,7 @@ dependencies = [
     "pydantic>=2.6,<3",
     "sqlalchemy>=2.0",
     "psycopg[binary]>=3.1",
-    "healthcare-tdm-contracts @ file:../../libs/contracts",
+    "healthcare-tdm-contracts",  # workspace-local: installed via scripts/bootstrap-dev (see README)
 ]
 
 [project.optional-dependencies]
