@@ -223,6 +223,16 @@ Responsibilities:
 - **Certification evidence store**: the durable record that a given snapshot
   passed its masking certification, referenced by auditors.
 
+As of Phase 10, this service remains a structural scaffold (no
+database, no FastAPI app) -- centralized masking *policy-version
+governance* (who approved which masking policy version, which named
+business consumers may reference it) was implemented in
+`services/control-plane` instead, because it needed a same-transaction
+integration with the control plane's own Phase 7/8 schema; see
+[ADR-0014](docs/adr/0014-masking-governance-lives-in-control-plane.md).
+*Who is authorized* to approve a policy version (RBAC) remains this
+service's eventual, still-unbuilt responsibility.
+
 ### 2.5 UI (`frontend/`)
 
 A React + TypeScript + Vite console for the people who consume this
@@ -446,6 +456,30 @@ readiness check to point at yet. See `problems_phase_09.md` for the
 per-page decision record and `docs/adr/0008-frontend-stack.md`
 (unchanged, since the accessible-by-default / control-plane-only
 constraints it establishes are exactly what this phase followed).
+
+Phase 10 note: centralized enterprise masking *governance* --
+`MaskingPolicyVersion`/`PolicyApproval` (an approval workflow wrapping
+Phase 3's real `MaskingPolicy`) and `BusinessConsumer`/
+`ConsumerDatasetRequest` (named organizational arms requesting datasets
+exclusively through an *approved* policy version) -- is implemented in
+`control_plane.domain.governance`, exposed at `/api/v1/governance`. On
+name alone this sounds like `services/governance-service` (section 2.4)
+territory; it is not, for this phase's concrete scope -- see
+[ADR-0014](docs/adr/0014-masking-governance-lives-in-control-plane.md)
+for the full reasoning: `services/governance-service` remains a
+structural scaffold (no database, no FastAPI app), and this phase's
+hardest requirement -- a business consumer's demand must be scheduled
+into Phase 7's *existing* refresh calendar and be visible in Phase 8's
+*existing* capacity plan, not a parallel implementation -- needs a
+same-transaction call into `LifecycleRepository`, which only a
+same-service, same-`Session` integration can give it honestly.
+`GovernanceRepository.fulfill_consumer_request` is that call, proven
+end-to-end in `scripts/demo_phase10_governance.py` and
+`docs/tutorial/09-centralized-masking-governance.md`. RBAC over who may
+approve a policy version remains explicitly out of scope (tracked in
+`problems_phase_10.md`) -- consistent with every other actor-attribution
+field already in this service (e.g. `DatasetVersion.revoked_by`) having
+no RBAC check behind it yet.
 
 ## 5. Why this stack
 

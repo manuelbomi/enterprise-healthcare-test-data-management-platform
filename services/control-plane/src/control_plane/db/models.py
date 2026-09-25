@@ -32,6 +32,25 @@ Table map
 - `RollbackEventRow` -- an append-only log of every rollback, per
   `EnvironmentDatasetRequestRow`.
 
+Phase 10 (`control_plane.domain.governance`) adds four more tables to
+this same schema/engine, deliberately kept in this one module rather
+than a separate one -- `GovernanceRepository` (Phase 10) calls directly
+into `LifecycleRepository` (Phase 7) within the *same*
+`sqlalchemy.orm.Session`, so both domains' tables must live behind one
+`Base`/one `init_schema()` call for that to be a real, transactional
+integration rather than a two-database integration masquerading as one:
+
+- `MaskingPolicyVersionRow` -- one governed, versioned snapshot of a
+  real Phase 3 `MaskingPolicy` (`healthcare_tdm_contracts.MaskingPolicyVersion`).
+- `PolicyApprovalRow` -- an append-only log of every approval-workflow
+  action taken against a `MaskingPolicyVersionRow`.
+- `BusinessConsumerRow` -- one organizational arm/business unit
+  (`LEFT_ARM`, `RIGHT_ARM`).
+- `ConsumerDatasetRequestRow` -- one business consumer's request for a
+  dataset, referencing an *approved* `MaskingPolicyVersionRow` by
+  foreign key and, once fulfilled, an `EnvironmentDatasetRequestRow` by
+  foreign key -- never a masking rule of its own.
+
 Real PostgreSQL verification remains deferred, same honest pattern
 `problems_phase_01.md` P1-1 established: these models and
 `create_sqlite_engine`/`create_postgres_engine` below are exercised
@@ -166,6 +185,78 @@ class RollbackEventRow(Base):
     reason: Mapped[str] = mapped_column(Text)
 
 
+class MaskingPolicyVersionRow(Base):
+    __tablename__ = "masking_policy_version"
+    __table_args__ = (
+        UniqueConstraint("policy_name", "policy_version", name="uq_masking_policy_version"),
+    )
+
+    policy_version_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    policy_name: Mapped[str] = mapped_column(String(255), index=True)
+    policy_version: Mapped[int] = mapped_column(Integer)
+    masking_policy_json: Mapped[str] = mapped_column(
+        Text, doc="JSON-serialized healthcare_tdm_contracts.MaskingPolicy (full rule set)."
+    )
+    masking_engine_version: Mapped[str] = mapped_column(String(64))
+    approval_status: Mapped[str] = mapped_column(String(32), default="draft", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    created_by: Mapped[str] = mapped_column(String(255))
+    notes: Mapped[str] = mapped_column(Text, default="")
+    superseded_by_version_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+
+
+class PolicyApprovalRow(Base):
+    __tablename__ = "policy_approval"
+
+    approval_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    policy_version_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("masking_policy_version.policy_version_id"), index=True
+    )
+    status: Mapped[str] = mapped_column(String(32))
+    performed_by: Mapped[str] = mapped_column(String(255))
+    performed_at: Mapped[datetime] = mapped_column(DateTime)
+    comments: Mapped[str] = mapped_column(Text, default="")
+
+
+class BusinessConsumerRow(Base):
+    __tablename__ = "business_consumer"
+
+    business_consumer_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    display_name: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(Text, default="")
+    contact: Mapped[str] = mapped_column(String(255), default="")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class ConsumerDatasetRequestRow(Base):
+    __tablename__ = "consumer_dataset_request"
+
+    consumer_request_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    business_consumer_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("business_consumer.business_consumer_id"), index=True
+    )
+    business_consumer_code: Mapped[str] = mapped_column(String(64), default="")
+    dataset_name: Mapped[str] = mapped_column(String(255), index=True)
+    environment: Mapped[str] = mapped_column(String(32), index=True)
+    policy_version_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("masking_policy_version.policy_version_id")
+    )
+    masking_policy_name: Mapped[str] = mapped_column(String(255), default="")
+    masking_policy_version: Mapped[int] = mapped_column(Integer, default=0)
+    subset_size_hint: Mapped[str] = mapped_column(String(512), default="")
+    refresh_cadence_type: Mapped[str] = mapped_column(String(32))
+    performance_requirements: Mapped[str] = mapped_column(Text, default="")
+    requested_by: Mapped[str] = mapped_column(String(255))
+    requested_at: Mapped[datetime] = mapped_column(DateTime)
+    status: Mapped[str] = mapped_column(String(32), default="submitted")
+    environment_request_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("environment_dataset_request.request_id"), nullable=True
+    )
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
 def create_sqlite_engine(db_path: str) -> Engine:
     """Create a local SQLite engine at ``db_path`` (or ``:memory:``) --
     the default, zero-infrastructure path used by tests and local dev.
@@ -196,8 +287,12 @@ def init_schema(engine: Engine) -> None:
 
 __all__ = [
     "Base",
+    "BusinessConsumerRow",
+    "ConsumerDatasetRequestRow",
     "DatasetVersionRow",
     "EnvironmentDatasetRequestRow",
+    "MaskingPolicyVersionRow",
+    "PolicyApprovalRow",
     "RefreshPolicyRow",
     "RefreshRunRow",
     "RollbackEventRow",

@@ -9,7 +9,10 @@ adds the first real business-capability route set (`api/v1/catalog.py`,
 the PHI/PII data catalog). Phase 7 adds the first database-backed one
 (`api/v1/lifecycle.py`, dataset lifecycle and refresh management).
 Phase 8 adds capacity-planning endpoints built on top of it
-(`api/v1/capacity.py`). See api/v1/ for versioned route modules.
+(`api/v1/capacity.py`). Phase 10 adds centralized masking governance
+endpoints (`api/v1/governance.py`), which call directly into the same
+Phase 7 lifecycle schema/session. See api/v1/ for versioned route
+modules.
 """
 
 from __future__ import annotations
@@ -17,7 +20,17 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from control_plane.api.v1 import capacity, catalog, certification, health, lifecycle, masking, subsetting, synthetic
+from control_plane.api.v1 import (
+    capacity,
+    catalog,
+    certification,
+    governance,
+    health,
+    lifecycle,
+    masking,
+    subsetting,
+    synthetic,
+)
 from control_plane.config import get_settings
 
 
@@ -59,6 +72,7 @@ def create_app() -> FastAPI:
     app.include_router(subsetting.router, prefix=settings.api_v1_prefix)
     app.include_router(synthetic.router, prefix=settings.api_v1_prefix)
     app.include_router(certification.router, prefix=settings.api_v1_prefix)
+    app.include_router(governance.router, prefix=settings.api_v1_prefix)
     return app
 
 

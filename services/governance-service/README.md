@@ -14,6 +14,20 @@ events, or resolve secrets. This service never calls into the others — see
 Structural scaffold only. See `problems_master.md` and `ROADMAP.md`
 (Phase 3) for what's next.
 
+## Phase 10 note
+
+`ROADMAP.md` Phase 10 (centralized enterprise masking governance --
+policy-version approval workflow, named business consumers) sounds like
+it belongs here by name, but was implemented in
+`services/control-plane/src/control_plane/domain/governance/` instead,
+because it needed a same-transaction integration with that service's
+own Phase 7/8 schema, and this service has no database or FastAPI app
+yet to build that integration against. See
+`docs/adr/0014-masking-governance-lives-in-control-plane.md` for the
+full reasoning. *Who is authorized* to approve a masking policy version
+(RBAC) remains this service's eventual, still-unbuilt responsibility --
+Phase 10 does not enforce that check.
+
 ## Layout
 
 ```

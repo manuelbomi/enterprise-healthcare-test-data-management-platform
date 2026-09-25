@@ -21,6 +21,23 @@ Developer utility scripts.
   root (both `data_plane` and `control_plane` must be installed, i.e.
   `bootstrap.sh` already run). See
   `docs/tutorial/07-dataset-lifecycle-and-refresh.md`.
+- `demo_phase10_governance.py` — an end-to-end demonstration of Phase 10
+  (centralized enterprise masking governance): drafts/approves the real
+  Phase 3 `DEFAULT_POLICY` as a governed `MaskingPolicyVersion`,
+  registers the two named business consumers (`LEFT_ARM`/`RIGHT_ARM`),
+  runs two real Phase 6 certification pipelines (different subset
+  sizes, the identical governed policy object) to produce two real
+  `DatasetVersion`s, has both consumers submit and fulfill
+  `ConsumerDatasetRequest`s that resolve to the identical
+  `policy_version_id`, has RIGHT_ARM request additional QA capacity
+  (its own refresh cadence) and shows that demand appear in Phase 7's
+  real lifecycle API and Phase 8's real capacity plan before/after, and
+  demonstrates a rejected adversarial attempt to submit a request
+  against an unapproved policy version. Run with
+  `python scripts/demo_phase10_governance.py` from the repository root
+  (both `data_plane` and `control_plane` must be installed). See
+  `docs/tutorial/09-centralized-masking-governance.md` and
+  `docs/adr/0014-masking-governance-lives-in-control-plane.md`.
 
 Planned for later phases:
 
