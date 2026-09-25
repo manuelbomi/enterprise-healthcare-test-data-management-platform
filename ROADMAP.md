@@ -23,7 +23,7 @@ repository going forward.
 | 2 | PHI/PII discovery and classification engine + data catalog | **Complete** |
 | 3 | Enterprise deterministic masking engine (pseudonymization/tokenization) | **Complete** |
 | 4 | Referentially intact, production-scale data subsetting | **Complete** |
-| 5 | Synthetic test data generation (scenario/edge-case data) | Not started |
+| 5 | Synthetic test data generation (scenario/edge-case data) | **Complete** |
 | 6 | Certified test dataset pipeline (ingest→...→certify→publish) | Not started |
 | 7 | Dataset lifecycle and refresh management (versions, cadence, retention) | Not started |
 | 8 | Storage and compute footprint management / capacity planning | Not started |
@@ -39,6 +39,57 @@ repository going forward.
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 5 — what was actually delivered
+
+- A real synthetic *scenario* generator
+  (`services/data-plane/src/data_plane/synthetic/`) that supplements an
+  already-subsetted-and-masked estate (or produces a standalone dataset)
+  with deliberately constructed test scenarios, reusing Phase 4's
+  `estate_io.py` read path and `writer.py` write path rather than
+  reinventing them — distinct from Phase 1's `reference_data` package,
+  which builds an entire estate from nothing and injects its own edge
+  cases as part of that build (Phase 5 only ever augments/supplements,
+  one pipeline stage later per `ARCHITECTURE.md`)
+- All eleven required scenarios, implemented as real, distinct generator
+  functions (`data_plane/synthetic/scenarios.py`) producing either
+  schema-valid records (`normal_claims`, `high_cost_claims`,
+  `unusual_prescription_combinations`, `missing_laboratory_values`,
+  `boundary_dates`, `null_heavy_records`, `very_large_claim_histories`)
+  or deliberately, specifically broken ones
+  (`duplicate_claims`, `invalid_claim_references`, `expired_coverage`,
+  `missing_provider`), each demonstrated against a real generated
+  estate — see `docs/tutorial/05-synthetic-scenario-generation.md`
+- `healthcare_tdm_contracts.DataProvenance` (`masked_production_like` /
+  `synthetic` / `negative_test`): the vocabulary that makes "never allow
+  synthetic records to be mistaken for real records" concrete, tagged
+  **both** per-row (`data_provenance` column, added to every row across
+  all five on-disk formats, including retagging every pre-existing base
+  row `masked_production_like` when augmenting) and per-manifest
+  (`SyntheticGenerationManifest.provenance_row_counts`) — see
+  `data_plane/synthetic/provenance.py` for why neither alone is
+  sufficient
+- A scenario-sub-range ID convention
+  (`data_plane/synthetic/ids.ScenarioIdAllocator`): scenario-generated
+  entities use `SYN-<ENTITY>-SCEN-<seq>`, which cannot collide with
+  Phase 1 estate-native `SYN-<ENTITY>-<seq>` IDs by construction;
+  negative-test dangling references use the further-distinguished
+  `SYN-<ENTITY>-SCEN-NX-<tag>-<seq>` shape
+- Extended `libs/contracts`: `DataProvenance`, `ScenarioType` (the eleven
+  scenarios), `ScenarioGenerationRecord`, `SyntheticGenerationManifest` —
+  the durable, typed record of a generation run's mode (augment/
+  standalone), lineage back to a Phase 4 `SubsetManifest` when one
+  exists, per-scenario counts, and the full provenance rollup
+  (`libs/contracts/src/healthcare_tdm_contracts/synthetic.py`)
+- Both augment mode (reads an existing masked/subsetted estate, tags its
+  rows, merges scenarios on top) and standalone mode (generates a small
+  self-contained reference-table fixture set first, zero
+  `masked_production_like` rows in the output by construction) run end
+  to end against a real generated `tiny`-scale estate and a real Phase 4
+  subset of it
+- 85 new tests (62 in `services/data-plane`, 5 new in `libs/contracts`
+  on top of the 18 already there) — see `problems_phase_05.md` for what's
+  still open
 
 ## Phase 4 — what was actually delivered
 

@@ -40,6 +40,12 @@ from healthcare_tdm_contracts.subsetting import (
     SubsetSelectionCriteria,
     SubsettingStrategy,
 )
+from healthcare_tdm_contracts.synthetic import (
+    DataProvenance,
+    ScenarioGenerationRecord,
+    ScenarioType,
+    SyntheticGenerationManifest,
+)
 
 __all__ = [
     "TIER_BY_CATEGORY",
@@ -49,6 +55,7 @@ __all__ = [
     "ClassificationMethod",
     "ClassificationTier",
     "ColumnClassification",
+    "DataProvenance",
     "IntegrityStatus",
     "JobRequest",
     "JobResult",
@@ -63,6 +70,8 @@ __all__ = [
     "RelationshipEdge",
     "RetentionClassification",
     "ScaleProfileName",
+    "ScenarioGenerationRecord",
+    "ScenarioType",
     "SensitivityCategory",
     "SnapshotRecord",
     "SnapshotStatus",
@@ -72,6 +81,7 @@ __all__ = [
     "SubsetManifest",
     "SubsetSelectionCriteria",
     "SubsettingStrategy",
+    "SyntheticGenerationManifest",
 ]
 
 __version__ = "0.1.0"
