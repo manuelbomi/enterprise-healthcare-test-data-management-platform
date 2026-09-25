@@ -10,9 +10,13 @@ database, API, or storage backend.
 """
 
 from healthcare_tdm_contracts.audit import AuditEvent, AuditEventType
+from healthcare_tdm_contracts.catalog import CatalogEntry, RetentionClassification
 from healthcare_tdm_contracts.classification import (
+    TIER_BY_CATEGORY,
+    ClassificationMethod,
     ClassificationTier,
     ColumnClassification,
+    SensitivityCategory,
 )
 from healthcare_tdm_contracts.jobs import JobRequest, JobResult, JobStatus, JobType
 from healthcare_tdm_contracts.masking import MaskingPolicy, MaskingRule, MaskingStrategy
@@ -25,8 +29,11 @@ from healthcare_tdm_contracts.source_systems import (
 from healthcare_tdm_contracts.storage import ObjectRef, StorageBackend
 
 __all__ = [
+    "TIER_BY_CATEGORY",
     "AuditEvent",
     "AuditEventType",
+    "CatalogEntry",
+    "ClassificationMethod",
     "ClassificationTier",
     "ColumnClassification",
     "JobRequest",
@@ -37,7 +44,9 @@ __all__ = [
     "MaskingRule",
     "MaskingStrategy",
     "ObjectRef",
+    "RetentionClassification",
     "ScaleProfileName",
+    "SensitivityCategory",
     "SnapshotRecord",
     "SnapshotStatus",
     "SourceDatasetDescriptor",

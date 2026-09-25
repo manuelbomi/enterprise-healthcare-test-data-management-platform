@@ -17,6 +17,7 @@ dependencies = [
     "pydantic>=2.6,<3",
     "sqlalchemy>=2.0",
     "faker>=24.0",
+    "pyyaml>=6.0",
     "healthcare-tdm-contracts",  # workspace-local: installed via scripts/bootstrap-dev (see README)
 ]
 

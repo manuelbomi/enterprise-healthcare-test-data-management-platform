@@ -27,9 +27,15 @@ its own package.
 
 - `jobs` — the `JobRequest`/`JobResult` contract the control plane uses to
   submit work to the data plane, and job status/type enums.
-- `classification` — the PHI/PII classification tiers and the
+- `classification` — the PHI/PII classification tiers/categories and the
   `ColumnClassification` shape used between discovery, policy, and
-  governance.
+  governance. Implemented in Phase 2 — see
+  `services/data-plane/src/data_plane/discovery/`.
+- `catalog` — the `CatalogEntry` data-catalog row shape (classification +
+  masking requirement + owner + retention classification), produced by
+  discovery and served by the control plane's catalog API. Implemented in
+  Phase 2 — see ADR-0009 for why it moves between planes as a JSON
+  artifact today.
 - `masking` — the `MaskingPolicy` shape and related enums.
 - `audit` — the `AuditEvent` shape emitted by every plane to the
   security/governance plane.
