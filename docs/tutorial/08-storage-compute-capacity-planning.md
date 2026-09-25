@@ -142,8 +142,11 @@ storage when environments are actually willing to use the same version.
 
 `control_plane.domain.capacity.estimator`'s compute-demand figures are a
 documented heuristic (`ROWS_PER_COMPUTE_UNIT_HOUR`), not a benchmark --
-`ROADMAP.md` Phase 14 (scale/performance engineering) is where a real
-measured throughput number would replace it. `data_plane.capacity.incremental`
+`ROADMAP.md` Phase 14 (scale/performance engineering) has since happened
+and produced real measured per-stage throughput numbers
+(`docs/SCALE_AND_PERFORMANCE.md`), but this constant was not touched by
+that phase (see `problems_phase_08.md` P8-1 for why no single figure
+from it was a direct drop-in replacement). `data_plane.capacity.incremental`
 models what an incremental-refresh engine would save; this platform does
 not build one. Both are documented explicitly, in their own module
 docstrings and in `docs/CAPACITY_COST_TRADEOFFS.md`, as illustrations of

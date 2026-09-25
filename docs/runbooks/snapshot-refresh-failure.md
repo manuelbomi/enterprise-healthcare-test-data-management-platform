@@ -1,8 +1,10 @@
 # Runbook: scheduled snapshot refresh failure
 
 > **Status:** intended procedure, written ahead of implementation (Phase 0).
-> Will be validated once the orchestrator (Phase 14) and refresh cadence
-> system (Phase 13) exist. Treat the specific commands/endpoints below as
+> Will be validated once a real job orchestrator exists (not yet
+> scheduled by name as of Phase 14 — Phase 14 turned out to be
+> scale/performance benchmark tooling, not job-orchestration wiring; see
+> `problems_phase_14.md`). Treat the specific commands/endpoints below as
 > illustrative until then.
 
 ## Symptom

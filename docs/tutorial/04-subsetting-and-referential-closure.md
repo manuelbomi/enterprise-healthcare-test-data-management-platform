@@ -254,8 +254,10 @@ with `count=10000` against a `performance`-scale estate (20,000 members,
 demonstrated above at `tiny` scale (26 members) — `build_closure` doesn't
 know or care how many Member IDs it was handed. The example above uses a
 small scale profile only because that's what fits in this repository's
-test/CI budget; see `problems_phase_04.md` for the tracked follow-up on
-benchmarking this at real `qa`/`performance` scale (Phase 14).
+test/CI budget; see `problems_phase_04.md` P4-3 for the follow-up on
+benchmarking this at real `qa`/`performance` scale, now actually done in
+Phase 14 — 408 of 20,400 members selected from a real `performance`-scale
+estate in 8.777s, no memory issues (see `docs/SCALE_AND_PERFORMANCE.md`).
 
 ## Before you trust any of this output
 

@@ -102,9 +102,13 @@ and is now verified by a real, passing test:
 - **Repro / detail:** N/A -- scope boundary, not a bug.
 - **Affected files:** `services/data-plane/src/data_plane/certification/cli.py`,
   `libs/contracts/src/healthcare_tdm_contracts/jobs.py`
-- **Owner for resolution:** Phase 14 (job orchestration) for the
-  control-plane wiring; `services/governance-service` (not currently
-  scheduled by name) for a real certification evidence store.
+- **Owner for resolution:** a future job-orchestration phase for the
+  control-plane wiring (**correction:** this used to say "Phase 14 (job
+  orchestration)" — Phase 14 actually happened and its scope was
+  scale/performance benchmark tooling, not job-orchestration wiring;
+  that remains unscheduled by name, see `problems_phase_14.md`);
+  `services/governance-service` (not currently scheduled by name) for a
+  real certification evidence store.
 
 ### P6-2 — The tamper-evidence signature is a detection mechanism, not a prevention mechanism, and has no independent audit-trail cross-check
 

@@ -218,8 +218,11 @@ phase.
 - **Repro / detail:** N/A -- scope boundary, not a bug.
 - **Affected files:** `services/control-plane/src/control_plane/api/v1/lifecycle.py`,
   `libs/contracts/src/healthcare_tdm_contracts/jobs.py`
-- **Owner for resolution:** Phase 14 (job orchestration), same owner
-  note as P6-1.
+- **Owner for resolution:** a future job-orchestration phase, same owner
+  note as P6-1. **Correction:** this used to say "Phase 14 (job
+  orchestration)" — Phase 14 actually happened and its scope was
+  scale/performance benchmark tooling, not job-orchestration wiring; see
+  `problems_phase_14.md`.
 
 ### P7-8 — `size_bytes` and `row_counts` are caller-supplied at registration, not independently re-derived by the control plane
 

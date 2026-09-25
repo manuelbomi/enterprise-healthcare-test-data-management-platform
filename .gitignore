@@ -76,6 +76,13 @@ derby.log
 *.crc
 _SUCCESS
 
+# Phase 14: locally cached native Hadoop/Windows runtime (winutils.exe,
+# hadoop.dll) used only to make local-mode PySpark file writes work on
+# Windows dev machines -- downloaded on demand by
+# scripts/setup_local_spark_windows.py, never committed (it is a
+# third-party native binary, not project source).
+.spark-runtime/
+
 # ---------------------------------------------------------------------------
 # Data / synthetic data working directories (never commit generated data,
 # even synthetic data — treat local generated output as disposable).

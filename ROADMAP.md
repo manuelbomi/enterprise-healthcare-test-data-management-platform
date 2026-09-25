@@ -32,13 +32,97 @@ repository going forward.
 | 11 | Platform integrity (health, resiliency, failure injection) | **Complete** |
 | 12 | Production CI/CD and cloud testing (GitHub Actions, K8s, Terraform) | **Complete** |
 | 13 | Auditability and compliance evidence | **Complete** |
-| 14 | Scale and performance engineering (PySpark benchmarks) | Not started |
+| 14 | Scale and performance engineering (PySpark benchmarks) | **Complete** |
 | 15 | Complete junior-engineer tutorial (20 chapters) | Not started |
 | 16 | Interview / system design documentation | Not started |
 | 17 | Principal-engineer production readiness review (findings only, no fixes) | Not started |
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 14 — what was actually delivered
+
+- Audited `services/data-plane` against this phase's own prerequisite
+  before writing any code and confirmed a real, previously-documented
+  gap: `pyspark`/`delta-spark` have been declared dependencies since
+  Phase 0, but no file in `services/data-plane/src` had ever imported
+  `pyspark` or built a `SparkSession` through Phase 13
+  (`problems_phase_12.md`'s container-build note already said so).
+- Two new, additive data-plane packages, mirroring `ADR-0013`'s
+  Phase 8 plane-internal split:
+  - `data_plane.spark` (`session.py`, `masking_job.py`,
+    `subsetting_job.py`, `cli.py`) — real, runnable PySpark code.
+    `run_claims_masking_job` masks the claims-warehouse `claim` table's
+    `member_id`/`claim_id` columns with an Arrow-vectorized `pandas_udf`
+    that reuses Phase 3's real `MaskingEngine` unmodified (proven
+    byte-for-byte identical to the pandas engine's own output under the
+    same key/scope). `run_member_subsetting_job` reimplements Phase 4's
+    referential-closure concept (member selection -> claim -> claim
+    line) as two explicit broadcast joins, never shuffling the large
+    tables.
+  - `data_plane.benchmarks` (`harness.py`, `report.py`, `cli.py`) — a
+    real measurement harness reusing every underlying Phase 1/3/4/8/14
+    engine it measures (never reimplementing masking/subsetting/
+    footprint logic a second time): records/sec, masking throughput
+    (pandas vs. Spark), subsetting throughput (pandas vs. Spark),
+    dataset generation time, validation time, storage footprint, and
+    Parquet compression ratio, run against a real, freshly generated
+    estate at a caller-selected `data_plane.reference_data.scale.
+    ScaleProfile`.
+- Two real, previously-undocumented local-mode PySpark-on-Windows
+  failure modes found and fixed while implementing this phase (not
+  hypothetical — both reproduced in this repository's own development
+  environment): a native `winutils.exe`/`HADOOP_HOME` shim requirement
+  for local file writes (`scripts/setup_local_spark_windows.py` +
+  `data_plane.spark.session.configure_windows_hadoop_runtime`), and a
+  Python-worker crash (`SparkException: Python worker exited
+  unexpectedly`, no Python traceback) caused by the JVM launching a
+  different `python` on `PATH` than the interpreter that built the
+  session, fixed by `pin_worker_python_interpreter` pinning
+  `PYSPARK_PYTHON`/`PYSPARK_DRIVER_PYTHON` to `sys.executable`.
+- [ADR-0017](docs/adr/0017-pyspark-benchmark-tooling-in-data-plane.md):
+  why this tooling lives inside `services/data-plane` rather than a new
+  service, why "real PySpark" means `local[*]` only (no Spark cluster
+  exists in `infra/`), which two operations were chosen for a real
+  Spark reimplementation and why, and why no real Delta Lake write is
+  executed this phase.
+- `docs/SCALE_AND_PERFORMANCE.md`: real benchmark numbers from real runs
+  at `qa` scale (81,295 rows; 10,726 claims) and `performance` scale
+  (766,252 rows; 105,936 claims) — including the measured finding that
+  Spark's masking throughput went from 1,707 records/sec at `qa` scale
+  to 12,714 records/sec at `performance` scale (fixed per-job overhead
+  amortizing over ~10x more rows), real captured `df.explain()` output
+  proving predicate pushdown (`PushedFilters`) and broadcast joins
+  (`BroadcastHashJoin`) actually occurred, and a real reproduction of
+  the small-file problem (200 output files at Spark's cluster-tuned
+  default shuffle-partition count vs. 8 files at this package's
+  laptop-appropriate default, for the same 30,030-row input) — plus
+  honest documentation of what is conceptual rather than measured (data
+  skew, Delta Lake optimization concepts, autoscaling) and why.
+- 26 new tests: `services/data-plane/tests/spark/` (17 — real Spark
+  sessions, real on-disk Parquet, a real cross-validation that the
+  Spark `pandas_udf` and the pandas `MaskingEngine` produce identical
+  tokens, Windows-hadoop-runtime-resolution logic exercised via
+  monkeypatched `sys.platform`) and
+  `services/data-plane/tests/benchmarks/` (9 — every `benchmark_*`
+  function and the full `run_full_suite` pipeline, against a real
+  `tiny`-scale estate). Full workspace suite after this phase:
+  `libs/contracts` 62 passed, `services/control-plane` 195 passed,
+  `services/data-plane` 439 passed (413 before this phase + 26 new),
+  `services/governance-service` 2 passed — no regressions.
+- Left genuinely open, tracked in `problems_phase_14.md`: no real Delta
+  Lake table is written anywhere in this repository yet (P14-1); skew
+  is documented but not reproduced from real measurement (P14-2);
+  autoscaling is not applicable to `local[*]` and is documented
+  conceptually only (P14-3); neither new Spark job is wired into the
+  control plane's job orchestrator (P14-4, the same gap `ARCHITECTURE.md`'s
+  Phase 3/4 notes already document for the pandas-engine versions);
+  `run_claims_masking_job` masks only two columns of one table, not
+  Phase 3's full masking policy, so the pandas-vs-Spark masking
+  comparison in `docs/SCALE_AND_PERFORMANCE.md` is not a pure
+  apples-to-apples race (P14-5); and the two Windows-local-mode fixes
+  are only exercised for real on Windows, never on this repository's own
+  Linux CI (P14-6).
 
 ## Phase 13 — what was actually delivered
 

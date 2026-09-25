@@ -9,7 +9,11 @@ without a running Postgres/network. Concrete I/O implementations live in
 
 Phase 0 scope: this module is an empty placeholder establishing where
 orchestration/policy code will live starting Phase 2 (orchestration) and
-Phase 14 (job DAG execution).
+a future job-orchestration phase (job DAG execution) — not Phase 14,
+which actually happened and turned out to be scale/performance
+benchmark tooling (`data_plane.spark`/`data_plane.benchmarks`), not job
+DAG execution; see `ROADMAP.md` and `problems_phase_14.md`. Job DAG
+execution remains unscheduled by name.
 
 Phase 7 adds the first real subpackage here: `domain.lifecycle`
 (dataset versions, refresh policies, environment requests, the refresh

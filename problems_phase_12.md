@@ -414,6 +414,16 @@ the planned experiment above.
   imports `pyspark.sql.SparkSession` today would be theater, not real
   infrastructure. `docker-compose.yml`, the Helm chart, and this
   document all say so explicitly rather than silently omitting it.
+  **Update (Phase 14):** Phase 14 happened and now genuinely creates
+  `SparkSession`s (`data_plane.spark.session.get_local_spark_session`,
+  `master("local[*]")`) — the `grep -r "SparkSession"` finding above no
+  longer returns nothing. This container-build note's underlying
+  conclusion still holds, though: Phase 14 deliberately stayed
+  `local[*]`-only (no real cluster exists in `infra/`; see
+  `docs/adr/0017-pyspark-benchmark-tooling-in-data-plane.md`), so there
+  is still no `spark-submit`/cluster-mode config or containerized Spark
+  service for this or any later container-build phase to add yet — see
+  `problems_phase_14.md`.
 - **Deployment promotion workflows (`deploy-qa.yml`,
   `deploy-staging-uat.yml`, `deploy-production.yml`) deploy to a Docker
   Compose stand-in, never a real cloud target.** No AWS/Azure

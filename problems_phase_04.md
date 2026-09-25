@@ -99,8 +99,12 @@ resolved and is now verified by a real, passing test:
 - **Repro / detail:** N/A — scope boundary, not a bug.
 - **Affected files:** `services/data-plane/src/data_plane/subsetting/cli.py`,
   `libs/contracts/src/healthcare_tdm_contracts/jobs.py`
-- **Owner for resolution:** Phase 14 (job orchestration) / control-plane
-  work generally.
+- **Owner for resolution:** a future job-orchestration phase / control-
+  plane work generally. **Correction:** this used to say "Phase 14 (job
+  orchestration)" — Phase 14 actually happened, and its scope turned out
+  to be scale/performance benchmark tooling (`ROADMAP.md` Phase 14,
+  `problems_phase_14.md`), not job-orchestration wiring; that remains
+  unscheduled by name.
 
 ### P4-2 — No metadata-plane snapshot registry or audit event integration yet
 
@@ -123,7 +127,18 @@ resolved and is now verified by a real, passing test:
 
 ### P4-3 — Subsetting at real qa/performance scale has not been benchmarked
 
-- **Status:** open
+- **Status:** resolved (Phase 14) — `data_plane.benchmarks.harness.
+  benchmark_pandas_subsetting` ran the real `PERCENTAGE` strategy (this
+  same `estate_io.py`/`selection.py`/`closure.py` code path) against a
+  real, freshly generated `performance`-scale estate (766,252 rows,
+  20,400 members) and measured 8.777s to select 408 members and write
+  7,782 claim+claim_line rows, with no memory issues on a 28-core/
+  everyday-RAM development machine — see `docs/SCALE_AND_PERFORMANCE.md`
+  section 3. This confirms the concrete concern below (acceptable
+  runtime/memory behavior at `performance` scale) even though it used
+  `PERCENTAGE` rather than the phase's original `fixed_population
+  count=10000` example; the underlying code path exercised is identical.
+  The original description is kept below for context.
 - **Description:** Every strategy is demonstrated end to end against the
   real `tiny` scale profile (26 members) in this phase's tests, and the
   code path is scale-agnostic (nothing hardcodes a population size), but
@@ -142,7 +157,12 @@ resolved and is now verified by a real, passing test:
   fixed_population --param count=10000` and measure.
 - **Affected files:** `services/data-plane/src/data_plane/subsetting/estate_io.py`
 - **Owner for resolution:** Phase 14 (scale and performance engineering,
-  PySpark benchmarks).
+  PySpark benchmarks) — done; see the Status note above. The
+  Spark-backed path for a truly production-scale (multi-million-member)
+  run is `data_plane.spark.subsetting_job` (also Phase 14) — it does not
+  replace `estate_io.py`'s pandas path (that remains this phase's own
+  code), but is the real Spark reimplementation the description above
+  anticipated needing eventually.
 
 ### P4-4 — The relationship graph is hand-authored, not derived from the catalog
 

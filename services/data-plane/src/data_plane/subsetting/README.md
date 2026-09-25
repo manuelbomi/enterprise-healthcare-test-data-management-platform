@@ -115,8 +115,10 @@ large the subset).
   "10,000 members." The same code path demonstrated here at `tiny` scale
   (a few dozen members) is what would run unmodified against a real
   `performance`-scale estate to select a real 10,000-member subset — see
-  `problems_phase_04.md` for the tracked follow-up on actually
-  benchmarking that (Phase 14: scale and performance engineering).
+  `problems_phase_04.md` P4-3 for the tracked follow-up on actually
+  benchmarking that, now done in Phase 14: a real `performance`-scale
+  estate (20,400 members) selected 408 members in 8.777s with no memory
+  issues — see `docs/SCALE_AND_PERFORMANCE.md`.
 - Does **not** discover relationships automatically from the data the way
   `discovery`'s pattern layer discovers columns — `closure.py`'s graph is
   hand-authored against the known Phase 1 entity relationships. A future

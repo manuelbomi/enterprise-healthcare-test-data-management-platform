@@ -7,9 +7,12 @@ illustrative compute-demand figures. These are honestly a documented
 plausible, stated throughput figure for the kind of row-level work this
 platform's pipeline does (subset + mask + certify), not a number derived
 from any real job run in this repository. `ROADMAP.md` Phase 14 ("Scale
-and performance engineering, PySpark benchmarks") is where a real
-measured throughput figure would replace this constant -- see
-`problems_phase_08.md` P8-1.
+and performance engineering, PySpark benchmarks") has since happened and
+produced real measured per-stage throughput figures
+(`docs/SCALE_AND_PERFORMANCE.md`), but none of them is a single
+"subset+mask+certify pipeline" number this constant could be replaced
+with directly, and this module was not touched by that phase -- see
+`problems_phase_08.md` P8-1 for the honest, still-open continuation.
 
 What *is* real here: the row counts and cadence data this module
 consumes (`DatasetVersion.row_counts`, `RefreshPolicy.cadence_type`/

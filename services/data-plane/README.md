@@ -15,12 +15,19 @@ SDK directly.
 ## Status
 
 `reference_data/`, `discovery/`, `masking/`, `subsetting/`, `synthetic/`,
-`certification/`, and `capacity/` are all real, working code, implemented
-in Phases 1-6 and 8 respectively — each has its own README with a full
-module map and worked examples. `jobs/` remains a structural placeholder:
-none of the above are yet submitted as control-plane-orchestrated jobs
-(each has its own standalone CLI instead) — see `problems_master.md`,
-`problems_phase_06.md` P6-1, and `ROADMAP.md` Phase 14.
+`certification/`, `capacity/`, `spark/`, and `benchmarks/` are all real,
+working code, implemented in Phases 1-6, 8, and 14 respectively — each
+has its own README with a full module map and worked examples. `jobs/`
+remains a structural placeholder: none of the above are yet submitted as
+control-plane-orchestrated jobs (each has its own standalone CLI
+instead) — see `problems_master.md` and `problems_phase_06.md` P6-1.
+**Correction to this file's own earlier text**: this line used to point
+at "`ROADMAP.md` Phase 14" as where that gap would close; Phase 14's
+actual scope turned out to be scale/performance benchmark tooling (real
+PySpark jobs + a benchmark harness), not job-orchestration wiring — see
+`problems_phase_14.md` P14-4, which keeps this exact gap open for the
+Spark jobs too, rather than re-promising a later phase that has not
+actually scoped it yet.
 
 | Package | Phase | What it does |
 |---|---|---|
@@ -31,6 +38,8 @@ none of the above are yet submitted as control-plane-orchestrated jobs
 | `synthetic/` | 5 | Optional synthetic test-scenario generation, layered on top of a masked/subsetted estate. |
 | `certification/` | 6 | Orchestrates all of the above end to end and adds VALIDATE/CERTIFY/PUBLISH — see `src/data_plane/certification/README.md` and `docs/CERTIFICATION_VS_MASKING.md`. |
 | `capacity/` | 8 | Real, on-disk footprint measurement (compression, partitioning) — the data-plane half of capacity planning; see `src/data_plane/capacity/README.md` and `docs/CAPACITY_COST_TRADEOFFS.md`. |
+| `spark/` | 14 | Real, `local[*]` PySpark jobs (masking via `pandas_udf`, subsetting via broadcast join) — see `src/data_plane/spark/README.md` and `docs/adr/0017-pyspark-benchmark-tooling-in-data-plane.md`. |
+| `benchmarks/` | 14 | Real benchmark tooling measuring records/sec, masking/subsetting throughput, storage footprint, and compression ratio — see `src/data_plane/benchmarks/README.md` and `docs/SCALE_AND_PERFORMANCE.md`. |
 
 ## Layout
 
@@ -43,5 +52,7 @@ src/data_plane/
 ├── synthetic/        # Optional synthetic scenario generation (Phase 5)
 ├── certification/    # Certified test dataset pipeline: VALIDATE -> CERTIFY -> PUBLISH (Phase 6)
 ├── capacity/          # Real, on-disk footprint measurement (Phase 8)
-└── jobs/              # Job entry points / DAG-runnable wrappers (Phase 14)
+├── spark/             # Real local-mode PySpark masking/subsetting jobs (Phase 14)
+├── benchmarks/         # Real scale/performance benchmark harness (Phase 14)
+└── jobs/              # Job entry points / DAG-runnable wrappers (still a placeholder)
 ```

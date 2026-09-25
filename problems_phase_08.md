@@ -118,8 +118,18 @@ phase.
   run in this repository.
 - **Affected files:** `services/control-plane/src/control_plane/domain/capacity/estimator.py`
 - **Owner for resolution:** `ROADMAP.md` Phase 14 (scale and performance
-  engineering, PySpark benchmarks) is the natural place to replace this
-  constant with a real measured throughput figure.
+  engineering, PySpark benchmarks) happened and now provides real
+  measured per-stage throughput figures (dataset generation ~24,500-
+  24,900 rows/sec, pandas masking ~2,300-2,700 rows/sec, Spark masking
+  ~1,700-12,700 rows/sec depending on scale, pandas/Spark subsetting
+  ~265-2,560 rows/sec — see `docs/SCALE_AND_PERFORMANCE.md`), but this
+  control-plane constant was not touched (control-plane changes were
+  out of Phase 14's scope) and none of those figures is a single
+  "subset+mask+certify pipeline" number this estimator could drop in
+  directly. Replacing `ROWS_PER_COMPUTE_UNIT_HOUR` with one of Phase 14's
+  real figures (or a real end-to-end pipeline benchmark) remains a
+  genuinely open follow-up for whichever phase next touches
+  `control_plane.domain.capacity`.
 
 ### P8-2 — `CapacityPlanner` still trusts `DatasetVersion.size_bytes`/`row_counts` as registered (does not re-measure them itself)
 
@@ -149,10 +159,12 @@ phase.
   `services/data-plane/src/data_plane/capacity/footprint.py`
 - **Owner for resolution:** Same as P7-8 — would require either a
   control-plane-side storage adapter (ADR-0005's interface, not yet
-  implemented per `problems_master.md` P0-3) or a job-orchestration
-  step (Phase 14, per `problems_phase_07.md` P7-7) that runs the
-  data-plane measurement and passes its output to registration, rather
-  than a human/script doing so by convention.
+  implemented per `problems_master.md` P0-3) or a future job-
+  orchestration step (per `problems_phase_07.md` P7-7, whose own text
+  has been corrected: this is not Phase 14, which turned out to be
+  scale/performance benchmark tooling) that runs the data-plane
+  measurement and passes its output to registration, rather than a
+  human/script doing so by convention.
 
 ### P8-3 — No automatic vacuum/deletion job; `vacuum_candidates` is read-only
 

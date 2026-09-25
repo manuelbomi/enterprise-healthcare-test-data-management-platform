@@ -559,6 +559,43 @@ the release gate actually blocks a broken build, and
 (ADR-0003/ADR-0005) versus what is genuinely Azure-specific in the new
 Terraform example.
 
+Phase 14 note: this phase closes this document's own longstanding gap
+-- section 2.2 has said since Phase 0 that "every job [in the data
+plane] is designed to be run either locally ... or on Spark", but no
+file under `services/data-plane/src` ever imported `pyspark` or built a
+`SparkSession` through Phase 13 (`problems_phase_12.md`'s container-
+build note already named this explicitly). Two new, additive packages --
+`data_plane.spark` (real PySpark jobs: a `pandas_udf`-based masking job
+reusing Phase 3's `MaskingEngine` unmodified, and a two-broadcast-join
+subsetting job reimplementing Phase 4's referential-closure concept for
+one selection strategy) and `data_plane.benchmarks` (the measurement
+harness) -- both live inside `services/data-plane`, mirroring the exact
+plane-internal split `ADR-0013` established for Phase 8's capacity
+tooling; see
+[ADR-0017](docs/adr/0017-pyspark-benchmark-tooling-in-data-plane.md) for
+why they belong there rather than in a new service, and why "real
+PySpark" here means `local[*]` only -- there is still no Spark cluster
+anywhere in `infra/`. Like every Spark job in this phase, both are
+Databricks-compatible in the sense section 2.2 originally meant (no
+vendor-specific API used), but neither is wired into the control plane's
+job orchestrator -- the same "engine exists, job-submission plumbing
+does not yet" gap this section's own Phase 3/4 notes above already
+document for the pandas-engine versions of masking and subsetting. See
+`docs/SCALE_AND_PERFORMANCE.md` for real measured records/sec, masking/
+subsetting throughput, storage footprint, and compression-ratio numbers
+(at `qa` and `performance` scale), and real captured `df.explain()`
+output proving predicate pushdown and broadcast joins actually occurred
+-- and for what is documented conceptually rather than measured (skew,
+Delta Lake optimization, autoscaling), consistent with
+`docs/CAPACITY_COST_TRADEOFFS.md`/`docs/COMPLIANCE_EVIDENCE.md`'s
+existing honesty conventions. Two real, previously-undocumented local-
+mode PySpark-on-Windows failure modes were found and fixed while
+implementing this phase (a `winutils.exe`/`HADOOP_HOME` native-shim
+requirement for local file writes, and a Python-worker crash caused by
+the JVM launching a different `python` on `PATH` than the one that built
+the session) -- see `data_plane.spark.session`'s module docstring and
+`problems_phase_14.md`.
+
 ## 5. Why this stack
 
 See the ADRs in `docs/adr/` for the reasoning behind each major choice

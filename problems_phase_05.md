@@ -123,9 +123,12 @@ genuine open issue for a later phase.
 - **Affected files:** `services/data-plane/src/data_plane/synthetic/cli.py`,
   `libs/contracts/src/healthcare_tdm_contracts/jobs.py`,
   `libs/contracts/src/healthcare_tdm_contracts/synthetic.py`
-- **Owner for resolution:** Phase 14 (job orchestration) / the metadata
-  plane's snapshot registry (`ROADMAP.md` Phase 7), same as
-  `problems_phase_04.md` P4-1/P4-2.
+- **Owner for resolution:** a future job-orchestration phase / the
+  metadata plane's snapshot registry (`ROADMAP.md` Phase 7), same as
+  `problems_phase_04.md` P4-1/P4-2. **Correction:** this used to say
+  "Phase 14 (job orchestration)" — Phase 14 actually happened and its
+  scope was scale/performance benchmark tooling, not job-orchestration
+  wiring; that remains unscheduled by name (see `problems_phase_14.md`).
 
 ### P5-4 — No scenario generates a new Address row
 
@@ -187,4 +190,9 @@ genuine open issue for a later phase.
   very_large_claim_histories=5` and measure.
 - **Affected files:** `services/data-plane/src/data_plane/synthetic/scenarios.py`,
   `services/data-plane/src/data_plane/synthetic/engine.py`
-- **Owner for resolution:** Phase 14 (scale and performance engineering).
+- **Owner for resolution:** Phase 14 (scale and performance engineering)
+  happened, but its benchmark suite
+  (`data_plane.benchmarks`/`docs/SCALE_AND_PERFORMANCE.md`) covers
+  dataset generation, masking, subsetting, and validation throughput —
+  it does not exercise `data_plane.synthetic` at all. This item remains
+  genuinely open; not currently scheduled by name.
