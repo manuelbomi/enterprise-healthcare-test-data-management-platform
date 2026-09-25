@@ -10,6 +10,22 @@ database, API, or storage backend.
 """
 
 from healthcare_tdm_contracts.audit import AuditEvent, AuditEventType
+from healthcare_tdm_contracts.capacity import (
+    DEFAULT_ENVIRONMENT_CAPACITY_REQUIREMENTS,
+    DEFAULT_PRODUCTION_BASELINE_BYTES,
+    TERABYTE_BYTES,
+    CapacityPlan,
+    CompressionMeasurement,
+    DatasetVersionFootprint,
+    EnvironmentCapacityDemand,
+    EnvironmentCapacityRequirement,
+    FootprintMeasurementReport,
+    IllustrativeCapacityPlan,
+    IllustrativeCapacityScenario,
+    IncrementalRefreshEstimate,
+    PartitionSummary,
+    VacuumCandidate,
+)
 from healthcare_tdm_contracts.catalog import CatalogEntry, RetentionClassification
 from healthcare_tdm_contracts.certification import (
     CERTIFICATION_STATUS_TRANSITIONS,
@@ -75,9 +91,13 @@ __all__ = [
     "CERTIFICATION_STATUS_TRANSITIONS",
     "DATASET_VERSION_STATUS_TRANSITIONS",
     "DEFAULT_CADENCE_BY_ENVIRONMENT",
+    "DEFAULT_ENVIRONMENT_CAPACITY_REQUIREMENTS",
     "DEFAULT_INTERVAL_DAYS_BY_CADENCE",
+    "DEFAULT_PRODUCTION_BASELINE_BYTES",
+    "TERABYTE_BYTES",
     "AuditEvent",
     "AuditEventType",
+    "CapacityPlan",
     "CatalogEntry",
     "CertificationGateResult",
     "CertificationGateType",
@@ -87,12 +107,20 @@ __all__ = [
     "ClassificationMethod",
     "ClassificationTier",
     "ColumnClassification",
+    "CompressionMeasurement",
     "DataProvenance",
     "DatasetVersion",
+    "DatasetVersionFootprint",
     "DatasetVersionStatus",
     "Environment",
+    "EnvironmentCapacityDemand",
+    "EnvironmentCapacityRequirement",
     "EnvironmentDatasetRequest",
     "EnvironmentRequestStatus",
+    "FootprintMeasurementReport",
+    "IllustrativeCapacityPlan",
+    "IllustrativeCapacityScenario",
+    "IncrementalRefreshEstimate",
     "IntegrityStatus",
     "JobRequest",
     "JobResult",
@@ -104,6 +132,7 @@ __all__ = [
     "MaskingStrategy",
     "MaskingTechnique",
     "ObjectRef",
+    "PartitionSummary",
     "RefreshCadenceType",
     "RefreshPolicy",
     "RefreshRunRecord",
@@ -124,6 +153,7 @@ __all__ = [
     "SubsetSelectionCriteria",
     "SubsettingStrategy",
     "SyntheticGenerationManifest",
+    "VacuumCandidate",
 ]
 
 __version__ = "0.1.0"

@@ -26,7 +26,7 @@ repository going forward.
 | 5 | Synthetic test data generation (scenario/edge-case data) | **Complete** |
 | 6 | Certified test dataset pipeline (ingest→...→certify→publish) | **Complete** |
 | 7 | Dataset lifecycle and refresh management (versions, cadence, retention) | **Complete** |
-| 8 | Storage and compute footprint management / capacity planning | Not started |
+| 8 | Storage and compute footprint management / capacity planning | **Complete** |
 | 9 | React/TypeScript enterprise TDM web console | Not started |
 | 10 | Centralized enterprise masking standard (multi-business-unit governance) | Not started |
 | 11 | Platform integrity (health, resiliency, failure injection) | Not started |
@@ -39,6 +39,81 @@ repository going forward.
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 8 — what was actually delivered
+
+- Capacity planning split across two new, additive modules, per
+  [ADR-0013](docs/adr/0013-capacity-planning-plane-split.md): real,
+  on-disk footprint measurement
+  (`services/data-plane/src/data_plane/capacity/`) and real, DB-backed
+  capacity aggregation over Phase 7's existing lifecycle schema
+  (`services/control-plane/src/control_plane/domain/capacity/`) --
+  neither re-solves Phase 7's "avoid unnecessary duplicate physical
+  copies" requirement; together they quantify the savings that
+  architecture already produces
+- `CapacityPlanner`
+  (`control_plane.domain.capacity.planner.CapacityPlanner`): real,
+  DB-backed `dataset_version_footprint`, `environment_capacity_demand`,
+  `capacity_plan` (the concrete naive-vs-shared storage comparison --
+  what every `EnvironmentDatasetRequest` would cost with an independent
+  physical copy vs. what Phase 7's real shared-immutable-snapshot
+  architecture actually costs, both computed from real registered
+  `DatasetVersion.size_bytes`), and `vacuum_candidates` (a real,
+  live-computed query for expired/revoked/rolled-back versions
+  referenced by zero environments -- read-only, see `problems_phase_08.md`
+  P8-3), plus a pure `illustrative_capacity_plan` function implementing
+  `ROADMAP.md`'s own "Production: 100 TB, QA 10%, SIT 5%, UAT 15%"
+  example as a real, runnable, configurable model (extended honestly to
+  DEV and PERFORMANCE -- PERFORMANCE modeled at 100% in its own share
+  tier, since subsetting would undermine the validity of the tests it's
+  meant to run; see `docs/CAPACITY_COST_TRADEOFFS.md` section 4)
+- Real, measured Parquet-vs-CSV compression numbers from actual Phase
+  1/6 output, demonstrated end to end
+  (`data_plane.capacity.footprint.measure_parquet_compression`,
+  `scripts/demo_phase8_capacity.py`) -- and an honest, scale-dependent
+  finding, not a fabricated constant: at `tiny` scale (a handful of rows
+  per file) Parquet's real, measured footer/statistics overhead can
+  exceed its compression benefit (overall ratio ~0.52x, i.e. *larger*
+  than CSV), while `developer` scale measured ~1.43x and `qa` scale
+  measured ~3.7x -- see `docs/CAPACITY_COST_TRADEOFFS.md` section 2 and
+  `services/data-plane/tests/capacity/test_footprint.py`
+- Real, on-disk Hive-style partition analysis
+  (`data_plane.capacity.partitioning.analyze_partitions`), run against
+  the real `batch=...` partitions
+  `data_plane.reference_data.writers.parquet_writer` already writes --
+  analysis of existing real partitioning, not new infrastructure
+- A modeled (explicitly not measured) incremental-refresh savings
+  illustration (`data_plane.capacity.incremental.estimate_incremental_savings`)
+  and a documented copy-on-write/vacuum concept mapping onto Phase 7's
+  real refresh-repointing and this phase's real `vacuum_candidates`
+  mechanisms -- honestly scoped as design documentation plus real
+  arithmetic over real data, never presented as unbuilt infrastructure
+  that exists (`docs/CAPACITY_COST_TRADEOFFS.md` sections 6-7)
+- Extended `libs/contracts`: `CompressionMeasurement`,
+  `FootprintMeasurementReport`, `PartitionSummary`,
+  `DatasetVersionFootprint`, `EnvironmentCapacityDemand`, `CapacityPlan`,
+  `VacuumCandidate`, `EnvironmentCapacityRequirement`,
+  `IllustrativeCapacityScenario`, `IllustrativeCapacityPlan`,
+  `IncrementalRefreshEstimate`
+  (`libs/contracts/src/healthcare_tdm_contracts/capacity.py`)
+- 7 new FastAPI endpoints under `/api/v1/capacity` (dataset-version
+  footprint, environment-request demand, aggregate plan, vacuum
+  candidates, illustrative plan GET/POST), reusing Phase 7's existing
+  `get_db_session` dependency rather than duplicating session wiring
+- `docs/CAPACITY_COST_TRADEOFFS.md`: an honest account of which numbers
+  are real measurements, which are real aggregations of already-
+  registered data, and which are configurable illustrations -- including
+  the real, scale-dependent compression finding above and why
+  subsetting/masking's realism tradeoffs are real costs, not just
+  storage savings
+- 54 new tests (18 in `services/data-plane`'s new `tests/capacity/`
+  suite -- against a real generated estate, not mocks; 12 + 11 = 23 in
+  `services/control-plane`'s new `test_capacity_planner.py`/
+  `test_capacity_api.py`; 13 in `libs/contracts`'s new
+  `test_capacity_contract.py`); `libs/contracts` is now 59 tests total,
+  `services/control-plane` 78 total, `services/data-plane`'s pre-existing
+  378 tests continue to pass unmodified with 18 more added (396 total)
+  -- see `problems_phase_08.md` for what's still open
 
 ## Phase 7 — what was actually delivered
 

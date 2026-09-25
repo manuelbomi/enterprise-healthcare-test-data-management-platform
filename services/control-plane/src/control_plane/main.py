@@ -7,15 +7,16 @@ Run locally with:
 Phase 0 scope: only a health/readiness endpoint was wired up. Phase 2
 adds the first real business-capability route set (`api/v1/catalog.py`,
 the PHI/PII data catalog). Phase 7 adds the first database-backed one
-(`api/v1/lifecycle.py`, dataset lifecycle and refresh management). See
-api/v1/ for versioned route modules.
+(`api/v1/lifecycle.py`, dataset lifecycle and refresh management).
+Phase 8 adds capacity-planning endpoints built on top of it
+(`api/v1/capacity.py`). See api/v1/ for versioned route modules.
 """
 
 from __future__ import annotations
 
 from fastapi import FastAPI
 
-from control_plane.api.v1 import catalog, health, lifecycle
+from control_plane.api.v1 import capacity, catalog, health, lifecycle
 from control_plane.config import get_settings
 
 
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix=settings.api_v1_prefix)
     app.include_router(catalog.router, prefix=settings.api_v1_prefix)
     app.include_router(lifecycle.router, prefix=settings.api_v1_prefix)
+    app.include_router(capacity.router, prefix=settings.api_v1_prefix)
     return app
 
 

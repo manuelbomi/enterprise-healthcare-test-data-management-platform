@@ -15,11 +15,11 @@ SDK directly.
 ## Status
 
 `reference_data/`, `discovery/`, `masking/`, `subsetting/`, `synthetic/`,
-and `certification/` are all real, working code, implemented in Phases
-1-6 respectively — each has its own README with a full module map and
-worked examples. `jobs/` remains a structural placeholder: none of the
-above are yet submitted as control-plane-orchestrated jobs (each has its
-own standalone CLI instead) — see `problems_master.md`,
+`certification/`, and `capacity/` are all real, working code, implemented
+in Phases 1-6 and 8 respectively — each has its own README with a full
+module map and worked examples. `jobs/` remains a structural placeholder:
+none of the above are yet submitted as control-plane-orchestrated jobs
+(each has its own standalone CLI instead) — see `problems_master.md`,
 `problems_phase_06.md` P6-1, and `ROADMAP.md` Phase 14.
 
 | Package | Phase | What it does |
@@ -30,6 +30,7 @@ own standalone CLI instead) — see `problems_master.md`,
 | `subsetting/` | 4 | Referential-integrity-preserving population subsetting. |
 | `synthetic/` | 5 | Optional synthetic test-scenario generation, layered on top of a masked/subsetted estate. |
 | `certification/` | 6 | Orchestrates all of the above end to end and adds VALIDATE/CERTIFY/PUBLISH — see `src/data_plane/certification/README.md` and `docs/CERTIFICATION_VS_MASKING.md`. |
+| `capacity/` | 8 | Real, on-disk footprint measurement (compression, partitioning) — the data-plane half of capacity planning; see `src/data_plane/capacity/README.md` and `docs/CAPACITY_COST_TRADEOFFS.md`. |
 
 ## Layout
 
@@ -41,5 +42,6 @@ src/data_plane/
 ├── subsetting/      # Referential-integrity-preserving subsetting (Phase 4)
 ├── synthetic/        # Optional synthetic scenario generation (Phase 5)
 ├── certification/    # Certified test dataset pipeline: VALIDATE -> CERTIFY -> PUBLISH (Phase 6)
+├── capacity/          # Real, on-disk footprint measurement (Phase 8)
 └── jobs/              # Job entry points / DAG-runnable wrappers (Phase 14)
 ```

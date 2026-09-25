@@ -392,6 +392,24 @@ remain not-yet-migrated from their Phase 2 JSON-artifact interim design
 (see `problems_phase_07.md`, which does not reopen that gap -- it is
 still tracked under its original Phase 2 owner note).
 
+Phase 8 note: storage/compute capacity planning is split across two new,
+additive modules rather than one -- `data_plane.capacity` (real, on-disk
+footprint measurement: actual bytes, actual Parquet-vs-CSV compression
+ratios, actual Hive-style partition layout) and
+`control_plane.domain.capacity` (real, DB-backed aggregation over
+Phase 7's `DatasetVersion`/`EnvironmentDatasetRequest` rows: naive-vs-
+shared storage totals, per-environment compute-demand estimates, vacuum
+candidates, plus a pure, configurable illustrative
+percentage-of-production scenario model). This is a deliberate
+plane-separation decision -- see
+[ADR-0013](docs/adr/0013-capacity-planning-plane-split.md) -- and it
+does not re-solve Phase 7's "avoid unnecessary duplicate physical
+copies" requirement; it quantifies the savings that architecture already
+produces, exposed at `/api/v1/capacity`. See
+`docs/tutorial/08-storage-compute-capacity-planning.md` and
+`docs/CAPACITY_COST_TRADEOFFS.md` for the honest, measured numbers and
+what remains modeled/illustrative rather than measured.
+
 ## 5. Why this stack
 
 See the ADRs in `docs/adr/` for the reasoning behind each major choice
