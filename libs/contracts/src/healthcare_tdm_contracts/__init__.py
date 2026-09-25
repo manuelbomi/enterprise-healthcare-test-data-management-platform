@@ -19,7 +19,13 @@ from healthcare_tdm_contracts.classification import (
     SensitivityCategory,
 )
 from healthcare_tdm_contracts.jobs import JobRequest, JobResult, JobStatus, JobType
-from healthcare_tdm_contracts.masking import MaskingPolicy, MaskingRule, MaskingStrategy
+from healthcare_tdm_contracts.masking import (
+    MaskingFieldType,
+    MaskingPolicy,
+    MaskingRule,
+    MaskingStrategy,
+    MaskingTechnique,
+)
 from healthcare_tdm_contracts.snapshots import SnapshotRecord, SnapshotStatus
 from healthcare_tdm_contracts.source_systems import (
     ScaleProfileName,
@@ -40,9 +46,11 @@ __all__ = [
     "JobResult",
     "JobStatus",
     "JobType",
+    "MaskingFieldType",
     "MaskingPolicy",
     "MaskingRule",
     "MaskingStrategy",
+    "MaskingTechnique",
     "ObjectRef",
     "RetentionClassification",
     "ScaleProfileName",

@@ -151,11 +151,20 @@ Responsibilities:
   sizing/business rule (e.g., "2% of patients, all related claims and
   encounters, at least 50 patients per rare condition"), produce a smaller
   dataset that preserves referential integrity across tables and systems.
-- **Masking** (`data_plane/masking`): deterministic masking, pseudonymization,
-  and tokenization, engineered so the *same* real value always maps to the
-  *same* masked value within a scope (preserving joinability across tables
-  and across heterogeneous source systems) without being reversible without
-  the token vault.
+- **Masking** (`data_plane/masking`, implemented in Phase 3): a
+  policy-driven masking engine supporting redaction, nullification,
+  unkeyed hashing, HMAC-based deterministic pseudonymization, a
+  `TokenVault` tokenization abstraction, format-preserving synthetic
+  replacement, date shifting, and named specializations (email/phone/
+  address/name), engineered so the *same* real value always maps to the
+  *same* masked value within a scope (preserving joinability across
+  tables and across heterogeneous source systems) without being
+  reversible without the secret key/token vault. Driven by the real
+  Phase 2 catalog: a column's classification tier resolves to a masking
+  rule (`data_plane/masking/policy.py`), which is how "catalog
+  classification -> masking policy -> masked output" is wired end to
+  end. See `docs/adr/0006-deterministic-masking-strategy.md` and
+  `docs/adr/0010-masking-technique-vocabulary.md`.
 - **Synthetic generation** (`data_plane/synthetic`): generate wholly synthetic
   records (no real source row involved at all) for scenarios where no safe
   source data exists (e.g., rare disease cohorts, edge-case volumes).
@@ -288,6 +297,21 @@ directly, both sides depending only on the shared `libs/contracts`
 `CatalogEntry` shape, never on each other's package. See
 [ADR-0009](docs/adr/0009-catalog-artifact-handoff.md) for the interim
 design and what it does not yet solve (concurrent writers, live reload).
+
+Phase 3 note: the `Masking` component in the diagram above is
+implemented and real (`services/data-plane/src/data_plane/masking/`), and
+reads the same JSON catalog artifact ADR-0009 describes to decide which
+masking technique applies to which column — it does not talk to the
+control plane's API to get there, it consumes the discovery CLI's
+`catalog.json` output directly (both are data-plane-internal steps run
+by the same CLI-driven workflow today; wiring masking as a job the
+control plane's orchestrator submits is `JobType`/`Orchestrator` work for
+a later phase). The `Masking` -> `Snapshots` edge and the `Masking` ->
+`AuditLog` edge are not yet implemented — there is no snapshot registry
+or audit event log to write to yet (both are later-phase metadata/
+governance-plane infrastructure); Phase 3's masking runs write a plain
+JSON run summary (`masking_run_summary.json`) next to the masked output
+instead. See `problems_phase_03.md` P3-1 and P3-3.
 
 ## 5. Why this stack
 
