@@ -21,7 +21,7 @@ repository going forward.
 | 0 | Repository operating rules, architecture, conventions, ADRs, scaffolding | **Complete** |
 | 1 | Synthetic healthcare data estate across 5 heterogeneous source systems | **Complete** |
 | 2 | PHI/PII discovery and classification engine + data catalog | **Complete** |
-| 3 | Enterprise deterministic masking engine (pseudonymization/tokenization) | Not started |
+| 3 | Enterprise deterministic masking engine (pseudonymization/tokenization) | **Complete** |
 | 4 | Referentially intact, production-scale data subsetting | Not started |
 | 5 | Synthetic test data generation (scenario/edge-case data) | Not started |
 | 6 | Certified test dataset pipeline (ingest→...→certify→publish) | Not started |
@@ -39,6 +39,50 @@ repository going forward.
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 3 — what was actually delivered
+
+- A real, policy-driven masking engine
+  (`services/data-plane/src/data_plane/masking/`) implementing eleven
+  masking techniques: redaction, nullification, unkeyed hashing,
+  HMAC-based deterministic pseudonymization, a `TokenVault` tokenization
+  abstraction (with a stateless HMAC-derived default and a demonstration
+  stored-random-token alternative), format-preserving synthetic
+  replacement, date shifting, and named specializations for email,
+  phone, address, and name fields
+- Extended `libs/contracts` masking shapes: `MaskingTechnique`,
+  `MaskingFieldType`, and new optional `MaskingRule` fields
+  (`field_pattern`, `technique`, `field_type`, `preserve_format`,
+  `preserve_null`, `preserve_linkage`), additive and backward-compatible
+  with the Phase 0 `MaskingStrategy`/`MaskingRule` shapes Phase 2's
+  catalog already depends on — see
+  [ADR-0010](docs/adr/0010-masking-technique-vocabulary.md)
+- A cross-system linkage-scope table
+  (`data_plane/masking/policy.LINKAGE_SCOPES`) that is the actual
+  mechanism behind this phase's core requirement: a member identifier
+  masks to the identical token everywhere it appears, including under
+  the partner feed's legacy `pat_id` alias for the same field
+- An HMAC secret key management story with no hardcoded/committed key
+  anywhere: `TDM_MASKING_HMAC_KEY` env var, a gitignored `.env` fallback,
+  and a `--generate-dev-key` CLI helper that never writes a key to disk
+  — enforced by an automated test that scans the git-tracked (and
+  about-to-be-tracked) source tree for leaked secrets
+- Run end to end against the real Phase 1 synthetic estate using the
+  real Phase 2 catalog to decide which technique masks which column
+  (`python -m data_plane.masking.cli`), producing a masked copy of the
+  `tiny` scale profile with a real member ID verified to map to the same
+  masked token across Postgres, Parquet, the S3-style NDJSON clinical
+  lake, and the ADLS-style CSV PBM extract (and the partner feed, under
+  its `pat_id` alias)
+- Masking validation (`data_plane/masking/validation.py`): referential
+  integrity, no-raw-value-leakage, and token-collision checks — a
+  lighter-weight precursor to the full certification pipeline
+  (`ROADMAP.md` Phase 6), not a replacement for it (see
+  `problems_phase_03.md` P3-1)
+- 101 new tests in `services/data-plane` (210 total across the four
+  Python workspace packages) covering determinism, collision handling,
+  referential integrity, null handling, malformed values, idempotency,
+  and secret absence — see `problems_phase_03.md` for what's still open
 
 ## Phase 2 — what was actually delivered
 
