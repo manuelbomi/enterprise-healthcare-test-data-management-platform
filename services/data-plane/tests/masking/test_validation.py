@@ -18,7 +18,15 @@ from data_plane.masking.validation import (
 def test_referential_integrity_passes_for_consistent_mapping() -> None:
     samples = {
         ("postgres_enrollment", "member", "member_id"): {"SYN-MBR-000007": "TKN-AAAA"},
-        ("object_storage_claims_parquet", "claim", "member_id"): {"SYN-MBR-000007": "TKN-AAAA"},
+        # DELIBERATE, TEMPORARY Phase 12 release-gate proof (see
+        # problems_phase_12.md): this second system's token for the
+        # SAME real member ID now disagrees with the first
+        # ("TKN-ZZZZ" vs "TKN-AAAA"), which is exactly the referential-
+        # integrity violation assert_referential_integrity exists to
+        # catch -- pushed to a scratch branch to confirm ci.yml's
+        # data-quality-tests/release-gate jobs actually go red, then
+        # reverted immediately after.
+        ("object_storage_claims_parquet", "claim", "member_id"): {"SYN-MBR-000007": "TKN-ZZZZ"},
     }
     assert_referential_integrity(samples)  # does not raise
 
