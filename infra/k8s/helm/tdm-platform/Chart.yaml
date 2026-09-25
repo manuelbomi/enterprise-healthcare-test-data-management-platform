@@ -1,0 +1,12 @@
+apiVersion: v2
+name: tdm-platform
+description: >-
+  Enterprise healthcare test data management platform — Helm chart
+  skeleton. Phase 0: structure only, no real templates yet. See
+  ARCHITECTURE.md section 2.6 and ROADMAP.md Phase 20.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/REPLACE_ME/enterprise-healthcare-test-data-management-platform
+maintainers:
+  - name: Platform maintainers

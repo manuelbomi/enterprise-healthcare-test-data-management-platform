@@ -1,0 +1,32 @@
+%% data-flow-sequence.mmd
+%% Shows: a single snapshot request traced through every plane.
+%% Companion to: docs/tutorial/01-planes-and-data-flow.md
+
+sequenceDiagram
+    actor Eng as QA Engineer
+    participant UI as UI
+    participant CP as Control Plane
+    participant SGP as Security/Governance
+    participant MP as Metadata Plane
+    participant DP as Data Plane
+    participant OS as Object Storage
+
+    Eng->>UI: Request snapshot (dataset, sizing rule, cadence)
+    UI->>CP: POST /snapshot-requests
+    CP->>SGP: Authorize(user, action, classification tier)
+    SGP-->>CP: allow / deny + audit event emitted
+    CP->>MP: Resolve policy + classification for dataset
+    MP-->>CP: policy version, classifications
+    CP->>MP: Check footprint/quota for target environment
+    MP-->>CP: within quota
+    CP->>DP: Submit job DAG (subset -> mask -> certify)
+    DP->>OS: Read source-shaped data (staging)
+    DP->>DP: Subset (referential integrity preserved)
+    DP->>DP: Mask (deterministic, keyed - ADR-0006)
+    DP->>DP: Certify output against policy
+    DP->>SGP: Record certification evidence
+    DP->>MP: Write lineage (job run, inputs, policy version)
+    DP->>OS: Publish snapshot (versioned)
+    DP->>MP: Register snapshot (version, location, row counts)
+    CP-->>UI: Job complete, snapshot ready
+    UI-->>Eng: Snapshot available + certification status

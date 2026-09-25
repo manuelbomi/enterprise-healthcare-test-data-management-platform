@@ -1,0 +1,33 @@
+%% plane-dependency.mmd
+%% Shows: allowed dependency directions between planes/packages.
+%% Companion to: ADR-0002 (Python project layout), ADR-0003 (plane separation)
+%% Rule: arrows show ALLOWED "depends on / calls" direction only.
+%% There is no arrow between data-plane and governance-service, or between
+%% any two services directly - they only interact through the control plane
+%% or through the metadata plane's data, never via direct import or a
+%% peer-to-peer service call.
+
+flowchart LR
+    UI["frontend (UI)"]
+    CP["services/control-plane"]
+    DP["services/data-plane"]
+    SGP["services/governance-service"]
+    LIB["libs/contracts"]
+    MP[("PostgreSQL\nmetadata plane")]
+    STORE[("Object storage")]
+
+    UI -->|REST/JSON| CP
+    CP -->|job submission contract| DP
+    CP -->|authz / audit / secrets| SGP
+    CP -->|SQLAlchemy| MP
+    DP -->|lineage / catalog writes| MP
+    DP -->|audit events, evidence| SGP
+    DP -->|storage adapter interface| STORE
+
+    CP -.depends on.-> LIB
+    DP -.depends on.-> LIB
+    SGP -.depends on.-> LIB
+    UI -.mirrors types from.-> LIB
+
+    classDef forbidden stroke:#c00,stroke-dasharray: 4 4,fill:none;
+    NoteDP2SGP["NOT ALLOWED:\nDP -> SGP direct import\nDP -> CP direct import\nany service -> service import"]:::forbidden
