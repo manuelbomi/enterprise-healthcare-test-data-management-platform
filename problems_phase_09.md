@@ -7,7 +7,7 @@ the end of the phase is a genuine open issue for a later phase.
 
 ## Per-page build-vs-placeholder decisions
 
-The Phase 9 prompt explicitly asked for an honest, page-by-page call:
+The Phase 9 brief explicitly asked for an honest, page-by-page call:
 add a small new read-only control-plane endpoint where an artifact
 already exists and the effort is low, or build an honest "not yet
 available" placeholder where it isn't. Recorded here so the reasoning
@@ -94,7 +94,7 @@ survives independently of the code:
   change from the browser. All of that is fully exercised at the API
   layer (`services/control-plane/tests/test_lifecycle_api.py`,
   `scripts/demo_phase7_lifecycle.py`) — this phase's scope (per the
-  prompt) was the console's *screens*, not a write-workflow UI on top of
+  brief) was the console's *screens*, not a write-workflow UI on top of
   already-real write endpoints.
 - **Repro / detail:** N/A — a UI gap, not a bug. `POST
   /api/v1/lifecycle/environment-requests/{id}/refresh`, `/rollback`, and

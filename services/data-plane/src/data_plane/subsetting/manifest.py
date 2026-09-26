@@ -4,7 +4,7 @@ referential-closure graph walk produced (`closure.ClosureResult`), and
 whether it validated clean (`validation.SubsetValidationReport`).
 
 This is the single place all of that gets assembled into the durable,
-typed record the phase's promptbook asks for: source counts, selected
+typed record the phase's spec asks for: source counts, selected
 counts, relationship counts, filter criteria, timestamp, version,
 estimated storage, integrity status.
 """

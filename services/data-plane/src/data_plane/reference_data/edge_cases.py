@@ -1,6 +1,6 @@
 """Edge-case injection configuration and bookkeeping.
 
-The Phase 1 promptbook requires the estate to intentionally include:
+The Phase 1 spec requires the estate to intentionally include:
 missing records, nulls, duplicate records, orphan records, malformed
 values, late-arriving data, and schema drift. This module defines the
 knobs that control how much of each is injected and a small report

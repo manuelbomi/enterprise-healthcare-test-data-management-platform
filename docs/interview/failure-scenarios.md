@@ -5,7 +5,7 @@ not answer in the abstract — this repository has real, passing tests that
 inject each failure and a real runbook for each one. This document walks
 through what was actually tested (`ROADMAP.md` Phase 11's eight
 failure-injection scenarios, `docs/PLATFORM_INTEGRITY.md` section 15) plus
-the two example questions the promptbook calls out specifically — partial
+the two example questions the spec calls out specifically — partial
 masking-job recovery and schema drift — in the depth an interview answer
 needs.
 
@@ -28,7 +28,7 @@ layer), four are control-plane-owned (4, 5, 6's control-plane half, 8) — see
 `services/data-plane/tests/platform_integrity/test_failure_injection.py`'s
 own module docstring for exactly which half lives where.
 `docs/PLATFORM_INTEGRITY.md` section 15 is the authoritative index; this
-document expands the two the promptbook specifically asks about.
+document expands the two the spec specifically asks about.
 
 ## Q: How would you recover from a partially completed masking job?
 

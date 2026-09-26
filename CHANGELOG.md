@@ -2,7 +2,7 @@
 
 All notable changes to this repository are recorded here, phase by phase,
 following the spirit of [Keep a Changelog](https://keepachangelog.com/) --
-adapted for a promptbook-driven, phase-numbered build rather than a
+adapted for a spec-driven, phase-numbered build rather than a
 traditional release cadence. See `ROADMAP.md` for the full "what was
 actually delivered" account of every phase; this file is the versioned
 summary of the same history.

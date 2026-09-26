@@ -78,7 +78,7 @@ def test_entity_allows_extra_fields_for_schema_drift() -> None:
 
 
 def test_all_fourteen_plus_reference_entities_instantiate() -> None:
-    """Smoke-instantiate every entity required by the Phase 1 promptbook
+    """Smoke-instantiate every entity required by the Phase 1 spec
     (14 named entities + the two reference/code tables)."""
 
     MemberDemographics(member_id="SYN-MBR-000001")

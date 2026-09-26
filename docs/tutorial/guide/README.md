@@ -48,10 +48,10 @@ service READMEs, and more (checked by grepping the whole repository for
 for this phase's twenty chapters would silently break every one of
 those links. This guide's own twenty chapters therefore live in a new,
 non-colliding subdirectory with their own `01`-`20` sequence, matching
-the promptbook's own chapter numbers exactly (Chapter 1 is
+the spec's own chapter numbers exactly (Chapter 1 is
 `01-what-is-test-data-management.md`, Chapter 20 is
 `20-operating-tdm-as-a-product.md`), so there is never any ambiguity
-about which chapter number in the promptbook a given file corresponds
+about which chapter number in the spec a given file corresponds
 to.
 
 ## The twenty chapters

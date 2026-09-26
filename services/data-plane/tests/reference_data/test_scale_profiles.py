@@ -2,7 +2,7 @@
 
 These are fast, config-only tests -- they do not run the generator, they
 just verify the profile parameters themselves are sane and strictly
-increasing, per the Phase 1 promptbook requirement to "support
+increasing, per the Phase 1 spec requirement to "support
 configurable scale profiles: tiny, developer, qa, performance."
 """
 

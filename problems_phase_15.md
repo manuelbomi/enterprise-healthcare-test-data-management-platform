@@ -52,7 +52,7 @@ yet). So:
 - **A new `docs/tutorial/guide/` subdirectory, with its own `01-...md`
   through `20-...md` sequence plus a `README.md` index, was chosen**
   instead. This has zero collision risk (a distinct directory), keeps
-  the promptbook's own chapter numbers (1-20) intact and legible, and
+  the spec's own chapter numbers (1-20) intact and legible, and
   lets `docs/tutorial/00-overview.md` and this new
   `docs/tutorial/guide/README.md` cross-link to each other without
   either one owning or duplicating the other's numbering.
@@ -181,7 +181,7 @@ required tests fail" — nothing here should be taken on faith either):
   chapter that does not exist — filling that specific gap (a dedicated
   `docs/tutorial/1X-...md` deep dive matching the `01-09`/`13` house
   style for Phases 10-12/14) was out of this phase's scope, which is the
-  20-chapter onboarding arc the promptbook names, not a retroactive
+  20-chapter onboarding arc the spec names, not a retroactive
   pass over earlier phases' documentation gaps.
 - **P15-2 (open, by design)** — Chapter 20 ("Operating TDM as a
   product") is, by construction (see Decision 3 above), a synthesis

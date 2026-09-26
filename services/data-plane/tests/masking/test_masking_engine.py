@@ -1,7 +1,7 @@
 """Unit tests for `data_plane.masking.engine.MaskingEngine`.
 
 Covers every `MaskingTechnique`, plus the cross-cutting requirements the
-Phase 3 promptbook calls out explicitly: determinism, collision handling,
+Phase 3 spec calls out explicitly: determinism, collision handling,
 referential integrity (scope-level, here; dataset-level integration is in
 `test_dataset_masker_against_real_estate.py`), null handling, malformed
 values, idempotency, and secret absence (the "why HASHING is weak"

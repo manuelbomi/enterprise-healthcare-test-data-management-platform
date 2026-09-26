@@ -7,7 +7,7 @@ produces and the control plane's catalog API
 
 Deliberately a thin wrapper around :class:`ColumnClassification`
 (composition, not duplication — see `classification.py`) plus the extra
-fields the Phase 2 promptbook's catalog representation requires that are
+fields the Phase 2 spec's catalog representation requires that are
 not properties of the classification itself: masking requirement, owning
 team, and retention classification. See ADR-0009
 (`docs/adr/0009-catalog-artifact-handoff.md`) for why this shape is

@@ -73,7 +73,7 @@ class DataProvenance(str, Enum):
 
 
 class ScenarioType(str, Enum):
-    """The eleven scenario categories this phase's promptbook requires.
+    """The eleven scenario categories this phase's spec requires.
 
     Each maps to exactly one generator function in
     `data_plane.synthetic.scenarios` and exactly one `DataProvenance`

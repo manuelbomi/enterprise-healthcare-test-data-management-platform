@@ -2,7 +2,7 @@
 what it claims.
 
 This is the "implement masking validation" requirement of the Phase 3
-promptbook -- a lightweight, in-package set of checks, not the full
+spec -- a lightweight, in-package set of checks, not the full
 "Certified test dataset pipeline" (`ROADMAP.md` Phase 6) or the
 independent-verifier certification `ARCHITECTURE.md` section 2.2
 describes for a later phase (see `problems_phase_03.md` P3-1 for that

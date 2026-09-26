@@ -105,7 +105,7 @@ large the subset).
 
 ## What this phase does and does not cover
 
-- Covers every relationship the Phase 1 promptbook's own example names
+- Covers every relationship the Phase 1 spec's own example names
   (Member -> Coverage -> Claim -> ClaimLine -> Diagnosis/Procedure;
   Claim -> Provider; Member -> Prescription -> Pharmacy; Member ->
   Encounter -> LabResult), plus the two additional real relationships the

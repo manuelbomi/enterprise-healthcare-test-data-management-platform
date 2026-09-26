@@ -1,5 +1,5 @@
 """Tests asserting every required edge-case category is actually present,
-even at the `tiny` scale profile, per the Phase 1 promptbook:
+even at the `tiny` scale profile, per the Phase 1 spec:
 "Include edge cases: missing records, nulls, duplicate records, orphan
 records, malformed values, late-arriving data, schema drift examples."
 """

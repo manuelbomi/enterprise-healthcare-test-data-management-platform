@@ -1,6 +1,6 @@
 """Canonical in-memory entity shapes for the synthetic healthcare estate.
 
-These are the fourteen entities required by the Phase 1 promptbook, plus
+These are the fourteen entities required by the Phase 1 spec, plus
 two small reference/code-vocabulary tables (``Diagnosis``, ``Procedure``)
 that ``ClaimLine`` rows join against. They are deliberately **not**
 `libs/contracts` models: `libs/contracts` holds cross-plane *interface*

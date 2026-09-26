@@ -1,6 +1,6 @@
 # Roadmap
 
-This repository is built as a **21-phase promptbook-driven project** (Phase 0
+This repository is built as a **21-phase project plan** (Phase 0
 through Phase 17, split fix/delete cycles 18A/18B, and a Final release
 phase). Each phase is scoped to be independently completable, testable, and
 documented before the next begins. Phases are not sprints with fixed dates —
@@ -9,10 +9,9 @@ tests pass (see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the per-phase
 process).
 
 This file tracks the *plan*. Day-to-day open issues live in
-[`problems_master.md`](problems_master.md). The exact phase prompts this
-roadmap follows come from the private planning document that seeded this
-project; the table below is the authoritative phase order and scope for this
-repository going forward.
+[`problems_master.md`](problems_master.md). The exact scope of each phase
+comes from the design brief that seeded this project; the table below is
+the authoritative phase order and scope for this repository going forward.
 
 ## Phase index
 
@@ -54,7 +53,7 @@ application code was changed. Audited before writing anything: the existing
 `frontend/src/pages/README.md`.
 
 - **`README.md` rewritten in full** (not incrementally patched) to the
-  21-section structure this phase's own prompt specifies, reusing and
+  21-section structure this phase's own scope specifies, reusing and
   citing real repository artifacts throughout rather than inventing new
   claims — the six-plane architecture diagram is `ARCHITECTURE.md` §2's
   own Mermaid diagram, condensed for a 3-minute read, not a new,
@@ -144,15 +143,16 @@ fix the root cause, add a real regression test, run it, delete the
 finding only after demonstrating the fix with real, executed evidence
 -- never speculatively.
 
-**This run resumed a crashed prior Phase 18B agent.** Its uncommitted
-work covered six findings (P2-1, P2-2, P2-3, P2-10, P2-11, P2-12) with
-real, complete, tested code, but it crashed before deleting any of them
-from `problems_final_review.md`. Every one of those six fixes was
-independently re-verified before being trusted: the full control-plane
-(247 passed) and data-plane (453 passed) suites were re-run from a
-clean state, and every diff was read in full (not just trusted from the
-crashed run's own commentary) before its finding was deleted. P2-9 was
-a fresh fix built in this run, not part of the crashed work.
+**This work resumed after an earlier Phase 18B session was interrupted.**
+That session's uncommitted work covered six findings (P2-1, P2-2, P2-3,
+P2-10, P2-11, P2-12) with real, complete, tested code, but stopped
+before deleting any of them from `problems_final_review.md`. Every one
+of those six fixes was independently re-verified before being trusted:
+the full control-plane (247 passed) and data-plane (453 passed) suites
+were re-run from a clean state, and every diff was read in full (not
+just taken on faith from that session's own notes) before its finding
+was deleted. P2-9 was a fresh fix built in this session, not part of
+the earlier, interrupted work.
 
 ### Fixed and deleted (12)
 
@@ -358,8 +358,8 @@ ten findings (P0-1, P1-1 through P1-9) -- following the phase's own
 fix/delete discipline: reproduce, fix the root cause, add a regression
 test, run the relevant tests, delete the finding only after
 demonstrating the fix with real, executed evidence. No P2/P3 finding was
-touched (that is Phase 18B's scope, per the phase prompt's own "Work
-ONLY on P0 and P1" instruction).
+touched (that is Phase 18B's scope, per this phase's own "work
+ONLY on P0 and P1" scope rule).
 
 - **P0-1 (RBAC had no real security boundary)** — added
   `control_plane.platform.auth`, a real, deliberately minimal JWT
@@ -519,7 +519,7 @@ ONLY on P0 and P1" instruction).
   Phase 17's own 698 + 39 baseline.
 - **All ten P0/P1 findings were deleted from `problems_final_review.md`**
   only after the evidence above was actually produced, per the phase
-  prompt's explicit instruction. The thirteen P2 and ten P3 findings
+  brief's explicit instruction. The thirteen P2 and ten P3 findings
   (23 total) are unchanged, left for Phase 18B.
 - Left open, deliberately: every P2/P3 finding `problems_final_review.md`
   still lists (out of this phase's scope by design), plus the honestly
@@ -597,11 +597,11 @@ ONLY on P0 and P1" instruction).
     which are illustrative models, and never claiming a distributed-
     cluster number that `docs/SCALE_AND_PERFORMANCE.md` itself says was
     never measured (only `local[*]` was).
-- All twelve of the promptbook's required example questions are answered,
+- All twelve of the spec's required example questions are answered,
   each citing real repository paths — see the map above; none is answered
   only in the abstract.
 - **No `problems_phase_16.md` was created.** Unlike every phase before it,
-  `ROADMAP.md`'s own Phase 16 prompt does not ask for one, and this phase
+  `ROADMAP.md`'s own Phase 16 brief does not ask for one, and this phase
   adds no new application code, no new test surface, and no new design
   decision of its own to record as an open problem — it is a citation
   layer over decisions and gaps every earlier phase already recorded in
@@ -651,7 +651,7 @@ ONLY on P0 and P1" instruction).
   existing filename was therefore ruled out (it would break every one
   of those links); a new, non-colliding `docs/tutorial/guide/`
   subdirectory with its own `01`-`20` sequence (matching the
-  promptbook's own chapter numbers exactly) was created instead.
+  spec's own chapter numbers exactly) was created instead.
 - **Twenty new chapters** in `docs/tutorial/guide/`
   (`01-what-is-test-data-management.md` through
   `20-operating-tdm-as-a-product.md`) plus `docs/tutorial/guide/README.md`

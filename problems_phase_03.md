@@ -70,7 +70,7 @@ resolved and is now verified by a real, passing test:
 - **Status:** open (deliberately deferred; scoped to this phase's own
   requirement, "implement masking validation")
 - **Description:** `data_plane/masking/validation.py` checks the things
-  this phase's promptbook explicitly asks for (no raw direct-identifier
+  this phase's spec explicitly asks for (no raw direct-identifier
   values leak into masked output, referential integrity holds across the
   masked estate, no masked-token collisions, idempotency across two
   runs). It is **not** the full "Certified test dataset pipeline"

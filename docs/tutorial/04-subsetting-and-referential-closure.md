@@ -263,7 +263,7 @@ estate in 8.777s, no memory issues (see `docs/SCALE_AND_PERFORMANCE.md`).
 
 A subset is only as complete as the relationships `closure.py` knows
 about. This phase's graph covers every relationship the Phase 1
-promptbook's own example names (Member -> Coverage -> Claim -> ClaimLine
+spec's own example names (Member -> Coverage -> Claim -> ClaimLine
 -> Diagnosis/Procedure; Claim -> Provider; Member -> Prescription ->
 Pharmacy; Member -> Encounter -> LabResult) plus the two additional real
 relationships the estate itself has (Coverage -> Plan, Encounter/

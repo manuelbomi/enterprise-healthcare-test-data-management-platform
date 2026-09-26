@@ -14,7 +14,7 @@ constructed a `SparkSession` through Phase 13 — every real engine
 `certification`, `capacity`) operates on local files (SQLite/Parquet/
 NDJSON/CSV) with pandas/pyarrow/stdlib, not Spark (already documented in
 `problems_phase_12.md`'s container-build decision record). This phase is
-where the promptbook explicitly asks for real PySpark implementations.
+where the spec explicitly asks for real PySpark implementations.
 There is also no real Spark cluster anywhere in this repository's
 infrastructure (`infra/` has no `spark-worker`/`spark-master` service) —
 whatever runs this phase's PySpark code runs `local[*]` on a single

@@ -22,7 +22,7 @@ single enum would lose information:
   masking-policy reference stays valid.
 - :class:`SensitivityCategory` (six values — `direct_identifier`,
   `quasi_identifier`, `phi`, `pii`, `sensitive`, `non_sensitive`, per the
-  Phase 2 promptbook) answers "what **kind** of sensitive data is this,
+  Phase 2 spec) answers "what **kind** of sensitive data is this,
   and why?" It is the label the discovery engine's detectors reason about
   and the label shown in the data catalog, because "PHI" and "PII" are
   the vocabulary a data steward or auditor actually uses in conversation,
@@ -71,7 +71,7 @@ class ClassificationTier(str, Enum):
 
 
 class SensitivityCategory(str, Enum):
-    """The six catalog-facing classification labels (Phase 2 promptbook).
+    """The six catalog-facing classification labels (Phase 2 spec).
 
     Meaning assigned by this engine (see module docstring for why a
     precedence order is needed rather than a disjoint partition):
@@ -163,7 +163,7 @@ _CATEGORY_BY_TIER: dict[ClassificationTier, SensitivityCategory] = {
 class ClassificationMethod(str, Enum):
     """How a `ColumnClassification` was produced.
 
-    Mirrors the Phase 2 promptbook's required support matrix: schema-based
+    Mirrors the Phase 2 spec's required support matrix: schema-based
     classification (the column is a literal field of a known entity),
     rule-based classification (a name/value-pattern detector fired), and
     manual override (a human data steward set or corrected the label).

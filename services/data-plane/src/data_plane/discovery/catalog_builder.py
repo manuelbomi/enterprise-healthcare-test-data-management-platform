@@ -1,7 +1,7 @@
 """Build the data catalog: classify every scanned column and attach the
 catalog-level metadata (`dataset`, `column`, `classification`, `masking
 requirement`, `source`, `owner`, `retention classification`) the Phase 2
-promptbook's catalog representation requires.
+spec's catalog representation requires.
 
 Owner and retention-classification assignment are simple, documented
 lookup tables (below) — not a policy engine (that's the control plane's

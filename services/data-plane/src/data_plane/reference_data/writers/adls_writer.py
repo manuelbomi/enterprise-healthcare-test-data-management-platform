@@ -7,7 +7,7 @@ health plan. CSV rather than Parquet/NDJSON on purpose: vendor file
 drops in this space are still very commonly flat CSV, and using a third
 format here (after Parquet and NDJSON) keeps the estate genuinely
 heterogeneous across all five simulated source systems, per the Phase 1
-promptbook's requirement.
+spec's requirement.
 """
 
 from __future__ import annotations

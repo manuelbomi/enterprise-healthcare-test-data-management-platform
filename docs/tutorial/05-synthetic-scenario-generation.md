@@ -37,7 +37,7 @@ demand, added to the dataset they already have.
 ## Three kinds of data, never conflated
 
 This phase's core safety requirement is a single sentence in its own
-promptbook: *never allow synthetic records to be mistaken for real
+spec: *never allow synthetic records to be mistaken for real
 records.* Concretely, that means every row in this platform's output
 belongs to exactly one of three categories
 (`healthcare_tdm_contracts.DataProvenance`), and the category is always

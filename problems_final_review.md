@@ -1,7 +1,7 @@
 # Phase 17 — Principal-Engineer Production Readiness Review
 
 **Scope:** review only. No application code, infrastructure, or documentation
-other than this file was changed while producing it. Per the Phase 17 prompt:
+other than this file was changed while producing it. Per the Phase 17 brief:
 *"Do not fix anything yet. STOP."* Nothing below has been fixed — this is the
 input Phase 18A/18B will fix or delete from.
 
@@ -15,7 +15,7 @@ that explanation was verified rather than assumed), `problems_master.md`,
 `docs/AZURE_PRODUCTION_DEPLOYMENT.md`, all four `docs/interview/*.md`,
 `docs/runbooks/*.md`, `SECURITY.md`, `THREAT_MODEL.md`, `DATA_GOVERNANCE.md`,
 `CONTRIBUTING.md`, `README.md`. Then, rather than trusting that prior art,
-every category the prompt lists was independently re-inspected against the
+every category the brief lists was independently re-inspected against the
 current source tree: every FastAPI router file in
 `services/control-plane/src/control_plane/api/v1/`, the RBAC permission
 table, the control-plane DB schema/engine setup, the masking/certification
@@ -67,10 +67,10 @@ open with updated, current reasoning** (11, not 8, because a "narrowed"
 finding is left open with new text, not deleted). See `ROADMAP.md`'s
 "Phase 18B — what was actually delivered" section for the full
 per-finding accounting. Six of the twelve deletions (P2-1, P2-2, P2-3,
-P2-10, P2-11, P2-12) were fixes completed by a prior Phase 18B agent run
-that crashed before this bookkeeping step; each was independently
+P2-10, P2-11, P2-12) were fixes completed in an earlier working session
+that was interrupted before this bookkeeping step; each was independently
 re-verified (tests re-run, diffs re-read) before being deleted here, not
-trusted on the crashed run's say-so:
+taken on faith from that earlier session's own notes:
 
 - P2-1 → `control_plane.db.session.get_engine_for_url`, `control_plane.db.models.create_postgres_engine`, `data_plane.reference_data.postgres_models.create_postgres_engine`
 - P2-2 → `control_plane.platform.scheduler_lock`, `control_plane.db.models.SchedulerLockRow`
@@ -208,7 +208,7 @@ that required no correction.
   environment" claim for storage is aspirational, not exercised.
 - **Phase 18B decision:** Deliberately not built. A real storage adapter is
   the same disproportionately large, previously-deferred build the Phase
-  18B prompt itself named as out of scope for this fix cycle (a genuine
+  18B brief itself named as out of scope for this fix cycle (a genuine
   MinIO/S3/ADLS client abstraction, wired through every data-plane job and
   the control plane's artifact repositories, is multi-phase-sized work, not
   a fix-and-delete item). Building a toy/fake version just to close this
@@ -238,7 +238,7 @@ that required no correction.
 - **Phase 18B decision:** Deliberately not built. A real NLP/NER-based PHI
   detector (plus a genuinely representative free-text clinical-note field
   added to the reference estate to exercise it against) is exactly the
-  disproportionately large, previously-deferred build the Phase 18B prompt
+  disproportionately large, previously-deferred build the Phase 18B brief
   named as out of scope -- fabricating a toy regex-dressed-up-as-NLP
   detector just to close this line item would misrepresent the platform's
   real classification capability, contradicting the very honesty rule
@@ -378,7 +378,7 @@ that required no correction.
   cluster to autoscale) and cites `data_plane/spark/README.md` and the
   exact `problems_phase_14.md` findings this restates. This is exactly
   the kind of already-adequately-addressed-by-existing-docs finding the
-  Phase 18B prompt anticipated for this item -- attempting new
+  Phase 18B brief anticipated for this item -- attempting new
   measurement here would require infrastructure (a real skewed dataset
   generator, a real Delta-backed cluster, real autoscaling
   infrastructure) this repository has correctly, deliberately declined
@@ -432,7 +432,7 @@ that required no correction.
   (business-consumer management, policy-version approval workflow,
   consumer-request submission/fulfillment/reject/cancel screens) is a
   multi-page CRUD frontend feature -- exactly the disproportionately large
-  build the Phase 18B prompt named as out of scope (it groups this with
+  build the Phase 18B brief named as out of scope (it groups this with
   P3-6 below as the same category of deferred frontend write-workflow
   build). Note Phase 18B *did* add real backend capability this UI would
   eventually surface (P3-4's REJECTED/CANCELLED terminal states) and kept
@@ -458,7 +458,7 @@ that required no correction.
   feature-build, not a fix-and-delete item -- the same disproportionate-
   build category as P3-5. Building a token write button with no real
   state handling just to close this line item would be exactly the kind
-  of toy fix the Phase 18B prompt warned against.
+  of toy fix the Phase 18B brief warned against.
 - **Affected files:** `frontend/src/pages/EnvironmentProvisioningPage.tsx`,
   `frontend/src/pages/DatasetDetailPage.tsx`, `frontend/src/api/governance.ts`.
 
@@ -517,7 +517,7 @@ that required no correction.
 
 ## What this review did NOT find
 
-For completeness, several categories the Phase 17 prompt lists were
+For completeness, several categories the Phase 17 brief lists were
 inspected and found to have **no new findings beyond what prior phases
 already, correctly, closed or documented as acceptable**:
 

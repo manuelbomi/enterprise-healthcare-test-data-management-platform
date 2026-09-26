@@ -62,7 +62,7 @@ def _broken_policy_leaving_direct_identifiers_unmasked() -> MaskingPolicy:
     """A deliberately misconfigured policy: every DIRECT_IDENTIFIER
     column resolves to PASSTHROUGH (i.e. left completely unmasked) --
     simulating exactly the "unmasked PHI column" adversarial scenario
-    the phase's promptbook calls out."""
+    the phase's spec calls out."""
 
     return MaskingPolicy(
         name="broken-test-policy",

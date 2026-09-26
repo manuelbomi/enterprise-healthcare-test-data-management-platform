@@ -152,6 +152,11 @@ logs/
 .otel/
 
 # ---------------------------------------------------------------------------
-# Claude Code / agent harness local state (never part of project content)
+# Local tooling/editor state (never part of project content)
 # ---------------------------------------------------------------------------
 .claude/
+
+# ---------------------------------------------------------------------------
+# Private planning material (kept locally, never published with the repo)
+# ---------------------------------------------------------------------------
+*.private.docx

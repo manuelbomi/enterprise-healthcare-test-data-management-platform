@@ -4,7 +4,7 @@
 ``domain.py``, threading consistent identifiers across all of them (the
 mechanism that gives this estate cross-system referential integrity — see
 ``README.md``, "How referential integrity works"), and deliberately
-injects the edge cases required by the Phase 1 promptbook (missing
+injects the edge cases required by the Phase 1 spec (missing
 records, nulls, duplicates, orphans, malformed values, late-arriving
 data, schema drift) according to an ``EdgeCaseConfig``.
 

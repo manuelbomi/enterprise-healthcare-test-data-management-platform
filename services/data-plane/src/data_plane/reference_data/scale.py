@@ -1,6 +1,6 @@
 """Configurable scale profiles for the synthetic healthcare estate.
 
-Four named profiles, per the Phase 1 promptbook: ``tiny`` (fast, for
+Four named profiles, per the Phase 1 spec: ``tiny`` (fast, for
 unit tests and CI), ``developer`` (a full local-dev-sized estate),
 ``qa`` (large enough to exercise realistic subsetting/masking behavior),
 and ``performance`` (load-test scale). Row counts are deliberately kept

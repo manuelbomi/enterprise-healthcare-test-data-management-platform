@@ -5,7 +5,7 @@ headline requirements against REAL data, not synthetic unit fixtures:
 
 - referential integrity holds across every one of the five source
   systems for the same real-world member identifier (the exact scenario
-  the Phase 3 promptbook's own example describes: MEMBER-123 ->
+  the Phase 3 spec's own example describes: MEMBER-123 ->
   TKN-A81F... consistently in claims/pharmacy/lab data);
 - no raw direct-identifier value (SSN, email, member ID, name) survives
   into the masked output;
@@ -87,7 +87,7 @@ def test_masking_run_processes_every_source_system(masked_estate: MaskedEstate) 
 def test_all_required_techniques_were_actually_exercised(masked_estate: MaskedEstate) -> None:
     report = masked_estate.report
     used = set(report.technique_counts)
-    # Every technique the Phase 3 promptbook lists must show up at least
+    # Every technique the Phase 3 spec lists must show up at least
     # once against the real estate -- proof none of them are stubs.
     expected = {
         "tokenization",

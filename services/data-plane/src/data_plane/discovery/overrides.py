@@ -2,7 +2,7 @@
 
 A human data steward can always override the schema-based or rule-based
 classification for a specific `(source_system, dataset, column)` — this is
-a required capability per the Phase 2 promptbook and per
+a required capability per the Phase 2 spec and per
 DATA_GOVERNANCE.md B.1 ("classification ... always has a ... human-
 confirmable status"). Overrides are the highest-precedence input to the
 engine (`engine.py`): applied last, always at confidence 1.0, always

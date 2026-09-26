@@ -1,6 +1,6 @@
 """Intentional dangling-reference injection, for negative testing only.
 
-The Phase 4 promptbook is explicit: "prevent dangling relationships
+The Phase 4 spec is explicit: "prevent dangling relationships
 *unless intentionally injected for negative testing*." Everything else in
 this package (`closure.py`, `validation.py`) is built to guarantee the
 former; this module is the deliberate, opt-in escape hatch for the
