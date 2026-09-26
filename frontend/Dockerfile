@@ -30,7 +30,7 @@ LABEL org.opencontainers.image.title="tdm-console" \
 # .github/workflows/container-build.yml's Trivy CRITICAL gate genuinely
 # failed on this image's first real CI run (a real CVE in the base
 # image's openssl/libcrypto3 package, fixed upstream but not yet in the
-# pinned tag's layer) -- see problems_phase_12.md.
+# pinned tag's layer) -- see docs/problems/problems_phase_12.md.
 RUN apk update && apk upgrade --no-cache
 
 COPY --from=builder /build/dist /usr/share/nginx/html

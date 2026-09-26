@@ -2,7 +2,7 @@
 # management platform's cloud dependencies.
 #
 # Phase 12 scope: a real, structurally valid (terraform validate/fmt
-# clean — see problems_phase_12.md for the exact command run) example
+# clean — see docs/problems/problems_phase_12.md for the exact command run) example
 # of what this platform's production deployment looks like on Azure:
 # AKS for the control-plane/governance-service/frontend containers (see
 # ../../k8s/helm/tdm-platform), Azure Database for PostgreSQL Flexible

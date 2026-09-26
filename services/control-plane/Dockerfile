@@ -5,7 +5,7 @@
 # Phase 12: this is the first real Dockerfile in the repository --
 # `ARCHITECTURE.md`'s Phase 11 note documented container health
 # (HEALTHCHECK) as "design intent only" because no Dockerfile existed
-# yet to attach one to (see problems_phase_11.md P11-2). This file
+# yet to attach one to (see docs/problems/problems_phase_11.md P11-2). This file
 # resolves that gap for the control plane.
 #
 # Build context MUST be the repository root (not this directory),

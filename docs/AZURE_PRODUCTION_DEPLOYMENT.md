@@ -14,7 +14,7 @@ storage-adapter abstraction) already keeps portable to any cloud.
 No step in this document was executed against a real Azure
 subscription. `infra/terraform/azure/main.tf` was validated with
 `terraform fmt -check` and `terraform validate` only (see
-`problems_phase_12.md` for the exact commands and output) — never
+`docs/problems/problems_phase_12.md` for the exact commands and output) — never
 `terraform plan`/`apply`. No Azure credential exists anywhere in this
 repository or its CI workflows.
 
@@ -73,7 +73,7 @@ Every box above corresponds to a real file in this repository:
   granting AKS's managed identity pull access — Azure's own registry
   and IAM model. A real deployment's CI pipeline would add a `docker
   push` step to `container-build.yml` targeting this registry (not
-  present today — see `problems_phase_12.md`).
+  present today — see `docs/problems/problems_phase_12.md`).
 - **Key Vault** and the `Key Vault Secrets User` role assignment —
   Azure's own secret-manager product and RBAC model.
 - **Azure Application Gateway Ingress Controller (AGIC)**, referenced
@@ -107,7 +107,7 @@ cloud's worth of Terraform:
   `.governance`, `.platform`) are pure SQLAlchemy against a standard
   PostgreSQL wire protocol. Section 5 of `infra/docker/docker-compose.yml`'s
   own verification (this phase's real Postgres-container run, see
-  `problems_phase_12.md`) is the same code path Azure Database for
+  `docs/problems/problems_phase_12.md`) is the same code path Azure Database for
   PostgreSQL, RDS Postgres, or a self-managed Postgres pod would all
   exercise identically — only `TDM_CONTROL_PLANE_LIFECYCLE_DATABASE_URL`
   changes.
@@ -117,7 +117,7 @@ cloud's worth of Terraform:
   behind one interface, with job code (subsetting, masking, synthetic
   generation) written only against that interface. **Honest status as
   of Phase 12**: this interface is still a design contract, not
-  implemented code — see `problems_master.md` P0-3, still open. Every
+  implemented code — see `docs/problems/problems_master.md` P0-3, still open. Every
   data-plane job today reads/writes a local filesystem path directly
   (`data_plane.reference_data.writers`, etc.), not through a storage
   adapter. `infra/terraform/azure/main.tf`'s
@@ -172,10 +172,10 @@ manager ... in the cloud." Concretely, on Azure:
   --install` against the real AKS cluster's kubeconfig (obtained via
   `azure/aks-set-context`), keeping the exact same `needs:`/
   `workflow_run`/environment-protection gate structure these workflows
-  already have — see `problems_phase_12.md` for confirmation that gate
+  already have — see `docs/problems/problems_phase_12.md` for confirmation that gate
   structure was proven for real, independent of the deploy target.
 - A real remote Terraform backend (`backend "azurerm" {}`, commented
   out in `main.tf` today) and a `terraform plan`/`apply` pipeline with
   a human-approved plan step.
 - The storage-adapter implementation this section 3 flags as the
-  remaining portability gap (`problems_master.md` P0-3).
+  remaining portability gap (`docs/problems/problems_master.md` P0-3).

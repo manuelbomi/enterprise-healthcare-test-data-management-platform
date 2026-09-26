@@ -44,7 +44,7 @@ def test_rule_based_fallback_used_when_column_not_in_schema() -> None:
 
 
 def test_rule_based_fallback_uses_entity_context_for_a_drifted_npi_column() -> None:
-    """Phase 18B (`problems_final_review.md` P3-10, narrowed): a column
+    """Phase 18B (`docs/problems/problems_final_review.md` P3-10, narrowed): a column
     that is not a literal `Provider` schema field (so schema-based
     classification does not fire) but whose owning entity is still the
     recognized `Provider` business entity gets the confidence-boosted,

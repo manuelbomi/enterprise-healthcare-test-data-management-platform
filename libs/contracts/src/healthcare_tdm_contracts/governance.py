@@ -214,7 +214,7 @@ class ConsumerRequestStatus(str, Enum):
         machinery) and recorded the resulting
         `environment_request_id` here. Terminal.
     REJECTED
-        Phase 18B (`problems_final_review.md` P3-4, "no REJECTED/
+        Phase 18B (`docs/problems/problems_final_review.md` P3-4, "no REJECTED/
         CANCELLED terminal state"): a platform administrator declined to
         fulfill this request (e.g. the requested dataset/environment
         combination is not appropriate for this consumer).
@@ -237,7 +237,7 @@ class ConsumerRequestStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-#: Phase 18B (`problems_final_review.md` P3-4): the enforced transition
+#: Phase 18B (`docs/problems/problems_final_review.md` P3-4): the enforced transition
 #: table for `ConsumerRequestStatus`, mirroring
 #: `POLICY_APPROVAL_STATUS_TRANSITIONS` immediately above. SUBMITTED is
 #: the only non-terminal status -- it may resolve to any of the three

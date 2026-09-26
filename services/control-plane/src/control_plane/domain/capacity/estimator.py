@@ -12,14 +12,14 @@ produced real measured per-stage throughput figures
 (`docs/SCALE_AND_PERFORMANCE.md`), but none of them is a single
 "subset+mask+certify pipeline" number this constant could be replaced
 with directly, and this module was not touched by that phase -- see
-`problems_phase_08.md` P8-1 for the honest, still-open continuation.
+`docs/problems/problems_phase_08.md` P8-1 for the honest, still-open continuation.
 
 What *is* real here: the row counts and cadence data this module
 consumes (`DatasetVersion.row_counts`, `RefreshPolicy.cadence_type`/
 `interval_days`), and the arithmetic applied to them. Only the
 throughput assumption itself is illustrative.
 
-Phase 18B benchmark cross-check (`problems_final_review.md` P3-2, still
+Phase 18B benchmark cross-check (`docs/problems/problems_final_review.md` P3-2, still
 not "benchmarked" -- see below for why the constant itself is
 deliberately left unchanged): `docs/SCALE_AND_PERFORMANCE.md` section 3
 records a real, measured `pandas_masking[full_estate]` throughput of
@@ -35,7 +35,7 @@ constant (real "subset+mask+certify pipeline" throughput would also
 include Phase 4 subsetting and Phase 6 certification-gate overhead this
 comparison excludes, and the real number is single-machine
 `local[*]`/plain-Python, not whatever "one compute unit" means in a real
-deployment) -- exactly the gap `problems_phase_08.md` P8-1 already
+deployment) -- exactly the gap `docs/problems/problems_phase_08.md` P8-1 already
 named and this cross-check does not close. What it adds: a real,
 cited order-of-magnitude sanity check that did not exist before, in
 place of an assumption with zero real-world anchor at all.

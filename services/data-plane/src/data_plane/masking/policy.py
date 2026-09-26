@@ -241,7 +241,7 @@ def _build_default_policy() -> MaskingPolicy:
 
 #: The Phase 3 default policy. A real deployment would load an
 #: approved/versioned policy from the control plane instead (see
-#: `problems_phase_03.md` P3-3); this constant is this phase's honest
+#: `docs/problems/problems_phase_03.md` P3-3); this constant is this phase's honest
 #: stand-in, exactly like `catalog_builder.DEFAULT_MASKING_BY_TIER` was
 #: Phase 2's.
 DEFAULT_POLICY: MaskingPolicy = _build_default_policy()

@@ -11,7 +11,7 @@ Before Phase 18A, these two mechanisms were **inconsistently strong**:
 the certification signature was a keyed HMAC (forging it required both
 file access and the signing key), but the evidence-package checksum was
 a plain, unkeyed `hashlib.sha256` digest (forging it required only
-database write access -- no key at all). `problems_final_review.md`
+database write access -- no key at all). `docs/problems/problems_final_review.md`
 P1-7 named this inconsistency as a real, unresolved gap: an auditor
 relying on either artifact needed to understand a subtle difference in
 strength between two things that otherwise look like the same kind of
@@ -58,5 +58,5 @@ restating (and risking inconsistently restating) this same limitation.
 - Neither mechanism claims to be a cryptographic non-repudiation
   signature (public/private keypair, independently verifiable without
   sharing a secret) -- see `docs/interview/tradeoffs.md` item 3 and
-  `problems_phase_13.md` P13-2 for why that is real future work, not
+  `docs/problems/problems_phase_13.md` P13-2 for why that is real future work, not
   something either mechanism today pretends to be.

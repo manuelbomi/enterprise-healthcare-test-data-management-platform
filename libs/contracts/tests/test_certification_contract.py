@@ -47,7 +47,7 @@ def test_certification_gate_type_has_all_eleven_required_gates_plus_the_phase18a
         "manifest_generation",
         "policy_version_recorded",
         "masking_version_recorded",
-        # Phase 18A (problems_final_review.md P1-9): a twelfth gate,
+        # Phase 18A (docs/problems/problems_final_review.md P1-9): a twelfth gate,
         # added after the original eleven Phase 6 gates above.
         "distribution_shape",
     }

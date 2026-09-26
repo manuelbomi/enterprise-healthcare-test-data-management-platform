@@ -41,7 +41,7 @@ class DeadLetterRecord:
     """A plain, typed read-model for one dead-letter entry -- kept
     local to this module (not promoted to `libs/contracts`) since
     nothing outside `services/control-plane` consumes it yet; see
-    `problems_phase_11.md` for the honest scope boundary."""
+    `docs/problems/problems_phase_11.md` for the honest scope boundary."""
 
     __slots__ = ("dead_letter_id", "event_type", "subject", "reason", "payload", "occurred_at")
 

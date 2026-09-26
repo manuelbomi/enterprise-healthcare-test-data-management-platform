@@ -192,7 +192,7 @@ def test_illustrative_plan_post_rejects_invalid_percentage(client: TestClient) -
 
 
 # ----------------------------------------------------------------------
-# Phase 18B (`problems_final_review.md` P3-3): saved illustrative plan
+# Phase 18B (`docs/problems/problems_final_review.md` P3-3): saved illustrative plan
 # history -- real, endpoint-level "compare over time"
 # ----------------------------------------------------------------------
 

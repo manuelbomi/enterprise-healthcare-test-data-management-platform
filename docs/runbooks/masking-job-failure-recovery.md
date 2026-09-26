@@ -111,7 +111,7 @@ under the masked output directory that fails to parse.
 
 ## Prevention / follow-up
 
-- **Known, honestly documented remaining gap** (`problems_phase_11.md`
+- **Known, honestly documented remaining gap** (`docs/problems/problems_phase_11.md`
   P11-1): the completion marker proves the *run as a whole* finished
   or didn't, but does not make each individual per-source-system
   masker's writes atomic — a masker that writes rows incrementally
@@ -122,5 +122,5 @@ under the masked output directory that fails to parse.
   ("delete the entire incomplete output directory, never resume")
   is the safe mitigation for that gap today.
 - If this failure recurs for the same root cause, track it in
-  `problems_master.md` against `services/data-plane/src/data_plane/masking/`
+  `docs/problems/problems_master.md` against `services/data-plane/src/data_plane/masking/`
   rather than treating each occurrence as a one-off retry.

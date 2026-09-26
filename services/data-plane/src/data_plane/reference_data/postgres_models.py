@@ -202,7 +202,7 @@ def create_postgres_engine(database_url: str) -> Engine:
     module docstring for why that portability was a deliberate design
     goal.
 
-    Pool resilience (`problems_final_review.md` P2-1, mirrors
+    Pool resilience (`docs/problems/problems_final_review.md` P2-1, mirrors
     `control_plane.db.models.create_postgres_engine`): `pool_pre_ping`
     detects a connection that went stale server-side before handing it
     to a caller instead of surfacing that failure mid-query;

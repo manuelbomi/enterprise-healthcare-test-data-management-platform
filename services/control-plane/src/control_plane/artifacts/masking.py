@@ -7,7 +7,7 @@ data-plane-local `@dataclass`, not a `libs/contracts` Pydantic model --
 that stays as-is (it is the in-process return value of `mask_estate`,
 never itself serialized to disk). What *is* serialized to disk,
 `masking_run_summary.json`, now has a real shared contract: Phase 18B
-(`problems_final_review.md` P3-7, tracked since `problems_phase_09.md`)
+(`docs/problems/problems_final_review.md` P3-7, tracked since `docs/problems/problems_phase_09.md`)
 promoted the Pydantic model that used to be defined here, duplicating
 the exact JSON shape both `data_plane.masking.cli.main` and
 `data_plane.certification.pipeline._write_masking_summary` wrote by

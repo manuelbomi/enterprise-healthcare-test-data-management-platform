@@ -126,7 +126,7 @@ demonstrates, matching the tone of
    any input space small enough to enumerate (e.g. a 4-digit PIN, a
    9-digit SSN). This is the entire reason ADR-0006 requires the key to
    be managed by a real secrets provider (out of scope for this phase --
-   see `problems_phase_03.md` P3-2) and never stored alongside the
+   see `docs/problems/problems_phase_03.md` P3-2) and never stored alongside the
    masked data. **Determinism is a deliberate tradeoff, not a mistake**:
    it is what makes cross-table and cross-system joins keep working after
    masking, which is this platform's whole value proposition (see
@@ -178,7 +178,7 @@ demonstrates, matching the tone of
    workflows (e.g. a support engineer debugging a specific masked test
    case). A production deployment needing that capability would use a
    governed, access-controlled, audited vault service instead -- see
-   `problems_phase_03.md` P3-2 and `token_vault.py`'s module docstring.
+   `docs/problems/problems_phase_03.md` P3-2 and `token_vault.py`'s module docstring.
 6. **This engine masks what the catalog told it to mask -- no more, no
    less.** If the Phase 2 catalog under-classifies a column (see
    `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md` for the documented ways
@@ -191,7 +191,7 @@ demonstrates, matching the tone of
    dataset-wide distribution shape.** A masked `billed_amount` looks like
    a plausible dollar figure on its own, but the masked dataset's overall
    distribution of amounts (mean, variance, clustering) is not tuned to
-   match the original's -- see `problems_phase_03.md` P3-4.
+   match the original's -- see `docs/problems/problems_phase_03.md` P3-4.
 
 ## What "masking validation" here does and does not prove
 
@@ -202,4 +202,4 @@ certification pipeline `ROADMAP.md` Phase 6 describes (which also needs
 distribution-shape tolerance checks and a durable, auditable
 certification record), and per `ARCHITECTURE.md` section 2.2, a real
 certifier must not simply trust this module's own report -- it should
-independently re-derive these checks. See `problems_phase_03.md` P3-1.
+independently re-derive these checks. See `docs/problems/problems_phase_03.md` P3-1.

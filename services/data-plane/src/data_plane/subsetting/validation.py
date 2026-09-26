@@ -2,7 +2,7 @@
 
 Turns the `DanglingReference` findings `closure.build_closure` (and,
 optionally, `negative_testing.inject_negative_test_orphan`) already
-computed into the three-way verdict `problems_phase_04.md`'s operational
+computed into the three-way verdict `docs/problems/problems_phase_04.md`'s operational
 notes require: a subsetting engine must never *introduce* a dangling
 relationship itself, but a subset legitimately *carrying forward* a
 pre-existing Phase 1 source orphan -- or *intentionally containing* one

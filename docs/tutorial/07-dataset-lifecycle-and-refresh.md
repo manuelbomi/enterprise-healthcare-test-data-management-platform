@@ -45,8 +45,8 @@ exact portability pattern `data_plane.reference_data.postgres_models`
 established in Phase 1: no `JSONB`, no native `UUID` column type, so the
 same models work against local SQLite (what every test and this
 tutorial use) and a real PostgreSQL DSN unmodified — only the connection
-URL changes. See `problems_phase_07.md` for what remains unverified
-against a real Postgres instance (same honest gap `problems_phase_01.md`
+URL changes. See `docs/problems/problems_phase_07.md` for what remains unverified
+against a real Postgres instance (same honest gap `docs/problems/problems_phase_01.md`
 P1-1 documents for Phase 1's own Postgres-shaped tables).
 
 ## The core design decision: one dataset version, many environment pointers
@@ -211,10 +211,10 @@ All under `/api/v1/lifecycle`:
 - Retention/expiry (`LifecycleRepository.apply_retention`) is a plain
   repository method a scheduler would call periodically, same as
   `RefreshOrchestrator.run_due_refreshes` — no cron/daemon process runs
-  it automatically inside this repository (see `problems_phase_07.md`).
+  it automatically inside this repository (see `docs/problems/problems_phase_07.md`).
 - Does **not** wire this API as a `JobType`-driven control-plane
   orchestrated job the way `ROADMAP.md` describes for a later
   orchestration phase — these are synchronous REST endpoints, not a job
   queue.
 - Real PostgreSQL verification remains deferred, same honest pattern
-  `problems_phase_01.md` P1-1 established — see `problems_phase_07.md`.
+  `docs/problems/problems_phase_01.md` P1-1 established — see `docs/problems/problems_phase_07.md`.

@@ -71,7 +71,7 @@ for any candidate value and check it against a masked value — a full
 break for any input space small enough to enumerate (a 9-digit SSN, a
 4-digit PIN). This is exactly why ADR-0006 requires the key to be
 managed by a real secrets provider (out of scope for the phase that
-built this — tracked in `problems_phase_03.md` P3-2) and never stored
+built this — tracked in `docs/problems/problems_phase_03.md` P3-2) and never stored
 alongside the masked data. It is a *deliberate* tradeoff, not an
 oversight: a platform that needed stronger protection against key
 compromise, at the cost of losing joinability, would use independent

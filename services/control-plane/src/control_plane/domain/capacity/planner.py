@@ -10,7 +10,7 @@ rather than alongside `data_plane.capacity`'s real, on-disk measurement.
 it is a pure *reader* of `LifecycleRepository`'s existing public
 methods (`list_versions`, `list_requests`, `get_version`, `get_request`,
 `resolve_policy`), the same "don't re-solve Phase 7, build on top of it"
-principle `problems_phase_08.md` states explicitly.
+principle `docs/problems/problems_phase_08.md` states explicitly.
 """
 
 from __future__ import annotations
@@ -153,7 +153,7 @@ class CapacityPlanner:
         )
 
     # ------------------------------------------------------------------
-    # Vacuum candidates (real, read-only -- see problems_phase_08.md P8-3)
+    # Vacuum candidates (real, read-only -- see docs/problems/problems_phase_08.md P8-3)
     # ------------------------------------------------------------------
 
     def vacuum_candidates(self, *, dataset_name: str | None = None) -> list[VacuumCandidate]:
@@ -162,7 +162,7 @@ class CapacityPlanner:
         zero `EnvironmentDatasetRequest`s -- real, live-computed
         (`DatasetVersion.referenced_by_environments` is never cached),
         never a stored/stale list. Identifies candidates only; does not
-        delete anything (`problems_phase_08.md` P8-3)."""
+        delete anything (`docs/problems/problems_phase_08.md` P8-3)."""
 
         candidates: list[VacuumCandidate] = []
         for version in self._repository.list_versions(dataset_name=dataset_name):

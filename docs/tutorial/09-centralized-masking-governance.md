@@ -34,7 +34,7 @@ Phase 3 already produced a real, versioned `MaskingPolicy`
 `POLICY_VERSION`) and ADR-0011 already recorded two version identifiers
 (`masking_policy_version`, `masking_engine_version`) on every masking run
 and certification report. What was missing, and what
-`problems_phase_03.md`'s P3-3 named Phase 10 as the owner of: nothing
+`docs/problems/problems_phase_03.md`'s P3-3 named Phase 10 as the owner of: nothing
 *governed* that policy -- no database-backed record of who approved a
 given policy version, no enforced state machine over its approval
 lifecycle, and no concept of a "business consumer" that could only ever
@@ -202,7 +202,7 @@ All under `/api/v1/governance`:
 
 ## What this phase deliberately does not solve
 
-`problems_phase_10.md` records the honest gaps -- read it before treating
+`docs/problems/problems_phase_10.md` records the honest gaps -- read it before treating
 this as more complete than it is. The two worth knowing up front:
 
 - **P10-1**: nothing today verifies, at `DatasetVersion` registration

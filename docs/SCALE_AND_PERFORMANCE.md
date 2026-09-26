@@ -79,7 +79,7 @@ between 10K and 106K claim rows.
 `pandas_masking[full_estate]` masks *every table and technique* in the
 whole estate (14 entities, 8 masking techniques); `spark_masking[claim]`
 masks *two columns of one table* with one technique
-(`HMAC_PSEUDONYMIZATION`) -- see `problems_phase_14.md` P14-5 for why
+(`HMAC_PSEUDONYMIZATION`) -- see `docs/problems/problems_phase_14.md` P14-5 for why
 (reimplementing Phase 3's full policy in Spark was out of this phase's
 scope). Their absolute elapsed times reflect different total amounts of
 work, not the same work done two ways. What *is* directly comparable is
@@ -152,9 +152,9 @@ table that fits comfortably in far fewer, larger files.
 
 | Concept | Why not measured here |
 |---|---|
-| Data skew | The Phase 1 estate's bounded-random member->claim fan-out (`reference_data/scale.py`) does not produce a realistically skewed key -- fabricating one just to report a number would violate this document's own honesty rule. See `data_plane/spark/README.md` and `problems_phase_14.md` P14-2. |
-| Delta Lake `OPTIMIZE`/`ZORDER`/`VACUUM`/transaction log | No real Delta write is executed this phase (ADR-0017) -- no cached Delta Maven artifact can be assumed present in every review environment. See `problems_phase_14.md` P14-1. |
-| Autoscaling | Not applicable to `local[*]` by construction -- there is no cluster to scale. See `problems_phase_14.md` P14-3. |
+| Data skew | The Phase 1 estate's bounded-random member->claim fan-out (`reference_data/scale.py`) does not produce a realistically skewed key -- fabricating one just to report a number would violate this document's own honesty rule. See `data_plane/spark/README.md` and `docs/problems/problems_phase_14.md` P14-2. |
+| Delta Lake `OPTIMIZE`/`ZORDER`/`VACUUM`/transaction log | No real Delta write is executed this phase (ADR-0017) -- no cached Delta Maven artifact can be assumed present in every review environment. See `docs/problems/problems_phase_14.md` P14-1. |
+| Autoscaling | Not applicable to `local[*]` by construction -- there is no cluster to scale. See `docs/problems/problems_phase_14.md` P14-3. |
 
 See `services/data-plane/src/data_plane/spark/README.md` for the full
 conceptual explanation of each, and `services/data-plane/src/data_plane/benchmarks/README.md`

@@ -107,11 +107,11 @@ key), and `docs/CERTIFICATION_VS_MASKING.md`.
   and the certification report/state-machine/signing mechanism.
 - Does **not** wire into a control-plane orchestrated job or a
   metadata-plane snapshot registry yet — same scope boundary Phases 3/4/5
-  documented for their own outputs (`problems_phase_03.md` P3-1,
-  `problems_phase_04.md` P4-1/P4-2, `problems_phase_05.md` P5-3). See
-  `problems_phase_06.md`.
+  documented for their own outputs (`docs/problems/problems_phase_03.md` P3-1,
+  `docs/problems/problems_phase_04.md` P4-1/P4-2, `docs/problems/problems_phase_05.md` P5-3). See
+  `docs/problems/problems_phase_06.md`.
 - Does **not** implement a distribution-shape-preservation data-quality
   check (mean/variance/percentile comparison against the source estate)
   — `data_quality_thresholds` is a minimal non-degeneracy check, not a
-  statistical fidelity guarantee. See `problems_phase_03.md` P3-4 and
-  `problems_phase_06.md`.
+  statistical fidelity guarantee. See `docs/problems/problems_phase_03.md` P3-4 and
+  `docs/problems/problems_phase_06.md`.

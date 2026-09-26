@@ -226,7 +226,7 @@ one governance dimension this repository has designed but not yet
 RBAC-enforced end to end (`control_plane.platform.rbac` gates only four of
 the most sensitive mutations today — dataset-version revoke/rollback,
 policy-version approve/reject; see [ADR-0015](../adr/0015-platform-integrity-controls-in-control-plane.md)
-and `problems_phase_11.md` P11-4). A senior engineer should name that gap
+and `docs/problems/problems_phase_11.md` P11-4). A senior engineer should name that gap
 out loud rather than imply RBAC is fully wired.
 
 ## Q: How do you produce audit evidence?

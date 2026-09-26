@@ -58,7 +58,7 @@ def create_app() -> FastAPI:
     """
 
     settings = get_settings()
-    # Phase 18A (resolves `problems_final_review.md` P1-5): the first
+    # Phase 18A (resolves `docs/problems/problems_final_review.md` P1-5): the first
     # real consumer of `settings.log_level` -- see
     # `control_plane.platform.logging_config`'s module docstring for
     # exactly what this does (real structured JSON logs, correlation-ID

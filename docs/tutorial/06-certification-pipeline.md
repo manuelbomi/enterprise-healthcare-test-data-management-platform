@@ -261,10 +261,10 @@ Two certification gates (`policy_version_recorded`,
   test of each gate's pass *and* fail path.
 - Does **not** wire into a control-plane orchestrated job or a
   metadata-plane snapshot registry yet — the same scope boundary Phases
-  3/4/5 documented for their own outputs. See `problems_phase_06.md`.
+  3/4/5 documented for their own outputs. See `docs/problems/problems_phase_06.md`.
 - Does **not** implement distribution-shape-preservation data-quality
   checks (statistical fidelity against the source estate) — see
-  `problems_phase_03.md` P3-4 and `problems_phase_06.md`.
+  `docs/problems/problems_phase_03.md` P3-4 and `docs/problems/problems_phase_06.md`.
 - The tamper-evidence signature is a real, working mechanism with an
   honestly documented limit (key secrecy) — read
   `docs/CERTIFICATION_VS_MASKING.md` before treating it as a hardened

@@ -123,14 +123,14 @@ neither is a mechanical pass-through of an earlier phase's verdict:
 - **How much data-quality checking is "enough" for this phase's scope?**
   This phase deliberately does **not** implement distribution-shape
   preservation (mean/variance/percentile comparison of masked numeric
-  fields against the source estate) — `problems_phase_03.md` P3-4
+  fields against the source estate) — `docs/problems/problems_phase_03.md` P3-4
   already documents that `data_plane.masking.synthesizers`'s numeric
   replacement preserves per-value plausibility, not dataset-wide
   distribution shape, and that closing this gap is real future work, not
   something achievable as a side effect of this phase. `check_data_quality_thresholds`
   is intentionally a minimal non-degeneracy check (nonzero rows, nonzero
   anchor entity), not a statistical-fidelity guarantee — see
-  `problems_phase_06.md` for this tracked as an honest, explicit gap
+  `docs/problems/problems_phase_06.md` for this tracked as an honest, explicit gap
   rather than a silently narrower implementation than the name implies.
 
 ## The tamper-evidence mechanism, and its real limit
@@ -154,7 +154,7 @@ HMAC key: anyone who has both filesystem write access to the report file
 for a hand-edited report, and this mechanism cannot tell the difference.
 A production deployment would keep the signing key in the security/
 governance plane's secrets provider (not implemented yet —
-`problems_phase_03.md` P3-2 tracks the identical gap for the masking
+`docs/problems/problems_phase_03.md` P3-2 tracks the identical gap for the masking
 vault) and would very likely also emit signed `AuditEvent`s to an
 append-only log for every transition, so a forged file could still be
 caught by cross-referencing an independent audit trail the file itself
@@ -162,7 +162,7 @@ cannot rewrite. Neither of those exists in this repository yet; this
 mechanism is a real, working demonstration of *how* tamper-evidence
 works, deliberately not oversold as a hardened production control. See
 `services/data-plane/src/data_plane/certification/signing.py`'s module
-docstring and `problems_phase_06.md` for this limitation tracked
+docstring and `docs/problems/problems_phase_06.md` for this limitation tracked
 explicitly.
 
 ## What "certified" still does not mean

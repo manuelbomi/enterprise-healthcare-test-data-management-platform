@@ -2,7 +2,7 @@
 
 Written before implementation, per `CONTRIBUTING.md`. Updated after
 implementation to record what was actually resolved vs. what remains
-open (moved to `problems_master.md` if broader than this phase).
+open (moved to `docs/problems/problems_master.md` if broader than this phase).
 
 ## Context this phase starts from
 
@@ -87,7 +87,7 @@ Concrete gaps identified by inspection before writing any code:
   `POST /api/v1/evidence/dataset-versions/{id}/package`) are **not**
   RBAC-gated — any caller can record a (self-reported) access event or
   generate an evidence package, the same honestly-documented gap
-  `problems_phase_11.md` P11-4 already tracks for most other
+  `docs/problems/problems_phase_11.md` P11-4 already tracks for most other
   lifecycle/governance mutations. `accessed_by`/`generated_by` remain
   caller-supplied free-text identity strings with no verification, the
   same limitation `control_plane.platform.rbac`'s own module docstring
@@ -103,7 +103,7 @@ Concrete gaps identified by inspection before writing any code:
   decision bigger than this phase's scope.
 - **P13-5 (open)** — This phase does not reach into `data_plane` to make
   a masking/certification *run itself* append to the same audit log
-  (still `problems_phase_11.md` P11-5's gap, unchanged and out of scope
+  (still `docs/problems/problems_phase_11.md` P11-5's gap, unchanged and out of scope
   here — the evidence package instead re-exports whatever `data_plane`
   artifact the caller supplies).
 

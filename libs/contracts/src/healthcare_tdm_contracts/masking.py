@@ -256,8 +256,8 @@ class MaskingPolicy(BaseModel):
 class MaskingRunSummary(BaseModel):
     """The shared, typed shape of one `masking_run_summary.json` artifact.
 
-    Phase 18B (`problems_final_review.md` P3-7, tracked since
-    `problems_phase_09.md`): before this class existed, both real
+    Phase 18B (`docs/problems/problems_final_review.md` P3-7, tracked since
+    `docs/problems/problems_phase_09.md`): before this class existed, both real
     writers of this artifact --
     `data_plane.masking.cli.main` and
     `data_plane.certification.pipeline._write_masking_summary` -- built

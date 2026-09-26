@@ -13,7 +13,7 @@ Every phase (including this one, Phase 0) follows the same eight steps:
 1. **Inspect existing code first.** Read what's already there before writing
    anything. Do not assume; check.
 2. **Write/update the phase's problems file.** Before implementing, record
-   what you expect to be hard or unresolved in `problems_master.md` (or a
+   what you expect to be hard or unresolved in `docs/problems/problems_master.md` (or a
    phase-specific problems file it links to), so the record of *known
    issues* exists before and independent of the implementation.
 3. **Implement.** Build the smallest correct increment that satisfies the
@@ -25,11 +25,11 @@ Every phase (including this one, Phase 0) follows the same eight steps:
    engineer would need a walkthrough, runbooks if an operational procedure
    changed).
 6. **Remove resolved problems from the problems file.** Once a problem is
-   actually fixed and tested, delete it from `problems_master.md` — don't
+   actually fixed and tested, delete it from `docs/problems/problems_master.md` — don't
    leave stale entries.
 7. **Leave unresolved problems with reproduction details.** If something is
    known-broken or out of scope for this phase, it stays in
-   `problems_master.md` with enough detail (steps, expected vs. actual,
+   `docs/problems/problems_master.md` with enough detail (steps, expected vs. actual,
    affected files) that the next person doesn't have to rediscover it.
 8. **Do not declare a phase complete if required tests fail.** A red test
    suite means the phase isn't done, full stop — even if the code "looks
@@ -105,7 +105,7 @@ a new ADR that supersedes the old one, and the old one is marked
 - CI (`.github/workflows/`) runs lint, type-check, and test for every
   package that has one; a package with no tests yet is not silently
   skipped — its CI job is either present-and-passing-trivially or the gap is
-  tracked in `problems_master.md`.
+  tracked in `docs/problems/problems_master.md`.
 
 ### Branching
 
@@ -120,6 +120,6 @@ A phase is done when:
 - The code it scoped exists and does what its documentation says
 - Its tests exist and pass
 - Its docs (README/ARCHITECTURE/ADR/tutorial as applicable) are updated
-- `problems_master.md` reflects reality: resolved problems removed,
+- `docs/problems/problems_master.md` reflects reality: resolved problems removed,
   unresolved problems documented with repro details
 - No real secrets, PHI/PII, or real organization names were introduced

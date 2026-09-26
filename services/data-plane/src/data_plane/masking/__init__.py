@@ -27,12 +27,12 @@ Module map
   Phase 1 estate, using the real Phase 2 catalog to decide which
   technique masks which column.
 - `validation` -- lightweight masking validation (not the full Phase 6
-  certification pipeline -- see `problems_phase_03.md` P3-1).
+  certification pipeline -- see `docs/problems/problems_phase_03.md` P3-1).
 - `cli` -- `python -m data_plane.masking.cli`, the end-to-end entry point.
 
 Certification (the independent, later-phase verifier `ARCHITECTURE.md`
 section 2.2 describes) is implemented alongside masking but is a
-distinct, later-phase concern -- see `problems_phase_03.md` P3-1 for the
+distinct, later-phase concern -- see `docs/problems/problems_phase_03.md` P3-1 for the
 exact scope boundary between this phase's `validation.py` and that
 future work.
 """

@@ -9,7 +9,7 @@ contract shared between the data-plane producer
 (`services/data-plane/src/data_plane/subsetting/`) and any future consumer
 (control-plane job tracking, the metadata plane's snapshot registry -- see
 ARCHITECTURE.md section 2.3, not implemented yet; tracked in
-`problems_phase_04.md`).
+`docs/problems/problems_phase_04.md`).
 
 See `docs/tutorial/04-subsetting-and-referential-closure.md` for a worked
 walkthrough of the graph-walk/referential-closure mechanism every one of
@@ -142,7 +142,7 @@ class SubsetManifest(BaseModel):
     future metadata plane's snapshot registry
     (`healthcare_tdm_contracts.snapshots.SnapshotRecord`) is expected to
     reference a produced subset the same way it already references a
-    ``source_job_id`` -- see `problems_phase_04.md` for the tracked gap
+    ``source_job_id`` -- see `docs/problems/problems_phase_04.md` for the tracked gap
     until that wiring exists.
     """
 

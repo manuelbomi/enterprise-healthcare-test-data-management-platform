@@ -145,7 +145,7 @@ reference `build_closure` found into one of three outcomes
 - **`FAILED`** — a dangling reference was found whose target *did* exist
   in the source estate's parent table but was not carried into the
   subset. This is a real defect in selection/closure logic and must never
-  happen; `problems_phase_04.md` tracks this as a hard requirement, not
+  happen; `docs/problems/problems_phase_04.md` tracks this as a hard requirement, not
   an aspiration.
 
 The verdict is per-run, but the findings are per-relationship, so a
@@ -254,7 +254,7 @@ with `count=10000` against a `performance`-scale estate (20,000 members,
 demonstrated above at `tiny` scale (26 members) — `build_closure` doesn't
 know or care how many Member IDs it was handed. The example above uses a
 small scale profile only because that's what fits in this repository's
-test/CI budget; see `problems_phase_04.md` P4-3 for the follow-up on
+test/CI budget; see `docs/problems/problems_phase_04.md` P4-3 for the follow-up on
 benchmarking this at real `qa`/`performance` scale, now actually done in
 Phase 14 — 408 of 20,400 members selected from a real `performance`-scale
 estate in 8.777s, no memory issues (see `docs/SCALE_AND_PERFORMANCE.md`).
@@ -271,4 +271,4 @@ Prescription -> Provider). A future source system with a relationship
 this graph doesn't know about would need a new edge added to
 `build_closure` — it does not discover relationships automatically from
 the data the way `discovery`'s pattern layer discovers columns. See
-`problems_phase_04.md` for this and other known limitations.
+`docs/problems/problems_phase_04.md` for this and other known limitations.

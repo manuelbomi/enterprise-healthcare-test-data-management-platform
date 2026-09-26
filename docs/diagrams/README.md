@@ -31,5 +31,5 @@ extract them from prose.
 ## Note on Phase 0 scope
 
 These are Mermaid source only; no pre-rendered PNG/SVG exports exist yet
-(tracked as `P0-4` in `problems_master.md`, low priority since GitHub
+(tracked as `P0-4` in `docs/problems/problems_master.md`, low priority since GitHub
 renders Mermaid natively).

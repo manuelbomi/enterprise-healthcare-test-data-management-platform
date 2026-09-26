@@ -1,4 +1,4 @@
-"""Real, executed proof for `problems_final_review.md` P2-3 ("retention
+"""Real, executed proof for `docs/problems/problems_final_review.md` P2-3 ("retention
 sweep and vacuum-candidate identification have no automatic trigger"):
 `scripts/run_scheduled_maintenance.py` is a real, runnable entry point
 that runs the due-refresh sweep, the retention sweep, and

@@ -308,10 +308,10 @@ IDs; total row counts per entity; and the full provenance rollup.
   every scenario's shape is hand-authored, matching this phase's own
   scope (implement the eleven required scenarios correctly, not a
   general-purpose statistical scenario-inference engine). See
-  `problems_phase_05.md`.
+  `docs/problems/problems_phase_05.md`.
 - Does **not** yet wire into a control-plane job or a metadata-plane
   snapshot registry — same documented scope boundary Phases 3 and 4 left
   for their own outputs (`ARCHITECTURE.md` section 2.2,
-  `problems_phase_04.md` P4-1/P4-2). `data_plane.synthetic.cli` is a
+  `docs/problems/problems_phase_04.md` P4-1/P4-2). `data_plane.synthetic.cli` is a
   standalone entry point today, exactly like `subsetting.cli` and
   `masking.cli`.

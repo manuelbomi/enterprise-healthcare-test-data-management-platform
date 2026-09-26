@@ -2,7 +2,7 @@
 
 Written before implementation, per `CONTRIBUTING.md`. Updated after
 implementation to record what was actually resolved vs. what remains
-open (moved to `problems_master.md` if broader than this phase).
+open (moved to `docs/problems/problems_master.md` if broader than this phase).
 
 ## Context this phase starts from
 
@@ -13,7 +13,7 @@ constructed a `SparkSession` through Phase 13 — every real engine
 (`reference_data`, `discovery`, `subsetting`, `masking`, `synthetic`,
 `certification`, `capacity`) operates on local files (SQLite/Parquet/
 NDJSON/CSV) with pandas/pyarrow/stdlib, not Spark (already documented in
-`problems_phase_12.md`'s container-build decision record). This phase is
+`docs/problems/problems_phase_12.md`'s container-build decision record). This phase is
 where the spec explicitly asks for real PySpark implementations.
 There is also no real Spark cluster anywhere in this repository's
 infrastructure (`infra/` has no `spark-worker`/`spark-master` service) —
@@ -80,7 +80,7 @@ Risks identified before implementation, and how they were resolved:
 
 - `services/data-plane/src/data_plane/spark/` (`session.py`,
   `masking_job.py`, `subsetting_job.py`, `cli.py`) — real, runnable
-  PySpark code, closing the gap `problems_phase_12.md` first identified.
+  PySpark code, closing the gap `docs/problems/problems_phase_12.md` first identified.
 - `services/data-plane/src/data_plane/benchmarks/` (`harness.py`,
   `report.py`, `cli.py`) — real benchmark tooling measuring records/sec,
   masking throughput (pandas vs. Spark), subsetting throughput (pandas

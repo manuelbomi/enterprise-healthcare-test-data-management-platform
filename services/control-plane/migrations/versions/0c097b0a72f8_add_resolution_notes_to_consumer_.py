@@ -4,7 +4,7 @@ Revision ID: 0c097b0a72f8
 Revises: edadf596e1ed
 Create Date: 2026-09-26 06:04:48.933487
 
-Phase 18B (resolves `problems_final_review.md` P3-4, "no REJECTED/
+Phase 18B (resolves `docs/problems/problems_final_review.md` P3-4, "no REJECTED/
 CANCELLED terminal state"): adds `resolution_notes`, populated by
 `GovernanceRepository.reject_consumer_request`/`cancel_consumer_request`
 to record who/why a `ConsumerDatasetRequest` was resolved to one of

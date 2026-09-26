@@ -17,7 +17,7 @@ incremental-refresh engine would plausibly have reprocessed, as a
 clearly-labeled *model* of an unbuilt capability -- never presented as
 "this platform does incremental refresh." See
 `docs/CAPACITY_COST_TRADEOFFS.md` for the full, honest framing and
-`problems_phase_08.md` for this tracked explicitly as a modeled
+`docs/problems/problems_phase_08.md` for this tracked explicitly as a modeled
 illustration, not a shipped feature.
 """
 

@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     # `data_plane.reference_data` approach -- but the schema itself is
     # Postgres-portable (no JSONB/native UUID columns); pointing this at
     # a real `postgresql+psycopg://...` DSN (per ADR-0004) works
-    # unmodified. See `problems_phase_07.md` for what remains unverified
+    # unmodified. See `docs/problems/problems_phase_07.md` for what remains unverified
     # against a real Postgres instance.
     lifecycle_database_url: str = "sqlite:///data/tmp/control-plane/lifecycle.db"
     # Phase 9: read-only JSON-artifact roots for the data-plane engines

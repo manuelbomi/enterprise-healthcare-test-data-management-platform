@@ -12,7 +12,7 @@ import { formatNumber, titleCase } from "@/lib/format";
  * `control_plane.artifacts.masking.MaskingRunRepository`) that
  * discovers every real `masking_run_summary.json` Phase 3's masking
  * engine has written under the configured artifact root -- see
- * `problems_phase_09.md` for why this page shows *masking run history*
+ * `docs/problems/problems_phase_09.md` for why this page shows *masking run history*
  * (what the engine actually did) rather than a *policy editor*: the
  * authoritative policy definition
  * (`data_plane.masking.policy.DEFAULT_POLICY`) is data-plane source
@@ -26,7 +26,7 @@ export function MaskingPoliciesPage() {
     <>
       <PageHeader
         title="Masking Policies"
-        description="Real masking engine run history: what technique masked how many columns, and whether the run's own referential-integrity/leakage validation passed. See problems_phase_09.md for why this page shows run history rather than a policy editor."
+        description="Real masking engine run history: what technique masked how many columns, and whether the run's own referential-integrity/leakage validation passed. See docs/problems/problems_phase_09.md for why this page shows run history rather than a policy editor."
       />
       <AsyncSection state={runs} loadingLabel="Loading masking runs">
         {(records) => (

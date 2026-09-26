@@ -80,7 +80,7 @@ reasoned about independently — this is `ARCHITECTURE.md` §2's own diagram,
 reused here (not redrawn) because a stale, inconsistent second diagram would
 be worse than none. It renders natively on GitHub; the Mermaid source also
 lives in `docs/diagrams/` (no separate PNG/SVG export exists — GitHub's
-native rendering makes one unnecessary today; see `problems_master.md` P0-4).
+native rendering makes one unnecessary today; see `docs/problems/problems_master.md` P0-4).
 
 ```mermaid
 flowchart TB
@@ -180,7 +180,7 @@ marketing category:
 
 **The one honest gap this section exists to name up front:** no real
 MinIO/S3/ADLS *client* code exists in either service yet — every job still
-reads/writes a local filesystem path directly (`problems_master.md` P0-3,
+reads/writes a local filesystem path directly (`docs/problems/problems_master.md` P0-3,
 open since Phase 0; §19 below). "Cloud-portable" describes the job logic and
 the provisioning examples; it does not yet describe a live storage
 integration.
@@ -521,11 +521,11 @@ honestly, currently at this state — not overstated, not understated:
   and no Prometheus/OpenTelemetry backend anywhere.
 
 **The authoritative, current, line-item list is
-[`problems_final_review.md`](problems_final_review.md) — 11 findings (6 P2,
+[`docs/problems/problems_final_review.md`](docs/problems/problems_final_review.md) — 11 findings (6 P2,
 5 P3), every one re-verified as of Phase 18B**, each with its own reasoning
 for why it remains open rather than being fabricated shut. This README
 summarizes that file; it does not compete with it — if the two ever
-disagree, `problems_final_review.md` is the current source of truth.
+disagree, `docs/problems/problems_final_review.md` is the current source of truth.
 
 ## 20. Production deployment model
 
@@ -554,7 +554,7 @@ a real deployment, not a turnkey production target:
   (replacing §19's minimal JWT layer), a real storage adapter, a real
   KMS/HSM for signing keys, real metrics/tracing, and a real external
   scheduler with its own concurrency control — every one of these is named
-  honestly above and in `problems_final_review.md`, not silently assumed.
+  honestly above and in `docs/problems/problems_final_review.md`, not silently assumed.
 
 ## 21. Tutorial links
 

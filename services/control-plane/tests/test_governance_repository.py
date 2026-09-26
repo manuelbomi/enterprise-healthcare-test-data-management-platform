@@ -375,7 +375,7 @@ def test_fulfill_consumer_request_creates_real_environment_dataset_request(
 
 
 # ----------------------------------------------------------------------
-# Phase 18B (`problems_final_review.md` P3-4): REJECTED/CANCELLED
+# Phase 18B (`docs/problems/problems_final_review.md` P3-4): REJECTED/CANCELLED
 # terminal states
 # ----------------------------------------------------------------------
 

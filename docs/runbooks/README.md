@@ -42,5 +42,5 @@ Every runbook answers, in order:
 3. **Diagnosis** — how to confirm this is actually what's happening
 4. **Resolution** — the steps to fix it
 5. **Prevention / follow-up** — what should change so it's less likely next
-   time, and where that follow-up is tracked (usually `problems_master.md`
+   time, and where that follow-up is tracked (usually `docs/problems/problems_master.md`
    or a new ADR)

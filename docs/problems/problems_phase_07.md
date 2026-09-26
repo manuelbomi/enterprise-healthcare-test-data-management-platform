@@ -64,7 +64,7 @@ phase.
 ### P7-1 — Real PostgreSQL verification remains deferred
 
 - **Status:** open (deliberately deferred; same honest pattern
-  `problems_phase_01.md` P1-1 established)
+  `docs/problems/problems_phase_01.md` P1-1 established)
 - **Description:** `control_plane.db.models` avoids Postgres-only
   column types (no `JSONB`, no native `UUID`) specifically so the schema
   is portable, and `create_postgres_engine`/`Settings.lifecycle_database_url`
@@ -194,7 +194,7 @@ phase.
   role, are you allowed to do this," not "are you who you claim to
   be." The audit log itself lives in `services/control-plane`'s own
   schema, not yet `services/governance-service`'s eventual dedicated
-  store (see `problems_phase_11.md` P11-5).
+  store (see `docs/problems/problems_phase_11.md` P11-5).
 - **Repro / detail:** `POST /api/v1/lifecycle/environment-requests`
   still succeeds with no `actor_role` field of any kind.
 - **Affected files:** `services/control-plane/src/control_plane/api/v1/lifecycle.py`,
@@ -213,8 +213,8 @@ phase.
   nothing in this phase submits a `JobRequest`/consumes a `JobResult`
   for a refresh or registration -- every Phase 7 operation is a
   synchronous FastAPI request/response, same shape of gap
-  `problems_phase_03.md` P3-1, `problems_phase_04.md` P4-1, and
-  `problems_phase_06.md` P6-1 document for their own phases' outputs.
+  `docs/problems/problems_phase_03.md` P3-1, `docs/problems/problems_phase_04.md` P4-1, and
+  `docs/problems/problems_phase_06.md` P6-1 document for their own phases' outputs.
 - **Repro / detail:** N/A -- scope boundary, not a bug.
 - **Affected files:** `services/control-plane/src/control_plane/api/v1/lifecycle.py`,
   `libs/contracts/src/healthcare_tdm_contracts/jobs.py`
@@ -222,7 +222,7 @@ phase.
   note as P6-1. **Correction:** this used to say "Phase 14 (job
   orchestration)" — Phase 14 actually happened and its scope was
   scale/performance benchmark tooling, not job-orchestration wiring; see
-  `problems_phase_14.md`.
+  `docs/problems/problems_phase_14.md`.
 
 ### P7-8 — `size_bytes` and `row_counts` are caller-supplied at registration, not independently re-derived by the control plane
 

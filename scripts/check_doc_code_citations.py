@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """A small, real, proportionate automated cross-check for
-`problems_final_review.md` P2-9 ("ROADMAP.md's Phase 16 section and
+`docs/problems/problems_final_review.md` P2-9 ("ROADMAP.md's Phase 16 section and
 docs/tutorial/guide/ chapters cite real code paths ... with no
 automated cross-check").
 

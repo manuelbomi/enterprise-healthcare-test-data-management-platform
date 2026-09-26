@@ -3,7 +3,7 @@
  * pages this phase deliberately does not fake data for (per the Phase 9
  * instructions: "Do not fake backend behavior if an implemented API
  * exists" — and, symmetrically, do not invent data when no API exists
- * either). See `problems_phase_09.md` for the per-page reasoning.
+ * either). See `docs/problems/problems_phase_09.md` for the per-page reasoning.
  */
 export function NotYetAvailable({
   title,

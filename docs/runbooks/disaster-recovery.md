@@ -77,5 +77,5 @@ because of the "metadata + reproducibility" pattern described in
   real, not just assumed, in the Phase 21 disaster-recovery drill.
 - Any gap found during a real drill (metadata insufficient to reconstruct
   an object, a job that isn't actually reproducible from recorded inputs)
-  is a Sev-level finding, tracked in `problems_master.md` against the
+  is a Sev-level finding, tracked in `docs/problems/problems_master.md` against the
   phase that owns the affected component, not silently worked around.

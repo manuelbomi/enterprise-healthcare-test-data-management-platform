@@ -1,5 +1,5 @@
 """Unit + real-HTTP tests for `control_plane.platform.auth` and
-`api/v1/auth.py` -- proving Phase 18A's fix for `problems_final_review.md`
+`api/v1/auth.py` -- proving Phase 18A's fix for `docs/problems/problems_final_review.md`
 P0-1 is real: a caller can no longer claim an arbitrary `actor_role`
 via a request-body field, and every RBAC-gated endpoint now requires a
 verified bearer token.
@@ -195,7 +195,7 @@ def test_every_governance_rbac_gated_endpoint_rejects_a_missing_token(client: Te
 
 def test_a_stolen_but_expired_token_is_rejected_end_to_end(client: TestClient) -> None:
     """Reproduces the exact live-demonstration shape from
-    `problems_final_review.md` P0-1 with the fix applied: a caller
+    `docs/problems/problems_final_review.md` P0-1 with the fix applied: a caller
     presenting SOME credential-shaped thing still cannot bypass identity
     verification just because it looks like a token."""
 

@@ -1,5 +1,5 @@
 """Keyed HMAC-SHA256 tamper-evidence for an `AuditEvidencePackage`'s
-bundle checksum (Phase 18A, resolves `problems_final_review.md` P1-7).
+bundle checksum (Phase 18A, resolves `docs/problems/problems_final_review.md` P1-7).
 
 **Before this phase**, `control_plane.domain.evidence.repository`'s
 `bundle_checksum` was a plain, UNKEYED `hashlib.sha256` digest --

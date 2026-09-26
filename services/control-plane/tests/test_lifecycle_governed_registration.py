@@ -1,5 +1,5 @@
 """Tests for `POST /api/v1/lifecycle/dataset-versions/governed` (Phase
-18A, resolves `problems_final_review.md` P1-8): proves the real gap the
+18A, resolves `docs/problems/problems_final_review.md` P1-8): proves the real gap the
 finding described (`register_dataset_version` never checks Phase 10
 governance at all) still reproduces on the pre-existing, UNGOVERNED
 endpoint -- by design, see its docstring -- and is closed on the new
@@ -85,7 +85,7 @@ def _draft_and_approve_policy(client: TestClient, *, version: int = 1) -> dict:
 def test_reproduction_the_ungoverned_endpoint_still_registers_without_any_governance_at_all(
     client: TestClient,
 ) -> None:
-    """The exact gap `problems_final_review.md` P1-8 described: no
+    """The exact gap `docs/problems/problems_final_review.md` P1-8 described: no
     `MaskingPolicyVersion` was ever drafted/approved for this
     dataset_name at all, yet `register_dataset_version` (the
     pre-existing, now explicitly-labeled UNGOVERNED path) still
@@ -136,7 +136,7 @@ def test_governed_registration_succeeds_when_the_report_matches_the_approved_pol
 
 
 # ----------------------------------------------------------------------
-# Phase 18B (`problems_final_review.md` P2-4): independently re-derived
+# Phase 18B (`docs/problems/problems_final_review.md` P2-4): independently re-derived
 # row_counts, for the entities the certification report's own
 # row_count_reconciliation trail covers
 # ----------------------------------------------------------------------

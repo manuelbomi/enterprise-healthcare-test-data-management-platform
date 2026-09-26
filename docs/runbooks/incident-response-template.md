@@ -40,7 +40,7 @@ irreversible and requires a second person's confirmation.
 - What should change (a test, a check, an alert, an architectural fix) so
   this class of incident is less likely or easier to catch next time?
 - Where is that follow-up tracked? (Usually a new entry in
-  `problems_master.md`, or a new ADR if it changes an architectural
+  `docs/problems/problems_master.md`, or a new ADR if it changes an architectural
   decision.)
 - If this incident revealed a gap in this runbook itself, update the
   runbook in the same change that resolves the incident — a runbook that

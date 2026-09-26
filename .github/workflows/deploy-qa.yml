@@ -20,7 +20,7 @@ name: QA Deployment
 #
 # `workflow_dispatch` is added purely so this gate's own mechanics can
 # be exercised on demand (used to verify this workflow for real during
-# Phase 12 — see problems_phase_12.md for the run this produced) without
+# Phase 12 — see docs/problems/problems_phase_12.md for the run this produced) without
 # waiting for a full CI run on main.
 
 on:

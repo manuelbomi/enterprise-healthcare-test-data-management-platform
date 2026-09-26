@@ -22,7 +22,7 @@ the end of the phase is a genuine open issue for a later phase.
   instead; documented as
   [ADR-0014](docs/adr/0014-masking-governance-lives-in-control-plane.md)
   since this was a meaningful, reversible-but-costly-to-reverse
-  decision. This also resolves `problems_phase_03.md`'s P3-3 ("masking
+  decision. This also resolves `docs/problems/problems_phase_03.md`'s P3-3 ("masking
   policy is not yet control-plane-managed/versioned in a database"),
   whose own text named Phase 10 as its owner.
 - **How to prevent a business consumer from attaching its own masking
@@ -196,5 +196,5 @@ the end of the phase is a genuine open issue for a later phase.
   at a real `postgresql+psycopg://...` DSN and re-run
   `test_governance_repository.py`/`test_governance_api.py`.
 - **Affected files:** `services/control-plane/src/control_plane/db/models.py`
-- **Owner for resolution:** Same as `problems_phase_07.md`'s equivalent
+- **Owner for resolution:** Same as `docs/problems/problems_phase_07.md`'s equivalent
   entry -- not scheduled by name; a real infra/CI phase's job.

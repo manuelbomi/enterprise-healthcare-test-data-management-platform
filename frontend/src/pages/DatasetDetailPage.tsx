@@ -15,7 +15,7 @@ import { formatBytes, formatDate, formatNumber, titleCase } from "@/lib/format";
  * version, certification, row counts, referential-integrity status,
  * storage footprint, consumer environments) from FOUR real endpoints,
  * because no single endpoint carries all of it -- see
- * `problems_phase_09.md` for the composition documented in full:
+ * `docs/problems/problems_phase_09.md` for the composition documented in full:
  *
  * 1. `GET /api/v1/lifecycle/dataset-versions/{id}` -- the dataset
  *    version itself: status, masking policy name/version/engine
@@ -38,7 +38,7 @@ import { formatBytes, formatDate, formatNumber, titleCase } from "@/lib/format";
  * systems contributed to a specific dataset version's rows (the subset
  * manifest records entity row counts, not source systems). This page
  * links to the Data Catalog instead of fabricating that link -- see
- * `problems_phase_09.md`.
+ * `docs/problems/problems_phase_09.md`.
  */
 export function DatasetDetailPage() {
   const { versionId } = useParams<{ versionId: string }>();

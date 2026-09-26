@@ -7,16 +7,16 @@
 # services/control-plane/Dockerfile, services/governance-service/Dockerfile,
 # and frontend/Dockerfile. This is the "integration environment" Phase 12
 # asks for: it is what infra/docker/README.md's Phase 0 status note (and
-# problems_master.md P0-2/problems_phase_01.md P1-1) meant by "Postgres
+# docs/problems/problems_master.md P0-2/problems_phase_01.md P1-1) meant by "Postgres
 # never actually verified against real app code" -- control-plane's real
 # `/api/v1/ready` endpoint is checked below against this real Postgres
-# container, not a mock. See docs/runbooks/ and problems_phase_12.md for
+# container, not a mock. See docs/runbooks/ and docs/problems/problems_phase_12.md for
 # the exact verification run.
 #
 # data-plane is deliberately NOT containerized here (or anywhere yet) --
 # it is a PySpark/pandas batch/CLI toolkit invoked directly
 # (`python -m data_plane....cli`), not a long-running service with a
-# port to expose. See problems_phase_12.md for the explicit decision
+# port to expose. See docs/problems/problems_phase_12.md for the explicit decision
 # record; a real Spark-backed container is anticipated no earlier than
 # Phase 14 (Scale and performance engineering), once code actually
 # creates a SparkSession.
@@ -81,7 +81,7 @@ services:
       # above -- config.py's `lifecycle_database_url` default is
       # SQLite (zero-infra local dev); this is the real, Postgres-backed
       # path ADR-0004 always intended, exercised end to end here for
-      # the first time (see problems_phase_12.md).
+      # the first time (see docs/problems/problems_phase_12.md).
       TDM_CONTROL_PLANE_DATABASE_URL: "postgresql+psycopg://tdm:tdm_local_dev_only@postgres:5432/tdm_metadata"
       TDM_CONTROL_PLANE_LIFECYCLE_DATABASE_URL: "postgresql+psycopg://tdm:tdm_local_dev_only@postgres:5432/tdm_metadata"
       TDM_CONTROL_PLANE_LOG_LEVEL: "INFO"

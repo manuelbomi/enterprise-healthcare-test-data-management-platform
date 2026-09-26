@@ -63,7 +63,7 @@ The honest cost of this decision: a future caller of
 different future API layer) would bypass the RBAC check entirely,
 since the repository itself does not enforce it. This is an accepted,
 documented tradeoff for this phase's scope — see
-`problems_phase_11.md` P11-4 for the narrower, related gap (RBAC is
+`docs/problems/problems_phase_11.md` P11-4 for the narrower, related gap (RBAC is
 only wired to four endpoints total) this ADR does not attempt to
 close.
 
@@ -88,4 +88,4 @@ close.
   (register a dataset version, request/refresh an environment,
   draft/submit a policy version, register a consumer, submit/fulfill a
   consumer request) remains open to any caller regardless of role —
-  tracked honestly in `problems_phase_11.md` P11-4, not hidden.
+  tracked honestly in `docs/problems/problems_phase_11.md` P11-4, not hidden.

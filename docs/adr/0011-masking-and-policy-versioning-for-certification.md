@@ -50,7 +50,7 @@ carried into a certification report:
    `policy_version`, `masking_engine_version`).
 
 Neither identifier is a database-backed, control-plane-approved version
-registry (that remains `problems_phase_03.md` P3-3's tracked gap) — both
+registry (that remains `docs/problems/problems_phase_03.md` P3-3's tracked gap) — both
 are still plain constants in code, consistent with how `DEFAULT_POLICY`
 itself is documented as an honest stand-in. This ADR only fixes *that a
 version identifier exists and is recorded*, not *how policy versions are
@@ -71,7 +71,7 @@ approved/stored long-term*.
   (no test can prove a change "would" alter output for every possible
   input); flagged here so a future contributor knows to do it.
 - This remains a lighter-weight stand-in for a real, database-backed
-  policy/version registry (`problems_phase_03.md` P3-3, still open) —
+  policy/version registry (`docs/problems/problems_phase_03.md` P3-3, still open) —
   the identifiers are trustworthy for reproducing *this repository's*
   masking runs, not yet a governed approval record a compliance team
   could audit independently of the source tree.

@@ -1,6 +1,6 @@
 """A real, but deliberately minimal, identity-verification mechanism.
 
-**Why this module exists (`problems_final_review.md` P0-1).** Before
+**Why this module exists (`docs/problems/problems_final_review.md` P0-1).** Before
 Phase 18A, `control_plane.platform.rbac.authorize()` was real, enforced
 code, but every one of its four call sites trusted a plain
 `actor_role` string the *caller* supplied in the request body -- there

@@ -6,7 +6,7 @@ name: Production Promotion
 # Environment below can carry required-reviewer protection rules
 # (configured in this repository's Settings -> Environments ->
 # production — see docs/AZURE_PRODUCTION_DEPLOYMENT.md and
-# problems_phase_12.md for whether that protection is configured in
+# docs/problems/problems_phase_12.md for whether that protection is configured in
 # this repository and how it was verified); when configured, this job
 # genuinely pauses for a human approval in the Actions UI before it
 # runs, which is the real mechanism GitHub Environments provide for a

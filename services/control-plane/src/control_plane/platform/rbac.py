@@ -1,7 +1,7 @@
 """A real, enforced role-based authorization check.
 
 `ARCHITECTURE.md` section 2.4 names RBAC as a `services/governance-service`
-responsibility; `problems_phase_07.md` P7-6 and `problems_phase_10.md`
+responsibility; `docs/problems/problems_phase_07.md` P7-6 and `docs/problems/problems_phase_10.md`
 P10-2 both explicitly deferred it ("no RBAC anywhere in this service
 yet"). This module is Phase 11's answer -- not a full identity/auth
 system (out of scope, per the phase brief), but a real permission-table
@@ -22,7 +22,7 @@ What makes this "real" rather than a no-op:
   end over real HTTP requests (a `REQUESTER`-role actor attempting to
   revoke a dataset version gets HTTP 403, not 200).
 
-**Phase 18A update (`problems_final_review.md` P0-1, now resolved):**
+**Phase 18A update (`docs/problems/problems_final_review.md` P0-1, now resolved):**
 before this phase, `role` here was accepted from a caller-supplied,
 *unverified* `actor_role` request-body field -- this module answered
 "if you claim this role, are you allowed to do this," never "are you
@@ -36,7 +36,7 @@ trusting a request field. `authorize()` itself is unchanged -- it never
 trusted anything to begin with; only *where its `role` argument comes
 from* changed. Every other actor-attribution field in this service
 (`revoked_by`, `performed_by`, `requested_by`, `generated_by`,
-`accessed_by`) remains what `problems_phase_11.md` P11-4 already,
+`accessed_by`) remains what `docs/problems/problems_phase_11.md` P11-4 already,
 honestly, called it: advisory metadata, not a security control -- only
 the field an authorization *decision* is made from needed to move
 behind real verification.
@@ -79,14 +79,14 @@ class Role(str, Enum):
 
 class Permission(str, Enum):
     """The sensitive actions this phase gates. Deliberately a small,
-    closed set -- see `problems_phase_11.md` P11-4 for what is *not*
+    closed set -- see `docs/problems/problems_phase_11.md` P11-4 for what is *not*
     yet gated (every other lifecycle/governance mutation)."""
 
     REVOKE_DATASET_VERSION = "revoke_dataset_version"
     ROLLBACK_DATASET_VERSION = "rollback_dataset_version"
     APPROVE_POLICY_VERSION = "approve_policy_version"
     REJECT_POLICY_VERSION = "reject_policy_version"
-    #: Phase 18A (`problems_final_review.md` P1-2): `POST
+    #: Phase 18A (`docs/problems/problems_final_review.md` P1-2): `POST
     #: /api/v1/lifecycle/scheduler/run-due` executes a SCHEDULED refresh
     #: for every currently-due request in one call -- a larger blast
     #: radius than any single-request mutation this table already

@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-`problems_phase_10.md` P10-1 and `problems_final_review.md` P1-8 both
+`docs/problems/problems_phase_10.md` P10-1 and `docs/problems/problems_final_review.md` P1-8 both
 found the same gap: `LifecycleRepository.register_dataset_version`
 (Phase 7, `POST /api/v1/lifecycle/dataset-versions`) never calls into
 `GovernanceRepository.get_approved_policy_version` (Phase 10). An

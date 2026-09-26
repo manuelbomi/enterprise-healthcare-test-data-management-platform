@@ -55,7 +55,7 @@ pipeline twice and exercises every lifecycle endpoint against a real
 FastAPI `TestClient` backed by a real on-disk SQLite database. Real
 captured output from `docs/tutorial/07-dataset-lifecycle-and-refresh.md`
 (reproduced here because it already is real, verified output — see
-`problems_phase_15.md` for why this guide doesn't re-run the same demo
+`docs/problems/problems_phase_15.md` for why this guide doesn't re-run the same demo
 script a second time just to get a second, equally-real transcript):
 
 ```

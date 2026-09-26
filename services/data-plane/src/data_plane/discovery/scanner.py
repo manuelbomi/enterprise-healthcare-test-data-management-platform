@@ -175,7 +175,7 @@ def scan_partner_lab_feed(partner_dir: Path) -> list[ColumnToClassify]:
     """Scan the partner reference-lab feed: v1 pipe-delimited flat file
     (abbreviated field names) and v2 JSON payload, unioned under the same
     logical `lab_result` dataset (see `writers/partner_writer.py` and
-    `problems_phase_02.md` P2-3 for why this deliberately does not
+    `docs/problems/problems_phase_02.md` P2-3 for why this deliberately does not
     version the two shapes separately)."""
 
     results: list[ColumnToClassify] = []

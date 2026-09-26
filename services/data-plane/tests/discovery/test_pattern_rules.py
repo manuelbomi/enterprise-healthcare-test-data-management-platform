@@ -57,7 +57,7 @@ def test_name_detector_does_not_false_positive_on_business_name_fields() -> None
 
 
 # ----------------------------------------------------------------------
-# Phase 18B (`problems_final_review.md` P3-10, narrowed): entity context
+# Phase 18B (`docs/problems/problems_final_review.md` P3-10, narrowed): entity context
 # for the `pattern:npi` fallback, when the caller knows a recognized
 # business entity name
 # ----------------------------------------------------------------------

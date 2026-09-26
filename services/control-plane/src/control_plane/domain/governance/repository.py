@@ -417,7 +417,7 @@ class GovernanceRepository:
     def reject_consumer_request(
         self, consumer_request_id: UUID | str, *, performed_by: str, reason: str = ""
     ) -> ConsumerDatasetRequest:
-        """Phase 18B (`problems_final_review.md` P3-4): SUBMITTED ->
+        """Phase 18B (`docs/problems/problems_final_review.md` P3-4): SUBMITTED ->
         REJECTED. Terminal -- a platform administrator declined to
         fulfill this request; see `ConsumerRequestStatus.REJECTED`'s
         docstring. Raises `InvalidConsumerRequestTransitionError` if the
@@ -435,7 +435,7 @@ class GovernanceRepository:
     def cancel_consumer_request(
         self, consumer_request_id: UUID | str, *, performed_by: str, reason: str = ""
     ) -> ConsumerDatasetRequest:
-        """Phase 18B (`problems_final_review.md` P3-4): SUBMITTED ->
+        """Phase 18B (`docs/problems/problems_final_review.md` P3-4): SUBMITTED ->
         CANCELLED. Terminal -- the requesting consumer withdrew the
         request before it was fulfilled; see
         `ConsumerRequestStatus.CANCELLED`'s docstring. Same transition

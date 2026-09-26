@@ -33,7 +33,7 @@ matching artifact under it, rather than a single fixed path -- "every
 job run this environment has ever produced," not "the one most recent
 catalog." A local/dev/portfolio-scale root directory (a few dozen runs
 at most) makes an `rglob` scan on every request perfectly adequate; see
-`problems_phase_09.md` for the tracked concurrency/performance caveats
+`docs/problems/problems_phase_09.md` for the tracked concurrency/performance caveats
 this shares with ADR-0009's catalog design.
 """
 

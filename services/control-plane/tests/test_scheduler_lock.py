@@ -1,4 +1,4 @@
-"""Regression tests for `problems_final_review.md` P2-2 --
+"""Regression tests for `docs/problems/problems_final_review.md` P2-2 --
 `control_plane.platform.scheduler_lock` gives concurrent scheduler
 sweeps a real, database-enforced mutual-exclusion lock instead of no
 protection at all.

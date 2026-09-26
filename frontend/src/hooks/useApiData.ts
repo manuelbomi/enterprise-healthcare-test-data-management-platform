@@ -21,7 +21,7 @@ export interface ApiDataState<T> {
  *
  * Not a generic data-fetching *library* (no caching, no request
  * dedup) — deliberately minimal for a console this size; see
- * `problems_phase_09.md` if that stops being true.
+ * `docs/problems/problems_phase_09.md` if that stops being true.
  */
 export function useApiData<T>(fetcher: () => Promise<T>, deps: React.DependencyList = []): ApiDataState<T> {
   const [data, setData] = useState<T | null>(null);

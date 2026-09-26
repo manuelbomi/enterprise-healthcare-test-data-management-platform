@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-`problems_final_review.md` P0-1 (Phase 17's principal-engineer
+`docs/problems/problems_final_review.md` P0-1 (Phase 17's principal-engineer
 production-readiness review) found the single most consequential gap in
 the whole platform: `control_plane.platform.rbac.authorize()` was real,
 enforced code, but every one of its four call sites (dataset-version
@@ -64,7 +64,7 @@ gap and no more:
 Every other actor-attribution field in this service (`revoked_by`,
 `performed_by`, `requested_by`, `generated_by`, `accessed_by`) is
 *unchanged* by this decision — it remains exactly what
-`problems_phase_11.md` P11-4 already, honestly, called it: advisory
+`docs/problems/problems_phase_11.md` P11-4 already, honestly, called it: advisory
 metadata, not a security control. Only `actor_role` — the one field an
 authorization *decision* is made from — needed to move behind real
 verification.

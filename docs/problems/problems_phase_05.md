@@ -125,10 +125,10 @@ genuine open issue for a later phase.
   `libs/contracts/src/healthcare_tdm_contracts/synthetic.py`
 - **Owner for resolution:** a future job-orchestration phase / the
   metadata plane's snapshot registry (`ROADMAP.md` Phase 7), same as
-  `problems_phase_04.md` P4-1/P4-2. **Correction:** this used to say
+  `docs/problems/problems_phase_04.md` P4-1/P4-2. **Correction:** this used to say
   "Phase 14 (job orchestration)" — Phase 14 actually happened and its
   scope was scale/performance benchmark tooling, not job-orchestration
-  wiring; that remains unscheduled by name (see `problems_phase_14.md`).
+  wiring; that remains unscheduled by name (see `docs/problems/problems_phase_14.md`).
 
 ### P5-4 — No scenario generates a new Address row
 
@@ -172,7 +172,7 @@ genuine open issue for a later phase.
 ### P5-6 — `very_large_claim_histories` at its default size has not been benchmarked at real scale
 
 - **Status:** open (documented limitation, not a defect; same shape of
-  gap as `problems_phase_04.md` P4-3)
+  gap as `docs/problems/problems_phase_04.md` P4-3)
 - **Description:** The default 250-claims-per-member volume is
   demonstrated end to end against a real `tiny`-scale base estate in this
   phase's tests and tutorial (contributing 250-629 of the ~296-460 total

@@ -12,7 +12,7 @@ vi.mock("@/api", () => ({
 
 describe("AuditTrailPage", () => {
   it("renders real audit events returned by GET /api/v1/audit/events, not a placeholder", async () => {
-    // Phase 18A fix (problems_final_review.md P1-4): this page used to
+    // Phase 18A fix (docs/problems/problems_final_review.md P1-4): this page used to
     // claim "there is no backing API for this page to call" -- false
     // since Phase 11. This test proves the real endpoint is now called
     // and its real data rendered.

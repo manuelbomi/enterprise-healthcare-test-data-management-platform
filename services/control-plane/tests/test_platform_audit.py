@@ -70,7 +70,7 @@ def test_list_events_filters_by_event_type(session: Session) -> None:
 
 
 def test_phase_13_event_types_record_and_list_correctly(session: Session) -> None:
-    # `problems_phase_13.md` added DATASET_VERSION_ACCESSED (the "who
+    # `docs/problems/problems_phase_13.md` added DATASET_VERSION_ACCESSED (the "who
     # accessed it" event this phase found missing) and
     # EVIDENCE_PACKAGE_GENERATED -- prove both round-trip through this
     # real repository exactly like every pre-existing event type does.

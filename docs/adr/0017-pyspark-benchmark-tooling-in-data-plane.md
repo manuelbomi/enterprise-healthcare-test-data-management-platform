@@ -15,7 +15,7 @@ either locally ... or on Spark"), but no file under
 `SparkSession` through Phase 13 -- every real engine (`discovery`,
 `subsetting`, `masking`, `synthetic`, `certification`, `capacity`)
 operates on local files with pandas/pyarrow/stdlib (see
-`problems_phase_12.md`'s container-build decision record, which already
+`docs/problems/problems_phase_12.md`'s container-build decision record, which already
 names this gap explicitly). Phase 14 needs two decisions:
 
 1. **Where does real PySpark code, and the benchmark tooling that
@@ -67,7 +67,7 @@ There is no Spark cluster anywhere in `infra/` (no `spark-worker`/
 Kubernetes-native or standalone Spark cluster is a substantial
 infrastructure undertaking on its own, and Phase 12 already made the
 deliberate choice not to containerize `data-plane` at all --
-`problems_phase_12.md`). Every `SparkSession` this phase builds
+`docs/problems/problems_phase_12.md`). Every `SparkSession` this phase builds
 (`data_plane.spark.session.get_local_spark_session`) therefore uses
 `master("local[*]")` -- real Catalyst query plans, real Arrow-vectorized
 `pandas_udf` execution, real broadcast joins, real wall-clock numbers,
@@ -147,9 +147,9 @@ honesty rule above.
   "engine exists, job submission plumbing does not yet" gap `ARCHITECTURE.md`'s
   Phase 3/4 notes already document for the pandas-engine versions of
   these same two operations. Tracked, not reopened, in
-  `problems_phase_14.md`.
+  `docs/problems/problems_phase_14.md`.
 - No real Delta table exists anywhere in this repository after this
-  phase either -- `problems_phase_14.md` tracks this as a genuinely open
+  phase either -- `docs/problems/problems_phase_14.md` tracks this as a genuinely open
   item for whichever later phase actually needs Delta's transaction-log/
   time-travel semantics, not something this phase's benchmark-tooling
   scope was ever going to close.

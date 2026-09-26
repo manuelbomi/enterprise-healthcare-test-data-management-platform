@@ -133,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         for failure in validation.failures:
             print(f"  FAILED: {failure}", file=sys.stderr)
 
-    # Phase 18B (`problems_final_review.md` P3-7): constructs the shared
+    # Phase 18B (`docs/problems/problems_final_review.md` P3-7): constructs the shared
     # `healthcare_tdm_contracts.MaskingRunSummary` contract rather than a
     # raw dict -- the same shape
     # `data_plane.certification.pipeline._write_masking_summary` builds,

@@ -13,7 +13,7 @@ services with a real `Dockerfile` as of this phase — see
 `services/governance-service/Dockerfile`, `frontend/Dockerfile`), a
 ConfigMap + Secret-template split for the control plane's
 configuration, and a disabled-by-default Ingress. `data-plane` has no
-template here — see `problems_phase_12.md` for the decision record.
+template here — see `docs/problems/problems_phase_12.md` for the decision record.
 
 Postgres itself is **not** templated as an in-cluster StatefulSet —
 `values.yaml`'s `postgresql.externalHost` documents the intended real

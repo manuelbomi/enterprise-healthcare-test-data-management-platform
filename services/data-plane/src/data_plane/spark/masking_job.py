@@ -70,7 +70,7 @@ CLAIM_ID_SCOPE = LINKAGE_SCOPES["claim"][0]
 #: (`data_plane/masking/policy.py`) classifies claim monetary amounts as
 #: a sensitive clinical/financial attribute masked by date-shifting *dates*,
 #: not amounts; reproducing that whole policy resolution in Spark is out
-#: of this phase's scope (see `problems_phase_14.md`). This job masks the
+#: of this phase's scope (see `docs/problems/problems_phase_14.md`). This job masks the
 #: two DIRECT_IDENTIFIER columns every row actually has, which is enough
 #: to demonstrate the real mechanism at scale.
 DEFAULT_MASKED_COLUMNS: dict[str, str] = {

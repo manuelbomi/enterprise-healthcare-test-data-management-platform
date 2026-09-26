@@ -34,8 +34,8 @@ This service now has three real capability sets:
 
 Everything else in `ARCHITECTURE.md` section 2.1 the control plane is
 scoped to own (job orchestration/DAG construction, RBAC enforcement)
-remains not yet implemented -- see `problems_master.md` and
-`problems_phase_08.md` for what's next.
+remains not yet implemented -- see `docs/problems/problems_master.md` and
+`docs/problems/problems_phase_08.md` for what's next.
 
 ## Database migrations (Phase 18A)
 

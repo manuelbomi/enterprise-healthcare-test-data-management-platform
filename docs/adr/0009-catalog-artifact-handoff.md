@@ -73,7 +73,7 @@ one of the two service packages importing the other.
   plane's in-memory cache (`CatalogRepository`) requires an explicit
   `reload()` — it will not notice a new file on disk automatically. Fine
   for this phase's scope (a portfolio/teaching project, one discovery run
-  at a time); tracked as an explicit open item, `problems_phase_02.md`
+  at a time); tracked as an explicit open item, `docs/problems/problems_phase_02.md`
   P2-4.
 - **A small amount of duplicated logic** (JSON parsing into
   `CatalogEntry`) exists in both `data_plane.discovery.catalog_builder`
@@ -83,7 +83,7 @@ one of the two service packages importing the other.
   design work: every cross-plane interaction needs an explicit contract
   ... instead of a convenient shared in-process function call").
 - **Superseded, not final.** Once the real metadata-plane PostgreSQL
-  schema exists (a later phase — see `problems_phase_02.md` P2-4), the
+  schema exists (a later phase — see `docs/problems/problems_phase_02.md` P2-4), the
   classification store should move there, per `DATA_GOVERNANCE.md` B.1
   ("tracked in the metadata plane's classification store"), and
   `CatalogRepository` should become a thin SQLAlchemy-backed repository

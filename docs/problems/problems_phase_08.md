@@ -110,7 +110,7 @@ phase.
   an "estimated compute-unit-hours" and "estimated annual processing
   volume" figure using a single hardcoded throughput constant
   (`ROWS_PER_COMPUTE_UNIT_HOUR`), not a measured Spark benchmark. This is
-  the same honest gap `problems_phase_06.md` documents for masking's
+  the same honest gap `docs/problems/problems_phase_06.md` documents for masking's
   distribution-shape checking: a plausible, clearly-labeled placeholder,
   not a production SLA.
 - **Repro / detail:** N/A — read `estimator.py`'s module docstring; the
@@ -134,7 +134,7 @@ phase.
 ### P8-2 — `CapacityPlanner` still trusts `DatasetVersion.size_bytes`/`row_counts` as registered (does not re-measure them itself)
 
 - **Status:** open (documented limitation, not a defect; direct
-  continuation of `problems_phase_07.md` P7-8)
+  continuation of `docs/problems/problems_phase_07.md` P7-8)
 - **Description:** P7-8 already documents that `register_dataset_version`
   trusts caller-supplied `size_bytes`/`row_counts` rather than
   independently re-deriving them, and names this exact phase
@@ -159,8 +159,8 @@ phase.
   `services/data-plane/src/data_plane/capacity/footprint.py`
 - **Owner for resolution:** Same as P7-8 — would require either a
   control-plane-side storage adapter (ADR-0005's interface, not yet
-  implemented per `problems_master.md` P0-3) or a future job-
-  orchestration step (per `problems_phase_07.md` P7-7, whose own text
+  implemented per `docs/problems/problems_master.md` P0-3) or a future job-
+  orchestration step (per `docs/problems/problems_phase_07.md` P7-7, whose own text
   has been corrected: this is not Phase 14, which turned out to be
   scale/performance benchmark tooling) that runs the data-plane
   measurement and passes its output to registration, rather than a
@@ -176,10 +176,10 @@ phase.
   `EnvironmentDatasetRequest`s), but nothing in this phase actually
   deletes the underlying `storage_uri` — this repository does not
   implement real object-storage deletion (no storage adapter exists
-  yet, `problems_master.md` P0-3), and even if one did, physically
+  yet, `docs/problems/problems_master.md` P0-3), and even if one did, physically
   deleting data on a read-only "here's what's reclaimable" endpoint's
   say-so without a human/CI approval step would be a dangerous
-  default. This mirrors `problems_phase_07.md` P7-3's "apply_retention
+  default. This mirrors `docs/problems/problems_phase_07.md` P7-3's "apply_retention
   has no automatic trigger" gap for the same underlying reason.
 - **Repro / detail:** Call `GET /api/v1/capacity/vacuum-candidates`
   after revoking a dataset version no environment references; observe

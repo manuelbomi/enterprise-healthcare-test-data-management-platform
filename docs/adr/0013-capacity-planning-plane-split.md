@@ -24,9 +24,9 @@ Putting both in one module would mean either the data plane importing
 `control_plane`'s database session (a plane-separation violation --
 ADR-0003 says a plane may only be reached through its published
 interface), or the control plane reaching directly into object storage
-to re-measure files (which `problems_phase_07.md` P7-8 already
+to re-measure files (which `docs/problems/problems_phase_07.md` P7-8 already
 identifies as a real, currently-unclosed gap requiring a storage
-adapter that does not exist yet -- `problems_master.md` P0-3).
+adapter that does not exist yet -- `docs/problems/problems_master.md` P0-3).
 
 ## Decision
 
@@ -72,9 +72,9 @@ same "typed contract, no business logic" rule every other
   completely independently of any real files on disk -- it consumes
   `DatasetVersion.size_bytes`/`row_counts` exactly as Phase 7 already
   registers them, never re-measuring them itself. This means
-  `problems_phase_07.md` P7-8 ("the control plane trusts caller-supplied
+  `docs/problems/problems_phase_07.md` P7-8 ("the control plane trusts caller-supplied
   `size_bytes`") is *not* closed by this ADR -- see
-  `problems_phase_08.md` P8-2 for the honest continuation of that gap
+  `docs/problems/problems_phase_08.md` P8-2 for the honest continuation of that gap
   and why closing it fully needs a real storage adapter (P0-3), not just
   a capacity-planning phase.
 - A caller that wants the two joined together (real measurement feeding

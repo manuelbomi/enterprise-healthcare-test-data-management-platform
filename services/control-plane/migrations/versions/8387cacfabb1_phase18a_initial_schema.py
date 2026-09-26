@@ -4,7 +4,7 @@ Revision ID: 8387cacfabb1
 Revises:
 Create Date: 2026-09-25 20:55:03.241659
 
-Phase 18A (resolves `problems_final_review.md` P1-3): this migration
+Phase 18A (resolves `docs/problems/problems_final_review.md` P1-3): this migration
 was generated with `alembic revision --autogenerate` directly against
 `control_plane.db.models.Base.metadata` -- the exact same schema
 `init_schema`/`create_all` builds -- so it is a faithful, mechanically

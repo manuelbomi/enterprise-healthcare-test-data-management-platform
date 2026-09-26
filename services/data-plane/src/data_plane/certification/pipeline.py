@@ -303,7 +303,7 @@ def _write_masking_summary(
     `gates.check_manifest_generation` to find, so it writes the same
     artifact the CLI would have.
 
-    Phase 18B (`problems_final_review.md` P3-7): constructs the shared
+    Phase 18B (`docs/problems/problems_final_review.md` P3-7): constructs the shared
     `healthcare_tdm_contracts.MaskingRunSummary` contract, the same one
     `data_plane.masking.cli.main` now builds -- one typed shape for both
     real writers of this artifact, not two independently-maintained

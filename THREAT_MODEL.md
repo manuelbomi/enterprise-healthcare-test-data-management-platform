@@ -6,7 +6,7 @@ revisited below for the first time since then (Phase 18A -- see section
 5). The goal is to teach *how* to threat-model a system like this, not
 just to list findings.
 
-**Phase 18A revisit note.** `problems_final_review.md` P1-1 found that
+**Phase 18A revisit note.** `docs/problems/problems_final_review.md` P1-1 found that
 this document had not been touched since its Phase 0 commit despite
 Phases 7, 10, 11, and 13 all changing real trust boundaries, and as a
 result made at least three claims that no longer matched the real
@@ -98,7 +98,7 @@ repository using only synthetic data, never deployed -- see section 4.
   (`revoked_by`, `performed_by`, `requested_by`, `generated_by`,
   `accessed_by`) remains **unverified, advisory metadata, not a security
   control** -- see `control_plane.platform.rbac`'s module docstring and
-  `problems_final_review.md` P2-13.
+  `docs/problems/problems_final_review.md` P2-13.
 - **Tampering**: a job request is modified in transit or a replayed request
   re-triggers an already-approved job.
   *Mitigation*: TLS everywhere; job requests are idempotency-keyed.
@@ -120,7 +120,7 @@ repository using only synthetic data, never deployed -- see section 4.
   request-submission endpoint, and no rate limiting exists anywhere in
   this codebase (confirmed by a repo-wide grep for
   `RateLimit|rate_limit|slowapi|Throttl`). This is an open, real gap for
-  a genuine production deployment, tracked as `problems_final_review.md`
+  a genuine production deployment, tracked as `docs/problems/problems_final_review.md`
   P1-1's own finding rather than papered over with an aspirational
   mitigation.
 - **Elevation of privilege**: a low-privilege role requests an action gated
@@ -130,8 +130,8 @@ repository using only synthetic data, never deployed -- see section 4.
   a role derived from a verified bearer token (see "Spoofing" above) --
   no longer inferred from a client-supplied `actor_role` field. This
   covers exactly the four endpoints RBAC gates plus scheduler run-due
-  (`problems_final_review.md` P1-2); every other lifecycle/governance
-  mutation remains ungated by role at all (`problems_phase_11.md` P11-4),
+  (`docs/problems/problems_final_review.md` P1-2); every other lifecycle/governance
+  mutation remains ungated by role at all (`docs/problems/problems_phase_11.md` P11-4),
   a distinct, still-open gap from the one this mitigation closes.
 
 ### Data plane
@@ -228,7 +228,7 @@ integration). Revisions are noted in the relevant ADR, not by silently
 editing history in this file.
 
 **Revisit history**: Phase 0 (initial write). Phase 18A (this revisit --
-`problems_final_review.md` P1-1): corrected the Control plane Spoofing/
+`docs/problems/problems_final_review.md` P1-1): corrected the Control plane Spoofing/
 Denial-of-service/Elevation-of-privilege mitigations and the
 Infrastructure Denial-of-service citation to match the real codebase;
 see ADR-0018 for the identity-verification mechanism this revisit

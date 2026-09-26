@@ -97,7 +97,7 @@ def test_insufficiently_privileged_actor_is_rejected_revoking_a_dataset_version(
 def test_an_unauthenticated_caller_is_rejected_before_an_insufficiently_privileged_one_would_be(
     client: TestClient,
 ) -> None:
-    """Phase 18A (`problems_final_review.md` P0-1, now resolved): before
+    """Phase 18A (`docs/problems/problems_final_review.md` P0-1, now resolved): before
     this phase, `actor_role` was a plain, unverified request-body field
     -- ANY caller could claim `PLATFORM_ADMIN` and succeed. This proves
     the real fix end to end: a request with no bearer token at all (the
@@ -198,7 +198,7 @@ def test_duplicate_refresh_requests_do_not_corrupt_state(client: TestClient) -> 
     environment request must not create a duplicate
     `EnvironmentDatasetRequest` or a duplicate `DatasetVersion` -- only
     a second, distinct `RefreshRunRecord` log entry (correct, since
-    each is a real, separate execution). See `problems_phase_07.md`
+    each is a real, separate execution). See `docs/problems/problems_phase_07.md`
     P7-2 for the one remaining, honestly documented gap this does not
     close (concurrent *scheduler sweeps*, as opposed to duplicate calls
     to this single-request endpoint)."""
@@ -238,7 +238,7 @@ def test_duplicate_dataset_version_registration_is_idempotent(client: TestClient
     """A caller retrying `register_dataset_version` with the identical
     `CertificationReport` (e.g. after an ambiguous network timeout)
     must not create two `DatasetVersion`s. This is the real gap found
-    and fixed while writing this test -- see `problems_phase_11.md`'s
+    and fixed while writing this test -- see `docs/problems/problems_phase_11.md`'s
     "Resolved problems" section."""
 
     report = make_certified_report(dataset_name="idempotency-ds")

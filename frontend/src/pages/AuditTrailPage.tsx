@@ -11,7 +11,7 @@ import { formatDate, titleCase } from "@/lib/format";
  * Audit Trail page -- real, DB-backed, calling `GET /api/v1/audit/events`
  * (`control_plane.platform.audit.AuditLogRepository`, Phase 11).
  *
- * **Phase 18A fix** (`problems_final_review.md` P1-4): before this
+ * **Phase 18A fix** (`docs/problems/problems_final_review.md` P1-4): before this
  * phase, this page rendered a placeholder claiming "there is no backing
  * API for this page to call" -- true when written in Phase 9, but false
  * since Phase 11 shipped this exact endpoint two phases later. Nobody
@@ -22,7 +22,7 @@ import { formatDate, titleCase } from "@/lib/format";
  *
  * `actor`/`subject`/`event_type` are unverified free text everywhere
  * they are written (see `control_plane.platform.rbac`'s module
- * docstring and `problems_final_review.md` P2-13) -- this page does not
+ * docstring and `docs/problems/problems_final_review.md` P2-13) -- this page does not
  * claim otherwise; it displays the real audit log, not a stronger
  * guarantee than the log itself carries.
  */

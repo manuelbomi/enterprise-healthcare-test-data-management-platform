@@ -82,7 +82,7 @@ def test_masking_job_crash_leaves_an_incomplete_marker_not_silent_partial_output
     real, checkable signal (`_MASKING_RUN_INCOMPLETE.marker`) that the
     output directory must not be trusted as complete.
 
-    This is the test that found a real gap (`problems_phase_11.md`
+    This is the test that found a real gap (`docs/problems/problems_phase_11.md`
     P11-1) and proves the fix: before this phase, `mask_estate` gave
     no on-disk signal at all that a run had crashed -- a caller
     scanning `out_root` afterward could not distinguish "this masking

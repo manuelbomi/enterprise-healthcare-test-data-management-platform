@@ -1,11 +1,11 @@
 name: CI
 
-# Phase 12: this workflow finally runs for real (see problems_master.md
+# Phase 12: this workflow finally runs for real (see docs/problems/problems_master.md
 # P0-2, open since Phase 0 -- "no GitHub remote/Actions run yet exists
 # for this local repository"). Every job below was verified locally
 # with the exact command it runs before being wired in here, and the
 # gate logic (a red job here blocks deployment) was proven with a real,
-# deliberately-broken commit -- see problems_phase_12.md for the run
+# deliberately-broken commit -- see docs/problems/problems_phase_12.md for the run
 # IDs of both the real failure and the real fix.
 #
 # Jobs are split by concern (lint / typecheck / unit / integration /
@@ -81,10 +81,10 @@ jobs:
       - name: mypy — services/data-plane (known gap, non-blocking)
         # 15 pre-existing strict-mode findings from Phases 3/5, predating
         # Phase 12 and out of this phase's scope to fix wholesale (see
-        # problems_phase_12.md). Reported, never silently skipped, but
+        # docs/problems/problems_phase_12.md). Reported, never silently skipped, but
         # does not fail the build -- unlike every other mypy step above,
         # which are hard gates.
-        run: mypy services/data-plane/src || echo "::warning::data-plane mypy has pre-existing findings — see problems_phase_12.md"
+        run: mypy services/data-plane/src || echo "::warning::data-plane mypy has pre-existing findings — see docs/problems/problems_phase_12.md"
         continue-on-error: true
 
   # ---------------------------------------------------------------------
@@ -116,7 +116,7 @@ jobs:
   # service container, not the SQLite default -- this is what makes it
   # an integration test rather than a repeat of the unit-tests job
   # above, and is the CI-side counterpart to the real Docker Compose
-  # Postgres verification in problems_phase_12.md.
+  # Postgres verification in docs/problems/problems_phase_12.md.
   # ---------------------------------------------------------------------
   integration-tests:
     name: Integration tests — control-plane vs. real Postgres
@@ -198,7 +198,7 @@ jobs:
   # secret scan (scripts/security/detect_secrets.py) and a known-
   # vulnerability dependency scan (scripts/security/dependency_scan.py,
   # pip-audit), both real, both already existed as of Phase 11
-  # (problems_phase_11.md P11-3) but neither was wired into CI until now.
+  # (docs/problems/problems_phase_11.md P11-3) but neither was wired into CI until now.
   # ---------------------------------------------------------------------
   security-checks:
     name: Security checks (secrets scan, dependency audit)

@@ -1,6 +1,6 @@
 """Unit tests for `control_plane.platform.rbac` -- proving `authorize()`
 is a real, enforced check, not a no-op that always allows (the
-anti-pattern `problems_phase_11.md` explicitly calls out avoiding).
+anti-pattern `docs/problems/problems_phase_11.md` explicitly calls out avoiding).
 """
 
 from __future__ import annotations

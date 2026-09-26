@@ -89,7 +89,7 @@ gate result it does not actually have.
 
 ## The checksum is a keyed integrity check, not a non-repudiation signature
 
-**Phase 18A update** (`problems_final_review.md` P1-7, resolved):
+**Phase 18A update** (`docs/problems/problems_final_review.md` P1-7, resolved):
 `bundle_checksum` is now a **keyed HMAC-SHA256** digest over the
 package's own canonical JSON (every field except itself), computed by
 `control_plane.platform.evidence_signing.compute_bundle_checksum` and
@@ -109,7 +109,7 @@ strong as the secrecy of their signing key -- anyone with **both**
 database/file write access **and** the key can still forge a new,
 internally-consistent signature/checksum. Closing that fully would need
 a real external KMS/HSM integration with key isolation this repository
-does not implement (see `SECURITY.md`). See `problems_phase_13.md`
+does not implement (see `SECURITY.md`). See `docs/problems/problems_phase_13.md`
 P13-2 for the longer-standing, still-open non-repudiation gap
 (asymmetric signatures) this keying does not attempt to solve either.
 
@@ -125,7 +125,7 @@ P13-2 for the longer-standing, still-open non-repudiation gap
   caveat stated for RBAC's `actor_role`.
 - It does not enforce RBAC. Any caller may generate an evidence package
   or record a dataset access -- neither endpoint is gated by
-  `control_plane.platform.rbac.authorize()`. See `problems_phase_13.md`
+  `control_plane.platform.rbac.authorize()`. See `docs/problems/problems_phase_13.md`
   P13-3.
 - It does not independently re-run any certification gate, re-check any
   referential integrity constraint, or re-verify any signature on a

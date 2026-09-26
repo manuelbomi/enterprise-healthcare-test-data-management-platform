@@ -43,7 +43,7 @@ class GenerateEvidencePackageRequest(BaseModel):
     generated_by: str
     #: The real Phase 6 CertificationReport for this dataset version, if
     #: the caller has it -- `services/control-plane` does not durably
-    #: store this itself (see `problems_phase_13.md` P13-1). Embedded
+    #: store this itself (see `docs/problems/problems_phase_13.md` P13-1). Embedded
     #: verbatim (never re-derived or re-verified) if supplied.
     certification_report: CertificationReport | None = None
     #: The real Phase 4 SubsetManifest, same caveat.

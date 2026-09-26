@@ -115,7 +115,7 @@ def test_policy_version_approval_workflow(client: TestClient) -> None:
 def test_approve_and_reject_policy_version_audit_events_record_the_verified_identity_not_free_text(
     client: TestClient,
 ) -> None:
-    """Phase 18B (`problems_final_review.md` P2-13): `approve_policy_version`/
+    """Phase 18B (`docs/problems/problems_final_review.md` P2-13): `approve_policy_version`/
     `reject_policy_version` already require a verified bearer-token
     identity (`Depends(get_current_actor)`) for RBAC -- this proves the
     audit trail's own `actor` field now uses that verified identity
@@ -312,7 +312,7 @@ def test_both_arms_use_the_same_approved_policy_version_end_to_end(client: TestC
 
 
 # ----------------------------------------------------------------------
-# Phase 18B (`problems_final_review.md` P3-4): REJECTED/CANCELLED
+# Phase 18B (`docs/problems/problems_final_review.md` P3-4): REJECTED/CANCELLED
 # terminal states, exercised through the real API
 # ----------------------------------------------------------------------
 

@@ -7,7 +7,7 @@
 # be Phase 12 (Kubernetes/Helm + Terraform examples), which deliberately
 # built out ../azure/main.tf in full (a real, terraform validate/fmt
 # clean example) while leaving this AWS example unchanged, still
-# passing, as an intentional asymmetry — see `problems_phase_12.md` and
+# passing, as an intentional asymmetry — see `docs/problems/problems_phase_12.md` and
 # `ROADMAP.md`'s Phase 12 section for that decision. This file remains
 # the Phase 0 structural placeholder it always was; a future phase that
 # wants an equally real AWS example should follow azure/main.tf's

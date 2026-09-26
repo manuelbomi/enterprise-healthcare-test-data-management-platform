@@ -121,7 +121,7 @@ resolved and is now verified by a real, passing test:
   itself still only preserves per-value plausibility, not full
   statistical distribution shape (mean/variance/percentile fidelity) --
   the new gate *checks for gross distortion*, it does not make masking
-  itself distributionally faithful. See `problems_final_review.md`'s
+  itself distributionally faithful. See `docs/problems/problems_final_review.md`'s
   (now-deleted) P1-9 for the fix's exact scope, and
   `data_plane/certification/gates.py`'s `check_distribution_shape`
   docstring for what it deliberately does and does not verify.
@@ -150,5 +150,5 @@ resolved and is now verified by a real, passing test:
   `/api/v1/governance/policy-versions`). An operator can draft/submit/
   approve a new `MaskingPolicy` revision entirely through the API,
   without a code change to `data_plane/masking/policy.py`. See
-  `problems_phase_10.md` and
+  `docs/problems/problems_phase_10.md` and
   `docs/adr/0014-masking-governance-lives-in-control-plane.md`.

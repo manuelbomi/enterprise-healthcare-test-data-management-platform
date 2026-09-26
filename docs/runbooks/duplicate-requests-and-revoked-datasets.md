@@ -32,7 +32,7 @@ None, by design — both endpoints are safe to call more than once:
 - **Dataset-version registration**: calling it twice with the
   *identical* `CertificationReport` now returns the *same*
   `DatasetVersion` both times (Phase 11 fix — see
-  `problems_phase_11.md`'s "Resolved problems" for the real duplicate-row
+  `docs/problems/problems_phase_11.md`'s "Resolved problems" for the real duplicate-row
   bug this closed).
   **Backing test**: `...::test_duplicate_dataset_version_registration_is_idempotent`.
 
@@ -58,7 +58,7 @@ pre-fix duplicate) rather than deleted, preserving the audit trail.
 
 ### The one gap this does NOT close
 
-`problems_phase_07.md` P7-2 (unchanged by this phase): two *concurrent*
+`docs/problems/problems_phase_07.md` P7-2 (unchanged by this phase): two *concurrent*
 calls to `POST /api/v1/lifecycle/scheduler/run-due` (the scheduler
 sweep, as opposed to a single request's own `/refresh` endpoint) have
 no distributed lock preventing an overlapping sweep. This runbook's

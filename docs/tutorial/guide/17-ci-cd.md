@@ -53,10 +53,10 @@ exactly the cross-system linkage inconsistency
 catch (Chapter 10's referential-integrity guarantee). This was confirmed
 failing locally first, then pushed, and the CI run genuinely failed and
 blocked `release-gate` before the change was reverted — see
-`problems_phase_12.md` for the exact GitHub Actions run IDs of both the
+`docs/problems/problems_phase_12.md` for the exact GitHub Actions run IDs of both the
 real failure and the real fix. A fully green run across all three
 workflows (CI, container build, Playwright E2E) was independently
-confirmed afterward — `problems_phase_12.md` records seven real bugs
+confirmed afterward — `docs/problems/problems_phase_12.md` records seven real bugs
 found and fixed during this process (a CORS misconfiguration, an nginx
 CVE, and others), each verified by a real, subsequent green run, not
 assumed fixed.
@@ -86,5 +86,5 @@ the same checks, automated and gated, not a separate, opaque process.
 ## Where to go next
 
 Continue to [Chapter 18 — Cloud testing](18-cloud-testing.md), or read
-`problems_phase_12.md` in full for the complete, real incident log of
+`docs/problems/problems_phase_12.md` in full for the complete, real incident log of
 this phase's CI/CD build-out, including every run ID.

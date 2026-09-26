@@ -20,7 +20,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # afterward). A real, current CVE (PYSEC-2026-3447, fixed in 83.0.0) was
 # found by scripts/security/dependency_scan.py's first real CI run
 # against the setuptools version actions/setup-python's Python 3.11
-# ships with -- see problems_phase_12.md.
+# ships with -- see docs/problems/problems_phase_12.md.
 python -m pip install --upgrade "setuptools>=83.0.0"
 
 # `cd` into each package dir and install "." (not an absolute path) — pip's

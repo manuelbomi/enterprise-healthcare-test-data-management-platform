@@ -24,7 +24,7 @@ Module map
   connectivity, catalog artifact availability), distinct from the
   Phase 0 liveness-only `/api/v1/health`.
 - `retry.py` -- a small, generic retry-with-backoff helper, used by
-  the readiness database check (see `problems_phase_11.md` P11-6 for
+  the readiness database check (see `docs/problems/problems_phase_11.md` P11-6 for
   why it is deliberately *not* used for data-plane job execution).
 - `dead_letter.py` -- `DeadLetterStore`, a durable record of
   individually-isolated job/sweep failures (wired into

@@ -36,7 +36,7 @@ apparently covered.
 ## What was already real, and what this phase found missing
 
 Reading the existing code turned up two concrete, narrow gaps (recorded
-in `problems_phase_13.md` before any code was written):
+in `docs/problems/problems_phase_13.md` before any code was written):
 
 1. **"Who accessed it" was never actually recorded.**
    `AuditEventType.ACCESS_GRANTED`/`ACCESS_REQUESTED` had existed in
@@ -115,7 +115,7 @@ registration time -- see `control_plane.db.models.DatasetVersionRow`).
 Rather than fabricate integrity/quality evidence that does not exist in
 this service, `EvidenceRepository` leaves those fields empty and adds an
 explicit `provenance_notes` entry explaining why, whenever a report
-wasn't supplied. See `problems_phase_13.md` P13-1.
+wasn't supplied. See `docs/problems/problems_phase_13.md` P13-1.
 
 ## A worked example
 

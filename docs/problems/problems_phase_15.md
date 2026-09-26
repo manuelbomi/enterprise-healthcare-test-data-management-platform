@@ -2,7 +2,7 @@
 
 Written before implementation, per `CONTRIBUTING.md`. Updated after
 implementation to record what was actually resolved vs. what remains
-open (moved to `problems_master.md` if broader than this phase).
+open (moved to `docs/problems/problems_master.md` if broader than this phase).
 
 ## Context this phase starts from
 
@@ -34,8 +34,8 @@ the whole repository (excluding `docs/tutorial/` itself) turned up real
 cross-references from `ARCHITECTURE.md`, `CONTRIBUTING.md`,
 `docs/adr/0007-...md`, `docs/diagrams/README.md`,
 `docs/PLATFORM_INTEGRITY.md`, `docs/runbooks/duplicate-requests-and-revoked-datasets.md`,
-`README.md`, `ROADMAP.md`, `problems_phase_04.md`, `problems_phase_05.md`,
-`problems_phase_07.md`, `scripts/README.md`,
+`README.md`, `ROADMAP.md`, `docs/problems/problems_phase_04.md`, `docs/problems/problems_phase_05.md`,
+`docs/problems/problems_phase_07.md`, `scripts/README.md`,
 `services/control-plane/README.md`,
 `services/data-plane/src/data_plane/subsetting/README.md`, and
 `services/data-plane/src/data_plane/synthetic/README.md` — every one of
@@ -89,7 +89,7 @@ material that exists across phases: Phase 7 lifecycle/refresh
 governance (`control_plane.domain.governance`), Phase 11 platform
 integrity (`control_plane.platform`), Phase 13 audit evidence
 (`control_plane.domain.evidence`), plus the process itself
-(`ROADMAP.md`, `CONTRIBUTING.md`, `problems_master.md`). It is explicit,
+(`ROADMAP.md`, `CONTRIBUTING.md`, `docs/problems/problems_master.md`). It is explicit,
 in the chapter text, that this is a synthesis across real subsystems,
 not a description of one unbuilt "product operations" module.
 
@@ -138,7 +138,7 @@ required tests fail" — nothing here should be taken on faith either):
    `libs/contracts` 62 passed, `services/control-plane` 195 passed,
    `services/data-plane` 439 passed, `services/governance-service` 2
    passed — 698 total, unchanged from the count recorded in
-   `problems_phase_14.md`.
+   `docs/problems/problems_phase_14.md`.
 
 ## Resolved by this phase
 
@@ -194,5 +194,5 @@ required tests fail" — nothing here should be taken on faith either):
   evidence such a unified capability already exists in code today.
 - **P15-3 (open, by design)** — No Mermaid diagram added by this phase
   has been rendered to a static image, consistent with the
-  already-open `P0-4` in `problems_master.md` (diagrams are Mermaid
+  already-open `P0-4` in `docs/problems/problems_master.md` (diagrams are Mermaid
   source only, rendered natively by GitHub's Markdown viewer).

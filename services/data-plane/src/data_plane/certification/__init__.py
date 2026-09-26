@@ -26,7 +26,7 @@ responsible only for the stages after MASK: VALIDATE (`gates.py`), CERTIFY
 
 **A dataset is not publishable simply because masking ran.** See
 `docs/CERTIFICATION_VS_MASKING.md` for the full explanation, and
-`problems_phase_03.md` P3-1 for why Phase 3's own masking validation was
+`docs/problems/problems_phase_03.md` P3-1 for why Phase 3's own masking validation was
 always documented as a *precursor* to this phase, not a replacement for
 it.
 

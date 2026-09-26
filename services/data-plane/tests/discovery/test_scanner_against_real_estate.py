@@ -85,7 +85,7 @@ def test_scan_finds_real_schema_drift_columns_not_in_domain_model(scanned_column
     assert _find(scanned_columns, "object_storage_claims_parquet", "claim", "adjustment_reason_code")
     # Legacy batch's original name should ALSO still be present (both
     # schema-drifted batches are unioned into one dataset -- see
-    # scanner.py's docstring and problems_phase_02.md P2-3).
+    # scanner.py's docstring and docs/problems/problems_phase_02.md P2-3).
     assert _find(scanned_columns, "object_storage_claims_parquet", "claim", "paid_amount")
 
 

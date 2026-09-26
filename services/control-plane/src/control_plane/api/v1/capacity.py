@@ -59,7 +59,7 @@ def get_capacity_scenario_history(
 
 
 class SaveIllustrativeCapacityPlanRequest(BaseModel):
-    """Phase 18B (`problems_final_review.md` P3-3): the scenario to
+    """Phase 18B (`docs/problems/problems_final_review.md` P3-3): the scenario to
     compute and persist in one call, plus who saved it."""
 
     scenario: IllustrativeCapacityScenario
@@ -113,7 +113,7 @@ def get_vacuum_candidates(
 ) -> list[VacuumCandidate]:
     """Dataset versions that are safe to physically delete: terminal
     status (expired/revoked/rolled_back) and referenced by zero
-    environment requests. Read-only -- see `problems_phase_08.md` P8-3
+    environment requests. Read-only -- see `docs/problems/problems_phase_08.md` P8-3
     for why this identifies candidates rather than deleting anything."""
 
     return planner.vacuum_candidates(dataset_name=dataset_name)
@@ -147,7 +147,7 @@ def post_illustrative_plan(scenario: IllustrativeCapacityScenario) -> Illustrati
     caller-supplied `IllustrativeCapacityScenario` (a custom production
     baseline and/or a custom set of per-environment requirements/share
     tiers). Pure calculation -- no database access; see
-    `problems_phase_08.md` P8-4 for why scenarios are not persisted."""
+    `docs/problems/problems_phase_08.md` P8-4 for why scenarios are not persisted."""
 
     return illustrative_capacity_plan(scenario)
 
@@ -157,7 +157,7 @@ def save_illustrative_plan(
     body: SaveIllustrativeCapacityPlanRequest,
     history: CapacityScenarioHistoryRepository = Depends(get_capacity_scenario_history),
 ) -> SavedIllustrativeCapacityPlan:
-    """Phase 18B (`problems_final_review.md` P3-3, now resolved):
+    """Phase 18B (`docs/problems/problems_final_review.md` P3-3, now resolved):
     compute `body.scenario` (the same pure calculation
     `POST /illustrative-plan` does) and persist the resulting
     `IllustrativeCapacityPlan` as a new, immutable historical record --

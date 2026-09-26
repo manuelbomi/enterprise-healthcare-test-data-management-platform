@@ -19,7 +19,7 @@ producer of these records), exactly the same split `subsetting.py`
 
 A dataset must NOT be publishable simply because masking ran
 --------------------------------------------------------------
-`problems_phase_03.md` P3-1 says this explicitly: Phase 3's own masking
+`docs/problems/problems_phase_03.md` P3-1 says this explicitly: Phase 3's own masking
 validation (`data_plane.masking.validation`) is "not the full certified
 test dataset pipeline" and a later certifier "should not simply trust
 this module's own report." `CertificationReport` is the typed answer to
@@ -137,7 +137,7 @@ class CertificationGateType(str, Enum):
     MANIFEST_GENERATION = "manifest_generation"
     POLICY_VERSION_RECORDED = "policy_version_recorded"
     MASKING_VERSION_RECORDED = "masking_version_recorded"
-    #: Phase 18A (resolves `problems_final_review.md` P1-9): a twelfth
+    #: Phase 18A (resolves `docs/problems/problems_final_review.md` P1-9): a twelfth
     #: gate, added after the original eleven Phase 6 gates above. See
     #: `data_plane.certification.gates.check_distribution_shape`'s
     #: docstring for exactly what this does and does not check -- a

@@ -25,5 +25,5 @@ page-level state (filters, etc.).
 | `AuditTrailPage` | `/audit-trail` | Real `GET /api/v1/audit/events`, filterable table (Phase 18A) |
 | `PlatformHealthPage` | `/platform-health` | Real (minimal) Phase 0 health endpoint |
 
-See `problems_phase_09.md` for the per-page reasoning behind which pages
+See `docs/problems/problems_phase_09.md` for the per-page reasoning behind which pages
 got new Phase 9 endpoints vs. remained honest placeholders.

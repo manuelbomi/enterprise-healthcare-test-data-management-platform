@@ -27,7 +27,7 @@ summary/reference" pattern
 already uses for `CertificationReport`. When they are not supplied,
 `integrity_report`/`quality_report`/the certification/subset lineage
 fields are left empty, and `provenance_notes` says so explicitly --
-never silently fabricated. See `problems_phase_13.md` P13-1.
+never silently fabricated. See `docs/problems/problems_phase_13.md` P13-1.
 
 **This package does not itself guarantee HIPAA (or any other
 regulatory) compliance.** It is evidence an organization's own
@@ -149,7 +149,7 @@ class AuditEvidencePackage(BaseModel):
     )
 
     # -- tamper-evidence for this bundle itself --
-    #: Phase 18A (`problems_final_review.md` P1-7): upgraded from a
+    #: Phase 18A (`docs/problems/problems_final_review.md` P1-7): upgraded from a
     #: plain, unkeyed "sha256" to a keyed "hmac-sha256", matching
     #: `data_plane.certification.signing`'s guarantee for a
     #: `CertificationReport` -- see

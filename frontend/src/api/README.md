@@ -17,7 +17,7 @@ directly.
 - One module per control-plane domain: `catalog.ts` (Phase 2),
   `lifecycle.ts` (Phase 7), `capacity.ts` (Phase 8), and
   `masking.ts`/`subsetting.ts`/`synthetic.ts`/`certification.ts` (new,
-  read-only Phase 9 endpoints -- see `problems_phase_09.md` for the
+  read-only Phase 9 endpoints -- see `docs/problems/problems_phase_09.md` for the
   per-domain decision to add these rather than fake their pages), plus
   `health.ts` (Phase 0).
 - `index.ts` -- a barrel re-exporting every domain module as a

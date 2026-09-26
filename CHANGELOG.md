@@ -14,7 +14,7 @@ Every workspace package in this repository -- `libs/contracts`,
 `services/governance-service`, and `frontend` -- shares one version
 number, bumped together, rather than being versioned independently per
 package. This repository has never cut a real external release (per
-`problems_final_review.md`'s original P3-8 finding, tracked since
+`docs/problems/problems_final_review.md`'s original P3-8 finding, tracked since
 Phase 0: all five packages sat at the placeholder `0.1.0` through
 Phase 18A, unchanged since the repository's first commit), so
 per-package independent versioning would track a distinction
@@ -44,7 +44,7 @@ adopted).
 
 ## [0.2.0] - Phase 18B - fix/delete cycle for P2/P3 findings
 
-Resolves the P2/P3 findings from `problems_final_review.md` (Phase 17's
+Resolves the P2/P3 findings from `docs/problems/problems_final_review.md` (Phase 17's
 production-readiness review) that were genuinely fixable at proportionate
 scope; the remainder are left explicitly open with updated reasoning
 (the phase's own "leave unresolved problems documented" permission,
@@ -100,7 +100,7 @@ the complete per-finding accounting.
   `control_plane.platform.audit` (P2-11).
 
 ### Documentation
-- Updated `problems_final_review.md` entries for findings investigated
+- Updated `docs/problems/problems_final_review.md` entries for findings investigated
   but deliberately left open this phase (re-affirmed, not left stale),
   each with this phase's own re-verification evidence and reasoning.
 
@@ -151,7 +151,7 @@ every one of these):
 - **Phase 15** -- a complete 20-chapter junior-engineer tutorial.
 - **Phase 16** -- interview/system-design documentation (four files).
 - **Phase 17** -- the principal-engineer production readiness review
-  that produced `problems_final_review.md`'s original 33 findings
+  that produced `docs/problems/problems_final_review.md`'s original 33 findings
   (review only -- no fixes).
 - **Phase 18A** -- fixed all 10 P0/P1 findings from Phase 17, including
   the real minimal JWT identity layer for RBAC (ADR-0018) and the

@@ -268,7 +268,7 @@ def test_schema_validation_fails_on_row_count_mismatch() -> None:
 def test_schema_validation_fails_on_heterogeneous_rows_within_one_physical_table() -> None:
     """Adversarial test: two rows of the SAME logical entity, from the
     SAME physical table, with different key sets -- the exact shape of
-    bug `problems_phase_05.md`'s risk log documents for the PBM CSV
+    bug `docs/problems/problems_phase_05.md`'s risk log documents for the PBM CSV
     writer. Must be caught."""
 
     estate = RawEstate(
@@ -405,7 +405,7 @@ def test_masking_version_recorded_passes_when_present() -> None:
 
 
 # ---------------------------------------------------------------------------
-# GATE: distribution shape (Phase 18A, resolves problems_final_review.md P1-9)
+# GATE: distribution shape (Phase 18A, resolves docs/problems/problems_final_review.md P1-9)
 # ---------------------------------------------------------------------------
 
 
@@ -422,7 +422,7 @@ def test_distribution_shape_reproduces_the_bug_a_gross_order_of_magnitude_shift_
     """Reproduction: before Phase 18A, nothing in the certification
     pipeline would have flagged this -- a masked billed_amount column
     averaging 1000x its source's mean would have certified cleanly. This
-    is exactly the gap `problems_final_review.md` P1-9 named."""
+    is exactly the gap `docs/problems/problems_final_review.md` P1-9 named."""
 
     source = [100.0, 200.0, 150.0, 175.0, 125.0, 300.0]
     masked = [v * 1000 for v in source]  # gross distortion, not plausible masking

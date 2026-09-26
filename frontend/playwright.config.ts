@@ -7,7 +7,7 @@ import { defineConfig, devices } from "@playwright/test";
  * REAL control-plane API and REAL Vite dev server — never a mock server
  * — so this config deliberately does NOT spin up a `webServer` that
  * fakes anything; both real processes are started by the operator (or
- * CI job) first. See `problems_phase_09.md` for the exact two-step
+ * CI job) first. See `docs/problems/problems_phase_09.md` for the exact two-step
  * startup sequence and the environment this was last verified in.
  *
  * Required before running `npm run test:e2e`:

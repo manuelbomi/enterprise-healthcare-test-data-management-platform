@@ -100,7 +100,7 @@ inherits this process, not just this codebase:
   details, never declare done with failing tests) is exactly how every
   phase this platform is built from — including the one that wrote this
   chapter — actually proceeded.
-- `problems_master.md` and the per-phase `problems_phase_NN.md` files
+- `docs/problems/problems_master.md` and the per-phase `problems_phase_NN.md` files
   are the running, honest record of what's known-broken or
   known-incomplete right now — read at the start of any new work, not
   written once and forgotten.
@@ -120,6 +120,6 @@ You've now read all twenty chapters. From here:
 - Pick one chapter's linked implementation-depth document (the `0X`/`13`
   chapters, or the ADRs/docs each guide chapter names) and actually run
   its worked example yourself.
-- Read `problems_master.md` and the most recent `problems_phase_NN.md`
+- Read `docs/problems/problems_master.md` and the most recent `problems_phase_NN.md`
   to see exactly what's open right now — that's where real next work
   starts.

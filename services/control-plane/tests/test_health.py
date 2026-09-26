@@ -3,7 +3,7 @@
 This is the only real behavior in Phase 0, so it is the only thing tested
 here. Requires the service's dev dependencies to be installed
 (`pip install -e ".[dev]"`), tracked as open item P0-1 in
-problems_master.md — not yet run in this environment.
+docs/problems/problems_master.md — not yet run in this environment.
 """
 
 from __future__ import annotations

@@ -282,7 +282,7 @@ def test_illustrative_plan_uses_defaults_when_scenario_is_default() -> None:
 
 
 def test_saved_illustrative_plan_history_persists_and_lists_in_order(session: Session) -> None:
-    """Phase 18B (`problems_final_review.md` P3-3, now resolved): a
+    """Phase 18B (`docs/problems/problems_final_review.md` P3-3, now resolved): a
     saved `IllustrativeCapacityPlan` snapshot is real, persisted state,
     not recomputed every time -- and `list_plans()` returns every saved
     snapshot, oldest first, which is what "compare over time" means in
@@ -329,7 +329,7 @@ def test_get_saved_plan_returns_the_same_record_list_plans_would(session: Sessio
 
 
 def test_rows_per_compute_unit_hour_stays_within_a_sane_order_of_magnitude_of_the_real_phase_14_measurement() -> None:
-    """Phase 18B (`problems_final_review.md` P3-2): `ROWS_PER_COMPUTE_UNIT_HOUR`
+    """Phase 18B (`docs/problems/problems_final_review.md` P3-2): `ROWS_PER_COMPUTE_UNIT_HOUR`
     is explicitly documented as an illustrative assumption, not a real
     benchmark -- but its own module docstring now cites a real,
     measured Phase 14 number as an order-of-magnitude sanity check

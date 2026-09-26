@@ -9,7 +9,7 @@ tests pass (see [`CONTRIBUTING.md`](CONTRIBUTING.md) for the per-phase
 process).
 
 This file tracks the *plan*. Day-to-day open issues live in
-[`problems_master.md`](problems_master.md). The exact scope of each phase
+[`docs/problems/problems_master.md`](docs/problems/problems_master.md). The exact scope of each phase
 comes from the design brief that seeded this project; the table below is
 the authoritative phase order and scope for this repository going forward.
 
@@ -44,7 +44,7 @@ the authoritative phase order and scope for this repository going forward.
 Documentation/release-prep only, per this phase's own scope — no
 application code was changed. Audited before writing anything: the existing
 `README.md` (Phase 0's, incrementally touched but never rewritten),
-`ARCHITECTURE.md`, this file, `CHANGELOG.md`, `problems_final_review.md`
+`ARCHITECTURE.md`, this file, `CHANGELOG.md`, `docs/problems/problems_final_review.md`
 (the current 11 open findings), all four `docs/interview/*.md`,
 `docs/SCALE_AND_PERFORMANCE.md`, `docs/COMPLIANCE_EVIDENCE.md`,
 `docs/TAMPER_EVIDENCE_LIMITATIONS.md`, `docs/tutorial/guide/README.md`,
@@ -58,7 +58,7 @@ application code was changed. Audited before writing anything: the existing
   claims — the six-plane architecture diagram is `ARCHITECTURE.md` §2's
   own Mermaid diagram, condensed for a 3-minute read, not a new,
   potentially-inconsistent one; the security-limitations section (§19)
-  is a summary of `problems_final_review.md`'s current 11 findings,
+  is a summary of `docs/problems/problems_final_review.md`'s current 11 findings,
   explicitly deferring to that file as the authoritative source rather
   than re-deriving a competing list. The required synthetic-data
   statement ("All healthcare records in this repository are synthetic.
@@ -116,7 +116,7 @@ application code was changed. Audited before writing anything: the existing
   incidentally, not fixed** (out of this phase's explicit deliverable
   list): `frontend/src/pages/README.md`'s `AuditTrailPage` row still
   reads "Honest placeholder (Phase 13 not built yet)," unchanged since
-  Phase 9, even though Phase 18A (`problems_final_review.md` P1-4)
+  Phase 9, even though Phase 18A (`docs/problems/problems_final_review.md` P1-4)
   rewrote that page to call the real audit-events API — `README.md`
   §16 in this release describes the page correctly; the stale line in
   `frontend/src/pages/README.md` itself is flagged for a future
@@ -124,14 +124,14 @@ application code was changed. Audited before writing anything: the existing
   of this phase's named deliverables.
 - **This phase adds no application code and no new pytest test file** —
   consistent with Phase 16's precedent for a documentation-only phase,
-  no new `problems_phase_final.md` was created and `problems_master.md`
-  is unchanged; `problems_final_review.md`'s 11 open findings (6 P2, 5
+  no new `problems_phase_final.md` was created and `docs/problems/problems_master.md`
+  is unchanged; `docs/problems/problems_final_review.md`'s 11 open findings (6 P2, 5
   P3) are unchanged by this phase and remain the authoritative,
   current list.
 
 ## Phase 18B — what was actually delivered
 
-Resolved 12 of the 23 remaining P2/P3 findings `problems_final_review.md`
+Resolved 12 of the 23 remaining P2/P3 findings `docs/problems/problems_final_review.md`
 (Phase 17) named after Phase 18A closed all P0/P1s, narrowed 4 more with
 a real (if partial) fix, re-verified 1 as already-adequately-documented,
 and left the remaining 6 explicitly open with updated reasoning citing
@@ -146,7 +146,7 @@ finding only after demonstrating the fix with real, executed evidence
 **This work resumed after an earlier Phase 18B session was interrupted.**
 That session's uncommitted work covered six findings (P2-1, P2-2, P2-3,
 P2-10, P2-11, P2-12) with real, complete, tested code, but stopped
-before deleting any of them from `problems_final_review.md`. Every one
+before deleting any of them from `docs/problems/problems_final_review.md`. Every one
 of those six fixes was independently re-verified before being trusted:
 the full control-plane (247 passed) and data-plane (453 passed) suites
 were re-run from a clean state, and every diff was read in full (not
@@ -307,24 +307,24 @@ the earlier, interrupted work.
 
 Each of these names a disproportionately large, previously-deferred
 build that this phase's own scope-discipline instruction said not to
-fabricate a toy version of. Each entry in `problems_final_review.md` was
+fabricate a toy version of. Each entry in `docs/problems/problems_final_review.md` was
 updated (not left as Phase 17's stale original text) to re-confirm the
 gap is still real via a fresh grep/read and to cite the existing
 precedent that already, correctly, deferred it:
 
 - **P2-5** -- no storage adapter (MinIO/S3/ADLS) exists anywhere;
-  `problems_master.md` P0-3, open since Phase 0.
+  `docs/problems/problems_master.md` P0-3, open since Phase 0.
 - **P2-6** -- free-text/NLP-based PHI detection is entirely unbuilt;
-  `problems_phase_02.md` P2-2, `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md`.
+  `docs/problems/problems_phase_02.md` P2-2, `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md`.
 - **P2-7** -- neither Spark job is wired into a job orchestrator, and
   the pandas-vs-Spark masking comparison is not apples-to-apples;
-  `problems_phase_14.md` P14-4/P14-5.
-- **P2-8** -- no real Delta Lake write exists; `problems_phase_14.md`
+  `docs/problems/problems_phase_14.md` P14-4/P14-5.
+- **P2-8** -- no real Delta Lake write exists; `docs/problems/problems_phase_14.md`
   P14-1, ADR-0017.
 - **P3-5** -- no frontend UI exists for Phase 10 governance;
-  `problems_phase_10.md` P10-4.
+  `docs/problems/problems_phase_10.md` P10-4.
 - **P3-6** -- console remains read-only, no in-UI write workflows;
-  `problems_phase_09.md` P9-2.
+  `docs/problems/problems_phase_09.md` P9-2.
 
 ### Test suite (run fresh, this phase)
 
@@ -341,7 +341,7 @@ precedent that already, correctly, deferred it:
 
 ### What remains open, and why (11 findings)
 
-`problems_final_review.md` now carries 11 findings (6 P2, 5 P3), every
+`docs/problems/problems_final_review.md` now carries 11 findings (6 P2, 5 P3), every
 one left open with this phase's own fresh investigation and reasoning
 rather than Phase 17's stale original text: P2-4, P2-5, P2-6, P2-7,
 P2-8, P2-13 (P2); P3-1, P3-2, P3-5, P3-6, P3-10 (P3). None represents
@@ -353,7 +353,7 @@ toy version of (P2-5, P2-6, P2-7, P2-8, P3-5, P3-6).
 
 ## Phase 18A — what was actually delivered
 
-Fixed every P0/P1 finding `problems_final_review.md` (Phase 17) named --
+Fixed every P0/P1 finding `docs/problems/problems_final_review.md` (Phase 17) named --
 ten findings (P0-1, P1-1 through P1-9) -- following the phase's own
 fix/delete discipline: reproduce, fix the root cause, add a regression
 test, run the relevant tests, delete the finding only after
@@ -517,11 +517,11 @@ ONLY on P0 and P1" scope rule).
   build` succeeds. No test was weakened, skipped, or deleted to make
   this phase's work "pass" — every count above is strictly additive over
   Phase 17's own 698 + 39 baseline.
-- **All ten P0/P1 findings were deleted from `problems_final_review.md`**
+- **All ten P0/P1 findings were deleted from `docs/problems/problems_final_review.md`**
   only after the evidence above was actually produced, per the phase
   brief's explicit instruction. The thirteen P2 and ten P3 findings
   (23 total) are unchanged, left for Phase 18B.
-- Left open, deliberately: every P2/P3 finding `problems_final_review.md`
+- Left open, deliberately: every P2/P3 finding `docs/problems/problems_final_review.md`
   still lists (out of this phase's scope by design), plus the honestly
   narrower scope this phase's own fixes state explicitly -- P0-1's JWT
   layer is a minimal mechanism for a fixed set of demo identities, not a
@@ -538,7 +538,7 @@ ONLY on P0 and P1" scope rule).
 
 - Audited the whole repository before writing anything, per
   `CONTRIBUTING.md`: `ARCHITECTURE.md`, all seventeen ADRs in `docs/adr/`,
-  every `problems_phase_01.md`-`problems_phase_14.md` (specifically their
+  every `docs/problems/problems_phase_01.md`-`docs/problems/problems_phase_14.md` (specifically their
   still-open items, honest material for `failure-scenarios.md`/
   `tradeoffs.md`), `docs/tutorial/guide/` (the Phase 15 onboarding
   tutorial), `docs/CERTIFICATION_VS_MASKING.md`,
@@ -564,12 +564,12 @@ ONLY on P0 and P1" scope rule).
     tradeoffs this repository made, each cited to the ADR and
     `problems_phase_NN.md` entries that actually recorded the decision:
     deterministic pseudonymization vs. true anonymization (ADR-0006),
-    SQLite-locally/Postgres-portable (ADR-0004, `problems_phase_07.md`
+    SQLite-locally/Postgres-portable (ADR-0004, `docs/problems/problems_phase_07.md`
     P7-1's real deferred-then-closed verification gap), checksum vs.
     HMAC vs. asymmetric signature for tamper-evidence
     (`data_plane.certification.signing`'s keyed HMAC vs.
     `control_plane.domain.evidence`'s unkeyed SHA-256 checksum, per
-    ADR-0016 and `problems_phase_13.md` P13-2), shared immutable
+    ADR-0016 and `docs/problems/problems_phase_13.md` P13-2), shared immutable
     snapshots vs. per-environment copies (Phase 7's foreign-key
     architecture, Phase 8's real measured 80% savings), local-mode Spark
     vs. a real cluster (ADR-0017), and synthetic vs.
@@ -600,14 +600,14 @@ ONLY on P0 and P1" scope rule).
 - All twelve of the spec's required example questions are answered,
   each citing real repository paths — see the map above; none is answered
   only in the abstract.
-- **No `problems_phase_16.md` was created.** Unlike every phase before it,
+- **No `docs/problems/problems_phase_16.md` was created.** Unlike every phase before it,
   `ROADMAP.md`'s own Phase 16 brief does not ask for one, and this phase
   adds no new application code, no new test surface, and no new design
   decision of its own to record as an open problem — it is a citation
   layer over decisions and gaps every earlier phase already recorded in
   its own `problems_phase_NN.md`. Manufacturing a Phase 16 problems file
   would either duplicate those entries under a new ID or invent problems
-  that don't exist; `problems_master.md` is unchanged by this phase for
+  that don't exist; `docs/problems/problems_master.md` is unchanged by this phase for
   the same reason (nothing this phase built introduces a new open
   problem, and it resolves none of the existing ones, since it touches no
   code).
@@ -616,7 +616,7 @@ ONLY on P0 and P1" scope rule).
   writing documentation touched no application code path: `libs/contracts`
   62 passed, `services/control-plane` 195 passed, `services/data-plane`
   439 passed, `services/governance-service` 2 passed — 698 total,
-  unchanged from `problems_phase_15.md`.
+  unchanged from `docs/problems/problems_phase_15.md`.
 - Left open, inherited (not introduced) by this phase: every gap this
   phase's four files cite honestly (P0-3's missing storage adapter,
   P0-4's un-rendered diagrams, P2-2's untested free-text classification
@@ -640,11 +640,11 @@ ONLY on P0 and P1" scope rule).
   repository" arc that the existing chapters never build from first
   principles.
 - **Filename/numbering decision** (recorded in full in
-  `problems_phase_15.md`): grepped the whole repository for
+  `docs/problems/problems_phase_15.md`): grepped the whole repository for
   `docs/tutorial/0` and `docs/tutorial/1` first and found real
   cross-references from `ARCHITECTURE.md`, `CONTRIBUTING.md`, ADRs,
   `docs/diagrams/README.md`, `docs/PLATFORM_INTEGRITY.md`, a runbook,
-  `README.md`, `problems_phase_04.md`/`05`/`07`, `scripts/README.md`,
+  `README.md`, `docs/problems/problems_phase_04.md`/`05`/`07`, `scripts/README.md`,
   `services/control-plane/README.md`, and two data-plane package
   READMEs -- all pointing at the *existing* filenames, none at a
   `docs/tutorial/10`-`14` or `guide/` path. Renumbering or reusing any
@@ -684,14 +684,14 @@ ONLY on P0 and P1" scope rule).
   onboarding path and the existing numbered chapters remain the
   implementation-depth reference.
 - This phase adds no new application code, and therefore no new pytest
-  test file -- `problems_phase_15.md` says so explicitly rather than
+  test file -- `docs/problems/problems_phase_15.md` says so explicitly rather than
   fabricating a test against prose. The full workspace suite was run,
   unmodified, to confirm editing/adding documentation did not touch any
   application code path: `libs/contracts` 62 passed,
   `services/control-plane` 195 passed, `services/data-plane` 439
   passed, `services/governance-service` 2 passed -- 698 total,
-  unchanged from `problems_phase_14.md`.
-- Left open, tracked in `problems_phase_15.md`: no retroactive numbered
+  unchanged from `docs/problems/problems_phase_14.md`.
+- Left open, tracked in `docs/problems/problems_phase_15.md`: no retroactive numbered
   `docs/tutorial/1X-...md` implementation-depth chapter was added for
   Phases 11/12/14 (out of this phase's 20-chapter-onboarding-arc scope;
   the new guide's Chapters 16-18 link to `docs/PLATFORM_INTEGRITY.md`/
@@ -709,7 +709,7 @@ ONLY on P0 and P1" scope rule).
   gap: `pyspark`/`delta-spark` have been declared dependencies since
   Phase 0, but no file in `services/data-plane/src` had ever imported
   `pyspark` or built a `SparkSession` through Phase 13
-  (`problems_phase_12.md`'s container-build note already said so).
+  (`docs/problems/problems_phase_12.md`'s container-build note already said so).
 - Two new, additive data-plane packages, mirroring `ADR-0013`'s
   Phase 8 plane-internal split:
   - `data_plane.spark` (`session.py`, `masking_job.py`,
@@ -772,7 +772,7 @@ ONLY on P0 and P1" scope rule).
   `libs/contracts` 62 passed, `services/control-plane` 195 passed,
   `services/data-plane` 439 passed (413 before this phase + 26 new),
   `services/governance-service` 2 passed — no regressions.
-- Left genuinely open, tracked in `problems_phase_14.md`: no real Delta
+- Left genuinely open, tracked in `docs/problems/problems_phase_14.md`: no real Delta
   Lake table is written anywhere in this repository yet (P14-1); skew
   is documented but not reproduced from real measurement (P14-2);
   autoscaling is not applicable to `local[*]` and is documented
@@ -845,7 +845,7 @@ ONLY on P0 and P1" scope rule).
   Full workspace suite after this phase: `libs/contracts` 62 passed,
   `services/control-plane` 195 passed, `services/data-plane` 413
   passed, `services/governance-service` 2 passed -- no regressions.
-- Left genuinely open, tracked in `problems_phase_13.md`: the Audit
+- Left genuinely open, tracked in `docs/problems/problems_phase_13.md`: the Audit
   Evidence Package can only embed a real `CertificationReport`/
   `SubsetManifest` if the caller supplies it (control-plane still does
   not durably store either); the bundle checksum is a SHA-256 integrity
@@ -877,7 +877,7 @@ ONLY on P0 and P1" scope rule).
   `services/governance-service/Dockerfile`, `frontend/Dockerfile` +
   `nginx.conf`) -- `data-plane` deliberately excluded (batch/CLI
   toolkit, no `SparkSession` created anywhere yet; see
-  `problems_phase_12.md`'s decision record)
+  `docs/problems/problems_phase_12.md`'s decision record)
 - `governance_service/main.py` + `api/health.py`: this service's first
   real code (a liveness endpoint only, mirroring exactly how
   `control_plane.main` looked in Phase 0), added so it has something
@@ -890,7 +890,7 @@ ONLY on P0 and P1" scope rule).
   end against a real Postgres container**: `GET /api/v1/ready` reports
   the database check healthy/reachable, resolving the "Postgres never
   verified against real application code" gap `ARCHITECTURE.md`'s own
-  Phase 7/8/11 notes and `problems_master.md` P0-2 had flagged since
+  Phase 7/8/11 notes and `docs/problems/problems_master.md` P0-2 had flagged since
   Phase 0/7
 - `infra/k8s/helm/tdm-platform/templates/`: real Deployment/Service
   manifests for all three containerized services, a ConfigMap/Secret
@@ -907,7 +907,7 @@ ONLY on P0 and P1" scope rule).
   what is genuinely Azure-specific versus what the existing
   plane-separation/storage-adapter architecture (ADR-0003, ADR-0005)
   keeps portable -- including an honest statement that the storage-adapter
-  interface itself remains unimplemented (`problems_master.md` P0-3,
+  interface itself remains unimplemented (`docs/problems/problems_master.md` P0-3,
   still open), so Azure Blob/ADLS is provisioned as a real Terraform
   target but not yet written to by any real job
 - A real, deliberate release-gate failure experiment (a genuinely
@@ -915,10 +915,10 @@ ONLY on P0 and P1" scope rule).
   in the Actions UI, then reverted) proving `ROADMAP.md`'s release-gate
   requirement ("a release must fail if unit/integration/masking/
   referential-integrity tests fail, or critical security validation
-  fails") is real, not just written -- see `problems_phase_12.md` for
+  fails") is real, not just written -- see `docs/problems/problems_phase_12.md` for
   the run IDs/URLs
 - Two real, incidental fixes found while wiring CI for the first time
-  (per `problems_master.md` P0-2's own prediction that this had never
+  (per `docs/problems/problems_master.md` P0-2's own prediction that this had never
   actually been exercised): a ruff lint failure (unused imports/local
   variable, three files, present since Phases 3/8/11) and a real mypy
   strict-mode bug (`control_plane.platform.audit`, a `str`/`UUID`
@@ -926,12 +926,12 @@ ONLY on P0 and P1" scope rule).
   hard-blocking CI gates; `services/data-plane`'s 15 pre-existing
   strict-mode mypy findings are reported but left open and
   non-blocking, explicitly out of this phase's scope (see
-  `problems_phase_12.md`)
+  `docs/problems/problems_phase_12.md`)
 - One new test (`services/governance-service/tests/test_health_api.py`);
   every other Python package's test count is unchanged --
   `libs/contracts` 59, `services/control-plane` 171,
   `services/data-plane` 413, `services/governance-service` 2 (was 1),
-  **645 total, all passing** -- see `problems_phase_12.md` for what's
+  **645 total, all passing** -- see `docs/problems/problems_phase_12.md` for what's
   still open
 
 ## Phase 11 — what was actually delivered
@@ -983,7 +983,7 @@ ONLY on P0 and P1" scope rule).
   only on clean completion -- a real gap found (no on-disk signal that
   a masking run crashed partway through) and a real, though partial,
   fix (`is_masking_run_complete()`); the honest remaining limit
-  (per-file writes still not atomic) is `problems_phase_11.md` P11-1
+  (per-file writes still not atomic) is `docs/problems/problems_phase_11.md` P11-1
 - `scripts/security/detect_secrets.py`: a repo-wide secret-detection
   scan generalizing Phase 3's scoped "no secrets committed" test
   (bare 64-hex-char strings, AWS access key IDs, PEM private key
@@ -1028,7 +1028,7 @@ ONLY on P0 and P1" scope rule).
   new required `actor_role` field on the four newly RBAC-gated
   endpoints; `services/control-plane` is now 171 tests total, all
   passing, and `services/data-plane`'s pre-existing 396 tests continue
-  to pass unmodified (413 total) -- see `problems_phase_11.md` for
+  to pass unmodified (413 total) -- see `docs/problems/problems_phase_11.md` for
   what's still open
 
 ## Phase 10 — what was actually delivered
@@ -1115,7 +1115,7 @@ ONLY on P0 and P1" scope rule).
   JSON-artifact-handoff pattern to expose Phases 3/4/5/6's real,
   already-working engines (which previously only wrote a JSON artifact
   to disk) -- see `ARCHITECTURE.md`'s Phase 9 note and
-  `problems_phase_09.md` for the per-page build-vs-placeholder decision
+  `docs/problems/problems_phase_09.md` for the per-page build-vs-placeholder decision
   record
 - A real Dataset Detail page composing FOUR real endpoints (lifecycle +
   the three new Phase 9 artifact endpoints) into one view -- lineage,
@@ -1146,7 +1146,7 @@ ONLY on P0 and P1" scope rule).
   etc.) -- run against the REAL control plane and REAL Vite dev server
   (no mock server), executed and passing in this environment; see
   `frontend/playwright.config.ts`'s header comment for the two-server
-  startup sequence and `problems_phase_09.md` for an environment quirk
+  startup sequence and `docs/problems/problems_phase_09.md` for an environment quirk
   encountered and worked around during verification
 - `scripts/demo_phase9_console_data.py`: generates real end-to-end demo
   data (two real certification pipeline runs, one with synthetic
@@ -1165,7 +1165,7 @@ ONLY on P0 and P1" scope rule).
   `test_synthetic_api.py`, `test_certification_api.py`) plus 5 new CORS
   tests (`test_cors.py`); `services/control-plane` is now 97 tests
   total, and `services/data-plane`'s/`libs/contracts`' pre-existing
-  test suites continue to pass unmodified -- see `problems_phase_09.md`
+  test suites continue to pass unmodified -- see `docs/problems/problems_phase_09.md`
   for what's still open
 
 ## Phase 8 — what was actually delivered
@@ -1188,7 +1188,7 @@ ONLY on P0 and P1" scope rule).
   architecture actually costs, both computed from real registered
   `DatasetVersion.size_bytes`), and `vacuum_candidates` (a real,
   live-computed query for expired/revoked/rolled-back versions
-  referenced by zero environments -- read-only, see `problems_phase_08.md`
+  referenced by zero environments -- read-only, see `docs/problems/problems_phase_08.md`
   P8-3), plus a pure `illustrative_capacity_plan` function implementing
   `ROADMAP.md`'s own "Production: 100 TB, QA 10%, SIT 5%, UAT 15%"
   example as a real, runnable, configurable model (extended honestly to
@@ -1241,7 +1241,7 @@ ONLY on P0 and P1" scope rule).
   `test_capacity_contract.py`); `libs/contracts` is now 59 tests total,
   `services/control-plane` 78 total, `services/data-plane`'s pre-existing
   378 tests continue to pass unmodified with 18 more added (396 total)
-  -- see `problems_phase_08.md` for what's still open
+  -- see `docs/problems/problems_phase_08.md` for what's still open
 
 ## Phase 7 — what was actually delivered
 
@@ -1308,7 +1308,7 @@ ONLY on P0 and P1" scope rule).
   17 in `libs/contracts`'s new `test_lifecycle_contract.py`;
   `services/control-plane` is now 55 tests total, `libs/contracts` 46
   total, and `services/data-plane`'s pre-existing 378 tests continue to
-  pass unmodified) -- see `problems_phase_07.md` for what's still open
+  pass unmodified) -- see `docs/problems/problems_phase_07.md` for what's still open
 
 ## Phase 6 — what was actually delivered
 
@@ -1364,7 +1364,7 @@ ONLY on P0 and P1" scope rule).
   tone `DATA_GOVERNANCE.md`/`docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md`
   already set
 - 91 new tests (80 in `services/data-plane`'s new `tests/certification/`
-  suite, 11 new in `libs/contracts`) -- see `problems_phase_06.md` for
+  suite, 11 new in `libs/contracts`) -- see `docs/problems/problems_phase_06.md` for
   what's still open
 
 ## Phase 5 — what was actually delivered
@@ -1415,7 +1415,7 @@ ONLY on P0 and P1" scope rule).
   to end against a real generated `tiny`-scale estate and a real Phase 4
   subset of it
 - 85 new tests (62 in `services/data-plane`, 5 new in `libs/contracts`
-  on top of the 18 already there) — see `problems_phase_05.md` for what's
+  on top of the 18 already there) — see `docs/problems/problems_phase_05.md` for what's
   still open
 
 ## Phase 4 — what was actually delivered
@@ -1453,9 +1453,9 @@ ONLY on P0 and P1" scope rule).
   hardcoded); the same code path demonstrated at `tiny` scale is what
   would run unmodified against a real `performance`-scale estate for a
   real 10,000-member subset (not yet benchmarked at that scale — see
-  `problems_phase_04.md` P4-3)
+  `docs/problems/problems_phase_04.md` P4-3)
 - 61 new tests (57 in `services/data-plane`, 4 in `libs/contracts`) — see
-  `problems_phase_04.md` for what's still open
+  `docs/problems/problems_phase_04.md` for what's still open
 
 ## Phase 3 — what was actually delivered
 
@@ -1495,11 +1495,11 @@ ONLY on P0 and P1" scope rule).
   integrity, no-raw-value-leakage, and token-collision checks — a
   lighter-weight precursor to the full certification pipeline
   (`ROADMAP.md` Phase 6), not a replacement for it (see
-  `problems_phase_03.md` P3-1)
+  `docs/problems/problems_phase_03.md` P3-1)
 - 101 new tests in `services/data-plane` (210 total across the four
   Python workspace packages) covering determinism, collision handling,
   referential integrity, null handling, malformed values, idempotency,
-  and secret absence — see `problems_phase_03.md` for what's still open
+  and secret absence — see `docs/problems/problems_phase_03.md` for what's still open
 
 ## Phase 2 — what was actually delivered
 
@@ -1533,7 +1533,7 @@ ONLY on P0 and P1" scope rule).
   guarantee
 - Tests across both affected packages (`libs/contracts`,
   `services/data-plane`, `services/control-plane`) — see
-  `problems_phase_02.md` for what's still open
+  `docs/problems/problems_phase_02.md` for what's still open
 
 ## Phase 1 — what was actually delivered
 
@@ -1556,7 +1556,7 @@ ONLY on P0 and P1" scope rule).
 - ADRs recording the foundational technical decisions (`docs/adr/`)
 - `SECURITY.md`, `THREAT_MODEL.md`, `DATA_GOVERNANCE.md`, `CONTRIBUTING.md`
 - `docs/tutorial/`, `docs/runbooks/`, `docs/diagrams/` seeded with real content
-- `problems_master.md` established as the live problem-tracking process
+- `docs/problems/problems_master.md` established as the live problem-tracking process
 - Empty/scaffold Python packages for `control-plane`, `data-plane`,
   `governance-service`, and the shared `contracts` library, each with a
   `pyproject.toml` and a documented purpose but no business logic

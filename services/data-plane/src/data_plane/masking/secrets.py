@@ -8,7 +8,7 @@ secret" (see `SECURITY.md` rule 2 and rule 4 -- a real deployment would
 swap this module for a call into the security/governance plane's secrets
 provider adapter; this module documents that seam without building the
 adapter itself, which is out of scope for this phase -- see
-`problems_phase_03.md`).
+`docs/problems/problems_phase_03.md`).
 
 The key is **never** hardcoded here and **never** written to any file this
 module controls. It is resolved, in order:

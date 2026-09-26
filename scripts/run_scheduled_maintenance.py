@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """A real, runnable entry point for the two periodic maintenance jobs
-`problems_final_review.md` P2-3 named as having "no automatic trigger"
-(tracked since `problems_phase_07.md` P7-3 and `problems_phase_08.md`
+`docs/problems/problems_final_review.md` P2-3 named as having "no automatic trigger"
+(tracked since `docs/problems/problems_phase_07.md` P7-3 and `docs/problems/problems_phase_08.md`
 P8-3): the retention sweep (`LifecycleRepository.apply_retention`) and
 vacuum-candidate identification (`CapacityPlanner.vacuum_candidates`).
 
@@ -39,7 +39,7 @@ maintenance run and an API-triggered refresh sweep must not be allowed
 to race each other either.
 
 Vacuum-candidate identification never deletes anything (P8-3's own
-scope boundary, restated in `problems_final_review.md` P2-5: no storage
+scope boundary, restated in `docs/problems/problems_final_review.md` P2-5: no storage
 adapter exists to actually delete an object from). This script only
 *identifies and reports* candidates -- the same, honest, non-destructive
 scope `CapacityPlanner.vacuum_candidates`'s own docstring already

@@ -131,7 +131,7 @@ pg_restore --dbname=tdm_metadata_restore_check lifecycle-backup-<timestamp>.dump
   job, no managed-database automated-backup configuration) -- this is
   a real, open gap for whichever phase stands up real infrastructure
   (`infra/docker-compose`, a real cloud Postgres instance). Track it in
-  `problems_master.md` against that phase, not silently assume it's
+  `docs/problems/problems_master.md` against that phase, not silently assume it's
   handled.
 - Every write this database receives is already independently
   reconstructable in principle from upstream sources for the

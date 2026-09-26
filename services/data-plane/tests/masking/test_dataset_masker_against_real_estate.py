@@ -184,7 +184,7 @@ def test_partner_feed_pat_id_alias_shares_scope_with_member_id(
     v2_raw_paths = list((real_estate / "partner_lab_feed" / "inbound" / "v2_api_json").glob("*.json"))
     v2_masked_paths = list((masked_root / "partner_lab_feed" / "inbound" / "v2_api_json").glob("*.json"))
     if not v2_raw_paths:
-        # Phase 18B (`problems_final_review.md` P3-9): make this loud,
+        # Phase 18B (`docs/problems/problems_final_review.md` P3-9): make this loud,
         # not silent -- see `conftest.record_skip_guard_fired`.
         record_skip_guard_fired("no partner v2 records generated at this seed/scale")
         pytest.skip("no partner v2 records generated at this seed/scale")
@@ -198,7 +198,7 @@ def test_partner_feed_pat_id_alias_shares_scope_with_member_id(
 
     match = raw_members.index[raw_members["member_id"] == raw_pat_id]
     if len(match) == 0:
-        # Phase 18B (`problems_final_review.md` P3-9): make this loud,
+        # Phase 18B (`docs/problems/problems_final_review.md` P3-9): make this loud,
         # not silent -- see `conftest.record_skip_guard_fired`.
         record_skip_guard_fired("partner sample member is not also enrolled in postgres at this seed")
         pytest.skip("partner sample member is not also enrolled in postgres at this seed")

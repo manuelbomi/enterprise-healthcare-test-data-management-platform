@@ -4,7 +4,7 @@ Revision ID: edadf596e1ed
 Revises: 8387cacfabb1
 Create Date: 2026-09-25 23:11:10.581752
 
-Phase 18B (resolves `problems_final_review.md` P2-2, "no distributed
+Phase 18B (resolves `docs/problems/problems_final_review.md` P2-2, "no distributed
 lock on concurrent scheduler sweeps"): adds `scheduler_lock`, the
 row-per-lock mutual-exclusion table `control_plane.platform.scheduler_lock`
 uses to serialize concurrent `POST /api/v1/lifecycle/scheduler/run-due`

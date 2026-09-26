@@ -5,7 +5,7 @@ import type { AuditEvidencePackage, CertificationReport, SubsetManifest } from "
  * `POST /api/v1/evidence/dataset-versions/{version_id}/package` (Phase
  * 13) -- aggregates every real artifact the control plane holds about
  * a dataset version into one checksum-verified `AuditEvidencePackage`.
- * Added in Phase 18A (`problems_final_review.md` P1-4): before this
+ * Added in Phase 18A (`docs/problems/problems_final_review.md` P1-4): before this
  * phase, no frontend code called this endpoint at all.
  *
  * `certification_report`/`subset_manifest` are optional -- see

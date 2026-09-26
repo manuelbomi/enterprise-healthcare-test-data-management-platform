@@ -76,7 +76,7 @@ resolved and is now verified by a real, passing test:
   its population size/percentage as a runtime parameter; the exact same
   code path demonstrated at `tiny` scale (26 members) is what runs
   unmodified against a `performance`-scale estate (20,000 members) for a
-  real 10,000-member subset — see `problems_phase_04.md` P4-3 below for
+  real 10,000-member subset — see `docs/problems/problems_phase_04.md` P4-3 below for
   what is *not* yet resolved (this hasn't actually been benchmarked at
   that scale).
 
@@ -85,7 +85,7 @@ resolved and is now verified by a real, passing test:
 ### P4-1 — Subsetting is not yet wired as a control-plane orchestrated job
 
 - **Status:** open (deliberately deferred; same shape of gap Phase 3
-  documented for masking in `problems_phase_03.md` P3-1/`ARCHITECTURE.md`
+  documented for masking in `docs/problems/problems_phase_03.md` P3-1/`ARCHITECTURE.md`
   section 2.2)
 - **Description:** `healthcare_tdm_contracts.JobType.SUBSETTING` and
   `JobRequest.sizing_rule` already exist (Phase 0 scaffolding), but
@@ -103,13 +103,13 @@ resolved and is now verified by a real, passing test:
   plane work generally. **Correction:** this used to say "Phase 14 (job
   orchestration)" — Phase 14 actually happened, and its scope turned out
   to be scale/performance benchmark tooling (`ROADMAP.md` Phase 14,
-  `problems_phase_14.md`), not job-orchestration wiring; that remains
+  `docs/problems/problems_phase_14.md`), not job-orchestration wiring; that remains
   unscheduled by name.
 
 ### P4-2 — No metadata-plane snapshot registry or audit event integration yet
 
 - **Status:** open (deliberately deferred; same shape of gap
-  `problems_phase_03.md` documents for masking's snapshot/audit-log edges)
+  `docs/problems/problems_phase_03.md` documents for masking's snapshot/audit-log edges)
 - **Description:** `ARCHITECTURE.md`'s diagram shows `Subsetting ->
   Snapshots` (metadata plane) and an audit-log edge; neither exists yet
   (no snapshot registry database, no audit event log). A subsetting run

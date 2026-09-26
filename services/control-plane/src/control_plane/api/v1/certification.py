@@ -4,7 +4,7 @@ Serves the real `certification_report.json` artifacts Phase 6's
 certification pipeline (`services/data-plane/src/data_plane/certification/`)
 produces -- same JSON-artifact-handoff pattern as `api/v1/catalog.py`
 (ADR-0009). Read-only; certification is not yet submitted as a
-control-plane job (`ARCHITECTURE.md`'s Phase 6 note, `problems_phase_06.md`
+control-plane job (`ARCHITECTURE.md`'s Phase 6 note, `docs/problems/problems_phase_06.md`
 P6-1).
 
 `GET /certification/reports/{report_id}` is also how Phase 9's Dataset

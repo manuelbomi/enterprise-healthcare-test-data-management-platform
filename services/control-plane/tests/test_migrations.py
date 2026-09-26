@@ -1,6 +1,6 @@
 """Real, executed proof that the Phase 18A Alembic setup
 (`services/control-plane/alembic.ini`, `migrations/`) actually works --
-resolves `problems_final_review.md` P1-3 ("no schema-migration
+resolves `docs/problems/problems_final_review.md` P1-3 ("no schema-migration
 framework exists ... only `Base.metadata.create_all()`").
 
 Before this phase, there was no code path at all that could alter an

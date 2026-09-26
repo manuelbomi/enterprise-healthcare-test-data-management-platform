@@ -4,7 +4,7 @@
 > Will be validated once a real job orchestrator exists (not yet
 > scheduled by name as of Phase 14 — Phase 14 turned out to be
 > scale/performance benchmark tooling, not job-orchestration wiring; see
-> `problems_phase_14.md`). Treat the specific commands/endpoints below as
+> `docs/problems/problems_phase_14.md`). Treat the specific commands/endpoints below as
 > illustrative until then.
 
 ## Symptom
@@ -57,7 +57,7 @@ reporting their environment's data is stale.
    source schema drift) and re-run. Certification failing is the system
    working as designed, not a bug to route around.
 3. If the failure is a code bug in a data-plane job: file/update the
-   relevant phase's problem entry in `problems_master.md` with repro
+   relevant phase's problem entry in `docs/problems/problems_master.md` with repro
    details, fix, add a regression test, then retry the refresh.
 4. Consumers remain on the previous snapshot version throughout — no action
    needed on their end unless the staleness itself is now a problem, in
@@ -66,7 +66,7 @@ reporting their environment's data is stale.
 ## Prevention / follow-up
 
 - Track recurring refresh failures (same job, same failure class, more than
-  once) as a `problems_master.md` entry against the phase that owns the
+  once) as a `docs/problems/problems_master.md` entry against the phase that owns the
   failing component, not just as a one-off retry.
 - If certification catches a real policy gap, that's a signal
   `DATA_GOVERNANCE.md`'s policy needs updating — open the update as part of

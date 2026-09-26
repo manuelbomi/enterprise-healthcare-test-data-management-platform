@@ -1,4 +1,4 @@
-"""Regression tests for `problems_final_review.md` P2-1 -- mirrors
+"""Regression tests for `docs/problems/problems_final_review.md` P2-1 -- mirrors
 `services/control-plane/tests/test_db_engine_pooling.py`. The data
 plane's `create_postgres_engine` now carries the same connection-pool
 resilience configuration (`pool_pre_ping`, bounded `pool_size`/

@@ -8,7 +8,7 @@ retry logic is needed.
 
 Deliberately generic (no job-type-specific knowledge) and deliberately
 **not** wired into data-plane job execution (masking/subsetting/
-certification) -- see `problems_phase_11.md` P11-6 for why: this
+certification) -- see `docs/problems/problems_phase_11.md` P11-6 for why: this
 phase's own "masking job crashes halfway" failure-injection test
 (P11-1) found that a mid-run crash can leave a partially-written
 output directory with no atomicity guarantee. Blindly retrying a job

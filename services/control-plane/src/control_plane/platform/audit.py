@@ -6,9 +6,9 @@ describe an immutable audit event log as a security/governance-plane
 responsibility. Every phase through Phase 10 that produced a
 security/governance-relevant action (a masking run, a certification, a
 dataset revocation, a policy approval) documented, honestly, that no
-such log existed yet to write to (see `problems_phase_03.md` P3-2,
-`problems_phase_06.md` P6-2, `problems_phase_07.md` P7-6,
-`problems_phase_10.md` P10-2). This module is the first real one.
+such log existed yet to write to (see `docs/problems/problems_phase_03.md` P3-2,
+`docs/problems/problems_phase_06.md` P6-2, `docs/problems/problems_phase_07.md` P7-6,
+`docs/problems/problems_phase_10.md` P10-2). This module is the first real one.
 
 Scope: this phase wires `AuditLogRepository` into the control plane's
 own highest-sensitivity, RBAC-gated mutations (dataset version
@@ -21,7 +21,7 @@ reach into `data_plane` (ADR-0003: plane separation) -- a masking or
 certification run still only produces its own signed
 `certification_report.json` (Phase 6) or `masking_run_summary.json`
 (Phase 3); wiring those into this same log is future work (see
-`problems_phase_11.md` P11-5).
+`docs/problems/problems_phase_11.md` P11-5).
 
 Immutability: this class has no `update`/`delete` method of any kind.
 That is the entire enforcement mechanism -- there is no code path in

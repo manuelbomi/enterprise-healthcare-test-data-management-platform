@@ -37,7 +37,7 @@ concrete scope:
    real, database-backed service is a much larger unit of work than
    Phase 10's actual scope, and `ROADMAP.md` reserves the
    security/governance plane's real build-out for a later phase
-   (`problems_master.md` tracks this; `ARCHITECTURE.md` section 2.4
+   (`docs/problems/problems_master.md` tracks this; `ARCHITECTURE.md` section 2.4
    remains a design target, not yet built code, as of Phase 9).
 2. **The phase's hardest requirement is a same-transaction integration
    with Phase 7/8, which already live in `services/control-plane`.**
@@ -111,7 +111,7 @@ integrate with.
   accepts any `performed_by` string, the same honest gap
   `control_plane.domain.lifecycle`'s `revoked_by`/`performed_by` fields
   already have (no RBAC check anywhere in this service yet). Tracked in
-  `problems_phase_10.md`; real RBAC enforcement is
+  `docs/problems/problems_phase_10.md`; real RBAC enforcement is
   `services/governance-service`'s eventual job once it is built out for
   real, and this domain's `performed_by` fields are exactly the fields
   a future RBAC check would gate.

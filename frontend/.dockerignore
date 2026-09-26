@@ -1,5 +1,5 @@
 # .dockerignore for `frontend/`'s build context -- resolves
-# `problems_final_review.md` P2-12: `frontend/Dockerfile`'s builder
+# `docs/problems/problems_final_review.md` P2-12: `frontend/Dockerfile`'s builder
 # stage does `COPY package.json package-lock.json ./` then `COPY . .`
 # with build context `frontend/` (see that Dockerfile's own header
 # comment: `docker build -t tdm-console:local frontend`). Without this

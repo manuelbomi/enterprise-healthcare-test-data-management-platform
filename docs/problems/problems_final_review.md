@@ -6,9 +6,9 @@ other than this file was changed while producing it. Per the Phase 17 brief:
 input Phase 18A/18B will fix or delete from.
 
 **Method.** Before writing a single finding, this review read: `ARCHITECTURE.md`,
-all 17 ADRs, every `problems_phase_01.md`-`problems_phase_15.md` (there is no
-`problems_phase_16.md` — `ROADMAP.md`'s own Phase 16 section explains why, and
-that explanation was verified rather than assumed), `problems_master.md`,
+all 17 ADRs, every `docs/problems/problems_phase_01.md`-`docs/problems/problems_phase_15.md` (there is no
+`docs/problems/problems_phase_16.md` — `ROADMAP.md`'s own Phase 16 section explains why, and
+that explanation was verified rather than assumed), `docs/problems/problems_master.md`,
 `docs/PLATFORM_INTEGRITY.md`, `docs/CERTIFICATION_VS_MASKING.md`,
 `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md`, `docs/CAPACITY_COST_TRADEOFFS.md`,
 `docs/COMPLIANCE_EVIDENCE.md`, `docs/SCALE_AND_PERFORMANCE.md`,
@@ -30,7 +30,7 @@ results" below.
 
 **Findings are classified P0-P3** per this document's own definition (see
 "How severity was assigned" at the end). For every finding already named in
-an existing `problems_phase_NN.md`/`problems_master.md` entry, that entry is
+an existing `problems_phase_NN.md`/`docs/problems/problems_master.md` entry, that entry is
 cited rather than re-derived from scratch — but the severity classification
 below is this review's own, independent judgment, not an import of whatever
 urgency language (if any) the original phase used. Findings not cited to any
@@ -92,8 +92,8 @@ left open with reasoning citing precedent (P2-5, P2-6, P2-7, P2-8, P3-5,
 P3-6): each names a disproportionately large, previously-deferred build
 (a real storage adapter, real NLP-based PHI detection, Spark job
 orchestration/real Delta writes, a full frontend CRUD workflow) that
-`problems_master.md` P0-3, `problems_phase_08.md` P8-3, and
-`problems_phase_14.md` P14-1/P14-4/P14-5 already correctly declined to
+`docs/problems/problems_master.md` P0-3, `docs/problems/problems_phase_08.md` P8-3, and
+`docs/problems/problems_phase_14.md` P14-1/P14-4/P14-5 already correctly declined to
 build for the same reasons.
 
 ## Severity summary
@@ -133,7 +133,7 @@ assumed to still match this table.
 | `frontend` lint | `npm run lint` | 0 errors |
 | `frontend` build | `npm run build` | passes, 285KB bundle (89KB gzip) |
 
-This **exactly matches** the 698 figure `problems_phase_15.md` claimed and is
+This **exactly matches** the 698 figure `docs/problems/problems_phase_15.md` claimed and is
 consistent with the growth trajectory documented since Phase 12 (644→645→...→698).
 No regression, no hidden skip masking a real failure. Three `pytest.skip(...)`
 calls exist in `services/data-plane` (seed/scale-dependent data-availability
@@ -152,8 +152,8 @@ that required no correction.
 ### P2-4 — `size_bytes`/`row_counts` are trusted as caller-supplied at dataset-version registration, never independently re-derived (PARTIALLY RESOLVED, Phase 18B)
 
 - **Problem (original, `row_counts` half now closed for the GOVERNED
-  path):** Already tracked as `problems_phase_07.md` P7-8 and
-  `problems_phase_08.md` P8-2. Both `size_bytes` and `row_counts` were
+  path):** Already tracked as `docs/problems/problems_phase_07.md` P7-8 and
+  `docs/problems/problems_phase_08.md` P8-2. Both `size_bytes` and `row_counts` were
   pure caller-supplied claims at dataset-version registration, with no
   cross-check against anything the certification pipeline itself had
   measured.
@@ -197,8 +197,8 @@ that required no correction.
 
 ### P2-5 — No storage adapter exists anywhere; `vacuum_candidates` and object-storage deletion are both purely conceptual (left open, deliberate Phase 18B scope decision)
 
-- **Problem:** Already tracked as `problems_master.md` P0-3 (open since
-  Phase 0) and `problems_phase_08.md` P8-3. Confirmed unchanged through
+- **Problem:** Already tracked as `docs/problems/problems_master.md` P0-3 (open since
+  Phase 0) and `docs/problems/problems_phase_08.md` P8-3. Confirmed unchanged through
   Phase 18B — `libs/contracts` documents the intended storage adapter
   contract, but no MinIO/S3/ADLS adapter has ever been implemented; every
   data-plane job still reads/writes a local filesystem path directly.
@@ -225,7 +225,7 @@ that required no correction.
 
 ### P2-6 — Free-text/NLP-based PHI detection is entirely unbuilt and untested (left open, deliberate Phase 18B scope decision)
 
-- **Problem:** Already tracked as `problems_phase_02.md` P2-2 and explained
+- **Problem:** Already tracked as `docs/problems/problems_phase_02.md` P2-2 and explained
   at length in `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md` section 2 (named
   there as "the single largest reason this is not a de-identification
   guarantee"). Confirmed unchanged: none of the 14 Phase 1 entities has a
@@ -256,7 +256,7 @@ that required no correction.
 
 ### P2-7 — Neither Spark job is wired into any job orchestrator, and the pandas-vs-Spark masking comparison is not apples-to-apples (left open, deliberate Phase 18B scope decision)
 
-- **Problem:** Already tracked as `problems_phase_14.md` P14-4/P14-5.
+- **Problem:** Already tracked as `docs/problems/problems_phase_14.md` P14-4/P14-5.
   Confirmed unchanged: `data_plane.spark.masking_job`/`subsetting_job` are
   real, tested, but only invocable via CLI/direct import; `spark_masking[claim]`
   masks 2 columns/1 technique vs. pandas's full 14-entity/8-technique run.
@@ -270,7 +270,7 @@ that required no correction.
   `scripts/run_scheduled_maintenance.py`'s own docstring restates for the
   Phase 18B P2-3 fix); reimplementing Phase 3's full 14-entity/8-technique
   masking policy in Spark, just to make the comparison "fair," is exactly
-  the disproportionately large build `problems_phase_14.md` P14-5 already
+  the disproportionately large build `docs/problems/problems_phase_14.md` P14-5 already
   declined for good reason (out of Phase 14's real scope). Both remain
   honestly documented limitations, not silently-dropped ones.
 - **Reproduction/evidence:** as documented in P14-4/P14-5.
@@ -280,7 +280,7 @@ that required no correction.
 
 ### P2-8 — No real Delta Lake write exists anywhere despite ADR-0007 choosing Delta for versioned/mutable tables (left open, deliberate Phase 18B scope decision)
 
-- **Problem:** Already tracked as `problems_phase_14.md` P14-1. Confirmed
+- **Problem:** Already tracked as `docs/problems/problems_phase_14.md` P14-1. Confirmed
   unchanged.
 - **Risk:** Low (honestly documented; `delta-spark` remains a declared,
   unwired dependency by deliberate choice, not oversight).
@@ -301,8 +301,8 @@ that required no correction.
 ### P2-13 — `PolicyApproval`/`performed_by` and every other actor-attribution field remain unverified free text platform-wide (NARROWED, Phase 18B; the big gap remains genuinely open)
 
 - **Problem (original):** Already tracked in scattered form across
-  `problems_phase_07.md` P7-6, `problems_phase_10.md` P10-2,
-  `problems_phase_11.md` P11-4, `problems_phase_13.md` P13-3, and
+  `docs/problems/problems_phase_07.md` P7-6, `docs/problems/problems_phase_10.md` P10-2,
+  `docs/problems/problems_phase_11.md` P11-4, `docs/problems/problems_phase_13.md` P13-3, and
   `control_plane.platform.rbac`'s own module docstring. This is the same
   underlying fact as P0-1, restated here at the "audit trail integrity"
   category level: every `AuditEvent.actor`, `revoked_by`, `performed_by`,
@@ -366,7 +366,7 @@ that required no correction.
 
 ### P3-1 — Data skew, Delta optimization, and autoscaling remain conceptual, not measured, in Spark documentation (RE-VERIFIED, left open, Phase 18B)
 
-- Already tracked as `problems_phase_14.md` P14-2/P14-1/P14-3. Phase 18B
+- Already tracked as `docs/problems/problems_phase_14.md` P14-2/P14-1/P14-3. Phase 18B
   re-read `docs/SCALE_AND_PERFORMANCE.md` section 6 ("What is documented
   conceptually, not measured (and why)," lines 151-161) specifically to
   check whether this finding is still accurately, honestly labeled --
@@ -376,7 +376,7 @@ that required no correction.
   Phase 1 estate's bounded-random fan-out does not produce realistic
   skew; no real Delta write is executed per ADR-0017; `local[*]` has no
   cluster to autoscale) and cites `data_plane/spark/README.md` and the
-  exact `problems_phase_14.md` findings this restates. This is exactly
+  exact `docs/problems/problems_phase_14.md` findings this restates. This is exactly
   the kind of already-adequately-addressed-by-existing-docs finding the
   Phase 18B brief anticipated for this item -- attempting new
   measurement here would require infrastructure (a real skewed dataset
@@ -392,7 +392,7 @@ that required no correction.
 
 ### P3-2 — Compute-unit-hour/annual-processing-volume estimates remain a hardcoded, unbenchmarked constant (NARROWED, Phase 18B; constant deliberately left unchanged)
 
-- **Original:** Already tracked as `problems_phase_08.md` P8-1. Confirmed
+- **Original:** Already tracked as `docs/problems/problems_phase_08.md` P8-1. Confirmed
   unchanged going into Phase 18B: Phase 14's real throughput numbers had
   never been fed back into
   `control_plane.domain.capacity.estimator.ROWS_PER_COMPUTE_UNIT_HOUR`.
@@ -417,14 +417,14 @@ that required no correction.
   compute unit" means in a real deployment, not this repository's
   single-machine `local[*]`/plain-Python dev environment. Replacing the
   constant outright, rather than sanity-checking it, would need that
-  real benchmark to exist first -- exactly the gap `problems_phase_08.md`
+  real benchmark to exist first -- exactly the gap `docs/problems/problems_phase_08.md`
   P8-1 already named and this phase does not close.
 - **Affected files:** `services/control-plane/src/control_plane/domain/capacity/estimator.py`,
   `services/control-plane/tests/test_capacity_planner.py`.
 
 ### P3-5 — No frontend UI exists for Phase 10 governance at all (left open, deliberate Phase 18B scope decision)
 
-- **Problem:** Already tracked as `problems_phase_10.md` P10-4. Re-confirmed
+- **Problem:** Already tracked as `docs/problems/problems_phase_10.md` P10-4. Re-confirmed
   this phase by listing `frontend/src/pages/` directly: still no
   `Governance`/`ConsumerRequests`-named page or nav entry anywhere (17
   page files, none named or scoped to Phase 10 governance).
@@ -444,7 +444,7 @@ that required no correction.
 
 ### P3-6 — Console remains read-only; no in-UI write workflows for any lifecycle mutation (left open, deliberate Phase 18B scope decision)
 
-- **Problem:** Already tracked as `problems_phase_09.md` P9-2. Re-confirmed
+- **Problem:** Already tracked as `docs/problems/problems_phase_09.md` P9-2. Re-confirmed
   this phase: `lifecycleApi.revokeDatasetVersion`/`runRefresh`/
   `rollbackEnvironmentRequest` still exist in `frontend/src/api/lifecycle.ts`
   but no page or E2E test invokes any of them; `governance.ts`'s frontend
@@ -464,7 +464,7 @@ that required no correction.
 
 ### P3-10 — `pattern:npi`/name-based detectors cannot distinguish a business identifier from a personal one without schema context (NARROWED, Phase 18B; structural limitation remains genuinely open)
 
-- **Problem (original):** Already tracked as `problems_phase_02.md` P2-1
+- **Problem (original):** Already tracked as `docs/problems/problems_phase_02.md` P2-1
   and explicitly, honestly documented in
   `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md` section 1: `pattern:npi`
   cannot tell whether an NPI-shaped column belongs to a provider
@@ -545,7 +545,7 @@ already, correctly, closed or documented as acceptable**:
   clearly-labeled placeholders, never presented as production-ready.
 - **CI/CD security gating**: `scripts/security/dependency_scan.py` and
   `detect_secrets.py` are both confirmed wired into `.github/workflows/ci.yml`'s
-  `security-checks` job (resolving `problems_phase_11.md` P11-3, as Phase 12
+  `security-checks` job (resolving `docs/problems/problems_phase_11.md` P11-3, as Phase 12
   claimed) and gate the `release-gate` job; `container-build.yml` additionally
   runs Trivy image scanning, a previously-undocumented-in-the-phase-docs
   extra layer.

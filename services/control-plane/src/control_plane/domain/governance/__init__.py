@@ -10,7 +10,7 @@ Module map
 - `state_machine.py` -- the enforced `PolicyApprovalStatus` transition
   table (mirrors `control_plane.domain.lifecycle.state_machine`, which
   itself mirrors `data_plane.certification.state_machine`) plus, since
-  Phase 18B (`problems_final_review.md` P3-4), the enforced
+  Phase 18B (`docs/problems/problems_final_review.md` P3-4), the enforced
   `ConsumerRequestStatus` transition table (REJECTED/CANCELLED terminal
   states).
 - `errors.py` -- domain-specific exceptions, mapped to HTTP status codes

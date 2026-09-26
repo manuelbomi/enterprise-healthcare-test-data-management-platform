@@ -4,7 +4,7 @@ Revision ID: 9f5e5af6718f
 Revises: 0c097b0a72f8
 Create Date: 2026-09-26 07:22:20.437074
 
-Phase 18B (resolves `problems_final_review.md` P3-3, "illustrative
+Phase 18B (resolves `docs/problems/problems_final_review.md` P3-3, "illustrative
 capacity scenarios are stateless; nothing can be saved/compared over
 time"): adds `illustrative_capacity_plan`, the append-only table
 `control_plane.domain.capacity.scenario_history.CapacityScenarioHistoryRepository`

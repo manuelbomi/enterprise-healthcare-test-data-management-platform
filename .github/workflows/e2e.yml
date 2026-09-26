@@ -49,7 +49,7 @@ jobs:
       - name: Start control-plane (background, port 8010)
         # Deliberately NOT `working-directory: services/control-plane`
         # (a real bug found and fixed while verifying this workflow --
-        # see problems_phase_12.md): control_plane.config.Settings'
+        # see docs/problems/problems_phase_12.md): control_plane.config.Settings'
         # default paths (catalog_path, lifecycle_database_url, the
         # Phase 9 artifact roots) are plain relative strings resolved
         # against the process's cwd, not the package's location --
@@ -75,7 +75,7 @@ jobs:
         # strictest default) and Chromium silently blocks every
         # response, which is indistinguishable from "no data" in the
         # UI -- exactly the symptom that made the earlier cwd fix look
-        # ineffective. See problems_phase_12.md.
+        # ineffective. See docs/problems/problems_phase_12.md.
         env:
           TDM_CONTROL_PLANE_CORS_ALLOWED_ORIGINS: "http://127.0.0.1:5174"
         run: |
@@ -113,7 +113,7 @@ jobs:
         # a timing race (Vite's own log always showed "ready in
         # ~200ms", immediately, in every failed run). Fixed by passing
         # `--host 127.0.0.1` explicitly above, forcing IPv4 binding
-        # that matches this curl check. See problems_phase_12.md for
+        # that matches this curl check. See docs/problems/problems_phase_12.md for
         # both real failed run URLs and this diagnosis.
         run: |
           for i in $(seq 1 90); do

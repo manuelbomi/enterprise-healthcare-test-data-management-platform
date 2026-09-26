@@ -296,7 +296,7 @@ snapshot" — not an afterthought.
 
 ### 3.3 Observability
 
-**Phase 0 claim, corrected in Phase 18A** (`problems_final_review.md`
+**Phase 0 claim, corrected in Phase 18A** (`docs/problems/problems_final_review.md`
 P1-5 found this section 100% unimplemented for 17 phases, including a
 dead `log_level` config field that was validated at startup but never
 read by anything): what is actually real today is real, minimal
@@ -375,7 +375,7 @@ a later phase). The `Masking` -> `Snapshots` edge and the `Masking` ->
 or audit event log to write to yet (both are later-phase metadata/
 governance-plane infrastructure); Phase 3's masking runs write a plain
 JSON run summary (`masking_run_summary.json`) next to the masked output
-instead. See `problems_phase_03.md` P3-1 and P3-3.
+instead. See `docs/problems/problems_phase_03.md` P3-1 and P3-3.
 
 Phase 4 note: the `Subsetting` component in the diagram above is
 implemented and real
@@ -384,14 +384,14 @@ implemented and real
 (`python -m data_plane.subsetting.cli`), not yet submitted as a job by
 the control plane's orchestrator (`JobType.SUBSETTING` exists in
 `libs/contracts` but nothing yet translates a `JobRequest.sizing_rule`
-into a `SubsettingStrategy`/parameters — see `problems_phase_04.md`
+into a `SubsettingStrategy`/parameters — see `docs/problems/problems_phase_04.md`
 P4-1). The `Subsetting` -> `Snapshots` edge and the audit-log edge are
 not yet implemented for the same reason Phase 3 documents for masking:
 there is no snapshot registry or audit event log to write to yet.
 Subsetting runs write a plain JSON manifest (`subset_manifest.json`,
 `healthcare_tdm_contracts.SubsetManifest`) next to the subset output
 instead, following the same interim pattern Phase 3 established with
-`masking_run_summary.json` — see `problems_phase_04.md` P4-2.
+`masking_run_summary.json` — see `docs/problems/problems_phase_04.md` P4-2.
 
 Phase 6 note: the `Certifier` component in the diagram above
 (`services/data-plane/src/data_plane/certification/`) is implemented and
@@ -404,7 +404,7 @@ before it, it is run directly today
 (`python -m data_plane.certification.cli`), not yet submitted as a job by
 the control plane's orchestrator (`JobType.CERTIFICATION` exists in
 `libs/contracts` but nothing yet translates a `JobRequest` into a
-certification pipeline invocation -- see `problems_phase_06.md` P6-1).
+certification pipeline invocation -- see `docs/problems/problems_phase_06.md` P6-1).
 The `Certifier -> Evidence` edge (security/governance plane) and the
 `Certifier -> AuditLog` edge are not yet implemented for the same reason
 Phases 3/4 document for their own edges: there is no certification
@@ -438,7 +438,7 @@ Phase 7's "avoid unnecessary duplicate physical copies" requirement. See
 `docs/tutorial/07-dataset-lifecycle-and-refresh.md`. The catalog,
 lineage, and classification-store portions of section 2.3's schema
 remain not-yet-migrated from their Phase 2 JSON-artifact interim design
-(see `problems_phase_07.md`, which does not reopen that gap -- it is
+(see `docs/problems/problems_phase_07.md`, which does not reopen that gap -- it is
 still tracked under its original Phase 2 owner note).
 
 Phase 8 note: storage/compute capacity planning is split across two new,
@@ -486,12 +486,12 @@ repositories recursively scans a configured *root directory* for every
 matching artifact filename found under it (real job/demo runs write to
 different output directories per run) -- see
 `control_plane/artifacts/__init__.py`'s module docstring and
-`problems_phase_09.md` for the concurrency/performance caveats this
+`docs/problems/problems_phase_09.md` for the concurrency/performance caveats this
 inherits from ADR-0009's original design. Audit Trail (Phase 13) and
 full Platform Health (Phase 11, beyond the existing liveness-only
 `/api/v1/health`) remain honest "not yet available" placeholders --
 there is no security/governance-plane audit log or dependency-aware
-readiness check to point at yet. See `problems_phase_09.md` for the
+readiness check to point at yet. See `docs/problems/problems_phase_09.md` for the
 per-page decision record and `docs/adr/0008-frontend-stack.md`
 (unchanged, since the accessible-by-default / control-plane-only
 constraints it establishes are exactly what this phase followed).
@@ -516,7 +516,7 @@ same-service, same-`Session` integration can give it honestly.
 end-to-end in `scripts/demo_phase10_governance.py` and
 `docs/tutorial/09-centralized-masking-governance.md`. RBAC over who may
 approve a policy version remains explicitly out of scope (tracked in
-`problems_phase_10.md`) -- consistent with every other actor-attribution
+`docs/problems/problems_phase_10.md`) -- consistent with every other actor-attribution
 field already in this service (e.g. `DatasetVersion.revoked_by`) having
 no RBAC check behind it yet.
 
@@ -549,7 +549,7 @@ idempotent under a duplicate call) and one real gap found and only
 partially mitigated (a masking run that crashes mid-way now leaves a
 checkable `_MASKING_RUN_INCOMPLETE.marker`, but individual
 per-source-system files are still not written atomically -- see
-`problems_phase_11.md` P11-1). Container health
+`docs/problems/problems_phase_11.md` P11-1). Container health
 (`HEALTHCHECK`) is documented as design intent only -- `infra/docker/`
 has no application `Dockerfile` yet to attach one to (Phase 12).
 
@@ -557,7 +557,7 @@ Phase 12 note: this phase gives the repository its first real
 Dockerfiles (`services/control-plane/Dockerfile`,
 `services/governance-service/Dockerfile`, `frontend/Dockerfile` --
 `data-plane` is deliberately not containerized; see
-`problems_phase_12.md` for why), real GitHub Actions workflows
+`docs/problems/problems_phase_12.md` for why), real GitHub Actions workflows
 (`.github/workflows/ci.yml` -- lint/typecheck/unit/integration/
 data-quality/security/frontend jobs plus a release-gate job;
 `container-build.yml`; `e2e.yml`; `deploy-qa.yml` ->
@@ -577,7 +577,7 @@ gains its first line of real code -- a liveness endpoint only
 (`governance_service/main.py`), added so this service has something
 real to containerize/deploy alongside the other two; its RBAC/audit/
 secrets/evidence-store business logic remains unbuilt, unchanged from
-every earlier phase's notes above. See `problems_phase_12.md` for the
+every earlier phase's notes above. See `docs/problems/problems_phase_12.md` for the
 full account, including a real deliberate-failure experiment proving
 the release gate actually blocks a broken build, and
 `docs/AZURE_PRODUCTION_DEPLOYMENT.md` for what stays cloud-portable
@@ -588,7 +588,7 @@ Phase 14 note: this phase closes this document's own longstanding gap
 -- section 2.2 has said since Phase 0 that "every job [in the data
 plane] is designed to be run either locally ... or on Spark", but no
 file under `services/data-plane/src` ever imported `pyspark` or built a
-`SparkSession` through Phase 13 (`problems_phase_12.md`'s container-
+`SparkSession` through Phase 13 (`docs/problems/problems_phase_12.md`'s container-
 build note already named this explicitly). Two new, additive packages --
 `data_plane.spark` (real PySpark jobs: a `pandas_udf`-based masking job
 reusing Phase 3's `MaskingEngine` unmodified, and a two-broadcast-join
@@ -619,7 +619,7 @@ implementing this phase (a `winutils.exe`/`HADOOP_HOME` native-shim
 requirement for local file writes, and a Python-worker crash caused by
 the JVM launching a different `python` on `PATH` than the one that built
 the session) -- see `data_plane.spark.session`'s module docstring and
-`problems_phase_14.md`.
+`docs/problems/problems_phase_14.md`.
 
 ## 5. Why this stack
 

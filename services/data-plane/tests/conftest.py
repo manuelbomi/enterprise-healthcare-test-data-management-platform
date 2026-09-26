@@ -1,6 +1,6 @@
 """Repository-wide (`services/data-plane`) pytest configuration.
 
-Phase 18B (`problems_final_review.md` P3-9): three `pytest.skip(...)`
+Phase 18B (`docs/problems/problems_final_review.md` P3-9): three `pytest.skip(...)`
 call sites -- one in
 `tests/subsetting/test_selection.py::test_select_risk_edge_case_max_members_caps_the_pool`,
 two in
@@ -49,7 +49,7 @@ def _record_skip_guard_fired(reason: str) -> None:
     _SKIP_GUARDS_FIRED.append(reason)
     warnings.warn(
         f"data-dependent test guard fired and skipped a real assertion: {reason} "
-        "(problems_final_review.md P3-9 -- this is expected to be rare; if this "
+        "(docs/problems/problems_final_review.md P3-9 -- this is expected to be rare; if this "
         "starts happening on every run, treat it as a possible generator regression, "
         "not a stable skip).",
         stacklevel=2,
@@ -88,7 +88,7 @@ def record_skip_guard_fired():
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config) -> None:  # noqa: ANN001
     terminalreporter.write_sep(
-        "=", "data-dependent skip guards (problems_final_review.md P3-9)"
+        "=", "data-dependent skip guards (docs/problems/problems_final_review.md P3-9)"
     )
     if _SKIP_GUARDS_FIRED:
         terminalreporter.write_line(

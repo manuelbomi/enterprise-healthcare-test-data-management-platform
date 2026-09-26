@@ -26,7 +26,7 @@ resembles any real person, organization, or dataset. See
 ``DATA_GOVERNANCE.md`` Part A for the rules this must follow.
 
 No PHI/masking work happens in this package — see the phase's stop
-condition in ``problems_phase_01.md`` / the spec. This package only
+condition in ``docs/problems/problems_phase_01.md`` / the spec. This package only
 *produces* the realistic-but-fake estate that later phases will classify,
 subset, and mask.
 """

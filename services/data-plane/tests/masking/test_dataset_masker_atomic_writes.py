@@ -1,5 +1,5 @@
 """Regression tests for Phase 18A's atomic-write fix
-(`problems_final_review.md` P1-6): "masking's per-source-system writers
+(`docs/problems/problems_final_review.md` P1-6): "masking's per-source-system writers
 aren't atomic; a crash mid-write can leave a corrupt/partial file."
 
 Each test below simulates a real crash *mid-write* (an exception raised
@@ -7,7 +7,7 @@ partway through writing a file's content) and proves no truncated,
 partial file is ever left visible at the file's final path -- the exact
 scenario `mask_clinical_data_lake`'s pre-Phase-18A code (writing NDJSON
 rows into an already-open file handle one at a time) was named as the
-concrete example of in `problems_final_review.md` P1-6.
+concrete example of in `docs/problems/problems_final_review.md` P1-6.
 """
 
 from __future__ import annotations
@@ -129,7 +129,7 @@ def real_catalog(real_estate: Path) -> list:
 def test_mask_clinical_data_lake_crash_mid_write_leaves_no_truncated_ndjson_file(
     tmp_path: Path, real_estate: Path, real_catalog: list, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Reproduces `problems_final_review.md` P1-6's exact named example:
+    """Reproduces `docs/problems/problems_final_review.md` P1-6's exact named example:
     `mask_clinical_data_lake` writes NDJSON rows one at a time. Force a
     crash partway through the `encounters` file (after at least one row
     has been written to the underlying handle) and prove `part-0000.ndjson`

@@ -28,7 +28,7 @@ This is a real subsetting *operation* (referentially closed: every
 belongs to a selected member), not a reimplementation of Phase 4's full
 six-strategy `selection.py` (percentage/targeted/rare-condition-coverage/
 ...). Only the "random N% of members, full closure" case is implemented
-here -- see `problems_phase_14.md` for what is deliberately left out of
+here -- see `docs/problems/problems_phase_14.md` for what is deliberately left out of
 scope.
 """
 

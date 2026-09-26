@@ -159,7 +159,7 @@ free lunch:
   exist specifically to compensate for this (see item 6 below) -- but a
   plain percentage-based subset alone under-represents rare cases
   proportionally to its size.
-- **Distribution shape at scale is not guaranteed.** `problems_phase_03.md`
+- **Distribution shape at scale is not guaranteed.** `docs/problems/problems_phase_03.md`
   and `docs/CERTIFICATION_VS_MASKING.md` already document that this
   platform's masking does not verify dataset-wide statistical
   distribution preservation (mean/variance/percentile fidelity) -- a
@@ -211,7 +211,7 @@ infrastructure:
   real cleanup job would run: a `DatasetVersion` whose status is
   terminal-for-now (expired/revoked/rolled_back) *and* is referenced by
   zero `EnvironmentDatasetRequest`s. It is deliberately read-only --
-  see `problems_phase_08.md` P8-3 for why this phase identifies
+  see `docs/problems/problems_phase_08.md` P8-3 for why this phase identifies
   candidates rather than deleting anything (no storage adapter exists
   yet to delete through, and an unattended auto-delete on a read-only
   query's say-so would be a dangerous default regardless).
@@ -223,13 +223,13 @@ infrastructure:
   figures by the actual per-GB/month rate of whatever storage tier
   (S3 Standard, S3 Infrequent Access, Azure Cool Blob, ...) each
   dataset version actually lives on, which this platform does not track
-  (no storage adapter exists yet -- `problems_master.md` P0-3).
+  (no storage adapter exists yet -- `docs/problems/problems_master.md` P0-3).
 - It does not know real compute pricing either -- `estimator.py`'s
   compute-unit-hours are a row-count-based heuristic, not a cost figure
   from any real cloud billing API.
 - It trusts `DatasetVersion.size_bytes`/`row_counts` as registered,
   rather than independently re-verifying them against `storage_uri`
-  every time a plan is computed -- see `problems_phase_08.md` P8-2 for
+  every time a plan is computed -- see `docs/problems/problems_phase_08.md` P8-2 for
   why closing that gap fully needs a real storage adapter, which this
   phase gives real measurement *tooling* for (`data_plane.capacity.footprint`)
   but does not wire into an enforced trust boundary.

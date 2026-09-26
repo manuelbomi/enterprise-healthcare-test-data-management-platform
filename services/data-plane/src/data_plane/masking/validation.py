@@ -5,7 +5,7 @@ This is the "implement masking validation" requirement of the Phase 3
 spec -- a lightweight, in-package set of checks, not the full
 "Certified test dataset pipeline" (`ROADMAP.md` Phase 6) or the
 independent-verifier certification `ARCHITECTURE.md` section 2.2
-describes for a later phase (see `problems_phase_03.md` P3-1 for that
+describes for a later phase (see `docs/problems/problems_phase_03.md` P3-1 for that
 scope boundary, explicit on purpose: `ARCHITECTURE.md` warns
 certification must not "simply trust this module's own claims about what
 it did," so a later phase's real certifier should not import this module

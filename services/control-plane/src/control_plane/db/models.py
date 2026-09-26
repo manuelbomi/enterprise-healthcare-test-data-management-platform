@@ -76,13 +76,13 @@ were added here rather than to a separate service (see ADR-0014 and
   caller of that one sweep and is never persisted).
 
 Real PostgreSQL verification remains deferred, same honest pattern
-`problems_phase_01.md` P1-1 established: these models and
+`docs/problems/problems_phase_01.md` P1-1 established: these models and
 `create_sqlite_engine`/`create_postgres_engine` below are exercised
 against local SQLite by this phase's tests
 (`services/control-plane/tests/test_lifecycle_repository.py`,
 `test_lifecycle_api.py`); no real Postgres instance has been started
 against this schema yet (`infra/docker-compose` is not running in this
-environment). See `problems_phase_07.md`.
+environment). See `docs/problems/problems_phase_07.md`.
 """
 
 from __future__ import annotations
@@ -284,7 +284,7 @@ class ConsumerDatasetRequestRow(Base):
         default="",
         server_default="",
     )
-    """Phase 18B (`problems_final_review.md` P3-4): who/why for a
+    """Phase 18B (`docs/problems/problems_final_review.md` P3-4): who/why for a
     REJECTED or CANCELLED terminal transition. `server_default=""`
     so this column is safely nullable-in-practice against any row that
     predates this migration."""
@@ -324,7 +324,7 @@ class DeadLetterEventRow(Base):
 class SchedulerLockRow(Base):
     """A row-per-lock mutual-exclusion table, written by
     `control_plane.platform.scheduler_lock`
-    (`problems_final_review.md` P2-2). ``lock_name`` is the primary key,
+    (`docs/problems/problems_final_review.md` P2-2). ``lock_name`` is the primary key,
     so two concurrent transactions racing to `INSERT` the same lock name
     can never both succeed -- the database's own primary-key constraint
     is the actual mutual-exclusion mechanism (this is the classic
@@ -337,7 +337,7 @@ class SchedulerLockRow(Base):
     the honestly-documented remaining gap (a real multi-instance
     deployment should still prefer its external scheduler's own
     concurrency control, per ADR-0012; this closes the *application-level*
-    gap `problems_final_review.md` P2-2/`problems_phase_07.md` P7-2
+    gap `docs/problems/problems_final_review.md` P2-2/`docs/problems/problems_phase_07.md` P7-2
     named, not every conceivable multi-process race)."""
 
     __tablename__ = "scheduler_lock"
@@ -351,7 +351,7 @@ class IllustrativeCapacityPlanRow(Base):
     """A saved, point-in-time `IllustrativeCapacityPlan` (Phase 8's
     percentage-of-production capacity model), append-only, written by
     `control_plane.domain.capacity.scenario_history.CapacityScenarioHistoryRepository`
-    -- resolves `problems_final_review.md` P3-3 ("illustrative capacity
+    -- resolves `docs/problems/problems_final_review.md` P3-3 ("illustrative capacity
     scenarios are stateless; nothing can be saved/compared over time").
 
     Deliberately minimal: `IllustrativeCapacityPlan` (`libs/contracts`)
@@ -391,7 +391,7 @@ def create_postgres_engine(database_url: str) -> Engine:
     for why that portability is deliberate. Not yet exercised against a
     real Postgres instance in this environment; see the module docstring.
 
-    Pool resilience (`problems_final_review.md` P2-1): a bare
+    Pool resilience (`docs/problems/problems_final_review.md` P2-1): a bare
     ``create_engine(database_url)`` never detects a connection that has
     gone stale server-side (a Postgres restart, a load-balancer idle
     timeout, a cloud-managed failover) until a query using it fails.
@@ -428,7 +428,7 @@ def init_schema(engine: Engine) -> None:
     index on an existing table. For a real deployment carrying real
     data across an upgrade, use the Phase 18A Alembic setup instead
     (`services/control-plane/alembic.ini` + `migrations/`, resolves
-    `problems_final_review.md` P1-3): `alembic upgrade head` from
+    `docs/problems/problems_final_review.md` P1-3): `alembic upgrade head` from
     `services/control-plane/`. Every future change to the models in
     this module should ship together with a new Alembic migration
     (`alembic revision --autogenerate -m "..."`, reviewed before

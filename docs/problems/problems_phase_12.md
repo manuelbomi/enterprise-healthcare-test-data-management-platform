@@ -6,21 +6,21 @@ Every "resolved" item below was actually run and observed, not assumed.
 
 ## Expected-hard items (written before implementation)
 
-- CI has never run against this repository (`problems_master.md` P0-2) —
+- CI has never run against this repository (`docs/problems/problems_master.md` P0-2) —
   the biggest risk is that `.github/workflows/ci.yml`'s Phase-0-era
   jobs simply fail on first real run (stale package layout, lint
   drift accumulated across 11 unreviewed phases, etc.). Addressed by
   running every command locally first, exactly as the workflow invokes
   it, before wiring it in — see "Resolved" below for what that
   actually caught.
-- No Dockerfile exists anywhere in the repository yet (`problems_phase_11.md`
+- No Dockerfile exists anywhere in the repository yet (`docs/problems/problems_phase_11.md`
   P11-2). `services/governance-service` in particular has no FastAPI
   app at all (`ARCHITECTURE.md` section 2.4: "structural scaffold") —
   building a real container for it means either faking business logic
   that doesn't exist, or giving it a real (if minimal) liveness
   endpoint first. Chose the latter — see "Resolved" below.
 - `docker-compose.yml`'s Postgres container has never been started
-  against real application code (`problems_master.md` P0-2 references
+  against real application code (`docs/problems/problems_master.md` P0-2 references
   this indirectly; `ARCHITECTURE.md`'s own Phase 7/8/11 notes describe
   `lifecycle_database_url` defaulting to SQLite specifically because
   Postgres was never verified). Risk: the control plane's SQLAlchemy
@@ -46,7 +46,7 @@ Every "resolved" item below was actually run and observed, not assumed.
   `json`, `services/data-plane/src/data_plane/synthetic/scenarios.py`'s
   `tag_rows`) plus one unused local variable in
   `services/data-plane/tests/synthetic/test_synthetic_manifest.py`.
-  This is direct, concrete proof of `problems_master.md` P0-2's
+  This is direct, concrete proof of `docs/problems/problems_master.md` P0-2's
   underlying concern — several phases' worth of code had never
   actually been run through the CI lint step, because CI had never
   run. Fixed (`ruff check --fix` plus one manual edit for the unused
@@ -130,7 +130,7 @@ Every "resolved" item below was actually run and observed, not assumed.
   place (documenting the intended local S3-compatible target per
   ADR-0005) but could not be started in this environment. This phase's
   actual Postgres-verification goal did not depend on MinIO — no
-  application code reads/writes object storage yet (`problems_master.md`
+  application code reads/writes object storage yet (`docs/problems/problems_master.md`
   P0-3, still open) — so this blocker did not prevent the
   control-plane/Postgres integration verification below. Tracked here
   rather than silently worked around; a maintained MinIO alternative
@@ -165,7 +165,7 @@ Every "resolved" item below was actually run and observed, not assumed.
   — the `database` check is real: `control_plane.platform.readiness.check_database`
   opened a real SQLAlchemy connection and ran `SELECT 1` against the
   real `tdm-postgres` container, not SQLite. **This resolves
-  `problems_master.md` P0-2's Postgres-side concern and the identical
+  `docs/problems/problems_master.md` P0-2's Postgres-side concern and the identical
   gap referenced in `ARCHITECTURE.md`'s Phase 7/8/11 notes** ("what
   remains unverified against a real Postgres instance") — see that
   file's own text, now updated. The frontend container's nginx proxy
@@ -226,7 +226,7 @@ and a real, open-then-closed PR
 against this repository's real GitHub Actions, using this session's own
 `gh` push access — not a local dry-run. Every round below is a real,
 observed `gh run view` result, including five real bugs found only
-because CI actually ran for the first time (`problems_master.md` P0-2)
+because CI actually ran for the first time (`docs/problems/problems_master.md` P0-2)
 and were fixed in follow-up commits on the same branch, each re-verified
 by a subsequent real run:
 
@@ -423,7 +423,7 @@ the planned experiment above.
   `docs/adr/0017-pyspark-benchmark-tooling-in-data-plane.md`), so there
   is still no `spark-submit`/cluster-mode config or containerized Spark
   service for this or any later container-build phase to add yet — see
-  `problems_phase_14.md`.
+  `docs/problems/problems_phase_14.md`.
 - **Deployment promotion workflows (`deploy-qa.yml`,
   `deploy-staging-uat.yml`, `deploy-production.yml`) deploy to a Docker
   Compose stand-in, never a real cloud target.** No AWS/Azure

@@ -135,7 +135,7 @@ class LifecycleRepository:
         distinct, differently-numbered versions pointing at the same
         `storage_uri`, mirroring the exact idempotency convention
         `request_environment` already documents for itself below. See
-        `problems_phase_11.md`'s "Resolved problems" section.
+        `docs/problems/problems_phase_11.md`'s "Resolved problems" section.
         """
 
         if certification_report.status not in (
@@ -667,7 +667,7 @@ class LifecycleRepository:
     # *after* the fact -- there was no way to answer "show me this
     # dataset's refresh history" or "show me every rollback ever
     # performed against it" other than re-deriving it from application
-    # logs. See `problems_phase_13.md` (issue 2).
+    # logs. See `docs/problems/problems_phase_13.md` (issue 2).
 
     def list_refresh_runs(
         self,

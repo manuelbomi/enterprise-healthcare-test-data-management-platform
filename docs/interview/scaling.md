@@ -123,7 +123,7 @@ own worked example of both integration shapes. **The honest limit at 50-team
 scale:** `run_due_refreshes` has no distributed lock — two scheduler
 instances (or an Airflow retry racing an in-flight sweep) calling
 `run-due` concurrently is a real, open gap
-(`problems_phase_07.md` P7-2, restated in
+(`docs/problems/problems_phase_07.md` P7-2, restated in
 `docs/runbooks/duplicate-requests-and-revoked-datasets.md`'s "the one gap
 this does NOT close" section). A real 50-team deployment would need the
 external scheduler's own concurrency control (Airflow's single-active-DAG-
@@ -181,7 +181,7 @@ for versions nobody references any more — `CapacityPlanner.vacuum_candidates`
 identifies them (a real, live-computed query over expired/revoked/
 rolled-back versions referenced by zero environments) but is deliberately
 read-only, because no storage adapter exists yet to delete through
-(`problems_phase_08.md` P8-3, `problems_master.md` P0-3).
+(`docs/problems/problems_phase_08.md` P8-3, `docs/problems/problems_master.md` P0-3).
 
 ## Q: How would Databricks/Spark fit?
 
@@ -247,7 +247,7 @@ Databricks workspace:**
   estate's bounded-random member->claim fan-out doesn't produce a
   realistically skewed key, and fabricating one just to report a skew
   number would violate this repository's own honesty convention
-  (`problems_phase_14.md` P14-2).
+  (`docs/problems/problems_phase_14.md` P14-2).
 - **No real Delta Lake write exists anywhere.** [ADR-0007](../adr/0007-delta-parquet-data-format.md)
   already chose Delta for versioned/mutable tables, but Phase 14
   deliberately didn't execute one — resolving `io.delta:delta-spark_*`
@@ -255,14 +255,14 @@ Databricks workspace:**
   cache in every review environment, a larger runtime dependency than
   benchmark tooling warranted. `OPTIMIZE`/`ZORDER`/`VACUUM`/the transaction
   log are documented conceptually in `data_plane/spark/README.md`, not
-  measured (`problems_phase_14.md` P14-1) — this is exactly the piece a
+  measured (`docs/problems/problems_phase_14.md` P14-1) — this is exactly the piece a
   real Databricks migration would need to build for real, since Databricks'
   own value proposition leans heavily on managed Delta.
 - **Neither Spark job is wired into the control plane's job orchestrator.**
   `JobType.SPARK_MASKING`/`SPARK_SUBSETTING` don't exist — this is the same
   "engine exists, job-submission plumbing does not yet" gap
   `ARCHITECTURE.md`'s Phase 3/4 notes already document for the pandas-engine
-  versions of these same two operations (`problems_phase_14.md` P14-4). A
+  versions of these same two operations (`docs/problems/problems_phase_14.md` P14-4). A
   Databricks Workflow submitting these jobs is architecturally exactly the
   kind of external trigger [ADR-0012](../adr/0012-refresh-orchestration-abstraction.md)
   already designed a seam for (the same `due_refreshes`/`run_due_refreshes`
@@ -272,7 +272,7 @@ Databricks workspace:**
   masks only two columns of one table with one technique
   (`HMAC_PSEUDONYMIZATION`); the pandas comparison masks the full Phase 3
   policy across all fourteen entities and eight techniques
-  (`problems_phase_14.md` P14-5) — reimplementing Phase 3's entire policy in
+  (`docs/problems/problems_phase_14.md` P14-5) — reimplementing Phase 3's entire policy in
   Spark was explicitly out of Phase 14's scope. A real Databricks migration
   would need to close this gap before treating the local-mode numbers above
   as a real capacity-planning input.

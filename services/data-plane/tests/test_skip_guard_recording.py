@@ -1,4 +1,4 @@
-"""Real, executed proof for `problems_final_review.md` P3-9: the
+"""Real, executed proof for `docs/problems/problems_final_review.md` P3-9: the
 `record_skip_guard_fired` fixture (`tests/conftest.py`) actually raises a
 visible warning and records the reason -- this is the mechanism that
 makes the three data-dependent `pytest.skip(...)` call sites loud rather

@@ -91,7 +91,7 @@ def _synthesize_numeric(original: object, seed: int) -> object:
     """A deterministic pseudo-random number of roughly the same order of
     magnitude as `original`. Preserves plausibility per-value; does NOT
     preserve the dataset's overall distribution -- see
-    `problems_phase_03.md` P3-4 for why that's an explicit, documented
+    `docs/problems/problems_phase_03.md` P3-4 for why that's an explicit, documented
     limitation rather than a bug.
     """
 

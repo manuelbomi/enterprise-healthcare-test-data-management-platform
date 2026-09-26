@@ -30,7 +30,7 @@ modules/     # Shared reusable modules referenced by both
 enabled Storage Account, Azure Container Registry, Key Vault, and the
 least-privilege role assignments between them) — `terraform fmt -check`
 and `terraform validate` (against a local, `-backend=false` init) both
-pass; see `problems_phase_12.md` for the exact commands run and their
+pass; see `docs/problems/problems_phase_12.md` for the exact commands run and their
 output. `terraform plan`/`apply` were never run against a real Azure
 subscription — there is no `azurerm` credential anywhere in this
 repository or its CI. See `docs/AZURE_PRODUCTION_DEPLOYMENT.md` for the

@@ -35,7 +35,7 @@ deliberately *not* reused wholesale here:
   that *references* a `DatasetVersion` rather than owning storage of its
   own. `SnapshotRecord` is left untouched (still exact Phase 0 scope,
   unused by this phase) rather than retrofitted -- see
-  `problems_phase_07.md`.
+  `docs/problems/problems_phase_07.md`.
 """
 
 from __future__ import annotations

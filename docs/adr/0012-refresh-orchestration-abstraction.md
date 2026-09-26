@@ -87,7 +87,7 @@ seam.
   single-active-DAG-run semantics, or a Kubernetes CronJob's
   `concurrencyPolicy: Forbid`) to prevent overlapping sweeps; this
   repository does not implement that itself. Tracked as an open item in
-  `problems_phase_07.md`.
+  `docs/problems/problems_phase_07.md`.
 
 ## Consequences
 

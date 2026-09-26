@@ -1,5 +1,5 @@
 """Alembic environment for `services/control-plane` (Phase 18A --
-resolves `problems_final_review.md` P1-3).
+resolves `docs/problems/problems_final_review.md` P1-3).
 
 Before this phase, the *only* schema-management mechanism in this
 service was `control_plane.db.models.init_schema` (a bare

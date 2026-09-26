@@ -1,5 +1,5 @@
 """Real, minimal structured logging (Phase 18A, resolves
-`problems_final_review.md` P1-5: "`ARCHITECTURE.md`'s observability
+`docs/problems/problems_final_review.md` P1-5: "`ARCHITECTURE.md`'s observability
 claim is unimplemented; zero logging/metrics/tracing infrastructure
 anywhere; `log_level` config is dead code").
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Repo-wide secret-detection scan.
 
-`problems_phase_03.md`'s masking secret ("no secrets committed" test,
+`docs/problems/problems_phase_03.md`'s masking secret ("no secrets committed" test,
 `services/data-plane/tests/masking/test_no_secrets_committed.py`) and
-`problems_phase_06.md`'s certification signing secret
+`docs/problems/problems_phase_06.md`'s certification signing secret
 (`test_certification_no_secrets_committed.py`) each have a real,
 automated regression test -- but each is scoped to the one specific
 secret its own phase introduced (`TDM_MASKING_HMAC_KEY`,
@@ -14,7 +14,7 @@ a pre-commit secret scanner." This script is that generalization: a
 single, repo-wide scan for secret-shaped content, independent of which
 phase/module introduced it, runnable standalone today (`python
 scripts/security/detect_secrets.py`) and intended to be wired into a
-pre-commit hook and/or CI (Phase 12 -- see `problems_phase_11.md`
+pre-commit hook and/or CI (Phase 12 -- see `docs/problems/problems_phase_11.md`
 P11-3 for why CI wiring itself is out of this phase's scope).
 
 Detection patterns (all conservative -- tuned to avoid false positives

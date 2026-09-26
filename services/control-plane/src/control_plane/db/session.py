@@ -44,7 +44,7 @@ def get_engine_for_url(database_url: str) -> Engine:
         return create_engine(database_url)
     # Real (non-SQLite, i.e. Postgres) DSN: apply the same pool
     # resilience configuration as `control_plane.db.models.create_postgres_engine`
-    # (`problems_final_review.md` P2-1) -- `pool_pre_ping` detects a
+    # (`docs/problems/problems_final_review.md` P2-1) -- `pool_pre_ping` detects a
     # connection that has gone stale server-side before it is handed to
     # a caller, rather than surfacing that failure inside a request.
     return create_engine(

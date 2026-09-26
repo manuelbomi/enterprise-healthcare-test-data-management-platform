@@ -1,6 +1,6 @@
 """Smoke tests for `scripts/security/dependency_scan.py` -- the
 dependency-scanning hook Phase 11 adds (real script; CI wiring is
-Phase 12's job, see `problems_phase_11.md` P11-3). These tests do not
+Phase 12's job, see `docs/problems/problems_phase_11.md` P11-3). These tests do not
 require `pip-audit` to actually be installed -- they prove the script
 behaves honestly either way (a real scan when available, an explicit,
 non-zero failure when not -- never a silent skip that could be

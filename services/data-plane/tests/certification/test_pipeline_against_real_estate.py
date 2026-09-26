@@ -52,7 +52,7 @@ def test_pipeline_reaches_certified_for_a_healthy_tiny_scale_run(
     assert signing.verify_report_signature(report, signing_key) is True
     assert result.report_path.exists()
 
-    # Phase 18B (`problems_final_review.md` P3-7): the pipeline's own
+    # Phase 18B (`docs/problems/problems_final_review.md` P3-7): the pipeline's own
     # `masking_run_summary.json` writer now constructs the shared
     # `healthcare_tdm_contracts.MaskingRunSummary` contract -- the exact
     # same class `data_plane.masking.cli.main`'s writer and

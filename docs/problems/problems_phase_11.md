@@ -115,7 +115,7 @@ above where a genuine gap was found.
   crash injected mid-write into `mask_clinical_data_lake` (the same
   writer this entry names) that leaves no truncated file at its final
   path, on both a first write and an overwrite of a previous good run.
-  See `problems_final_review.md`'s (now-deleted) P1-6 for the
+  See `docs/problems/problems_final_review.md`'s (now-deleted) P1-6 for the
   production-readiness framing that prompted this fix. The description
   below is left as originally written, for the historical record of
   what this phase (11) did and did not close.
@@ -194,7 +194,7 @@ above where a genuine gap was found.
   dataset version, request/refresh an environment, draft/submit a
   policy version, register a business consumer, submit/fulfill a
   consumer request) still has no RBAC check, same gap
-  `problems_phase_07.md` P7-6 and `problems_phase_10.md` P10-2
+  `docs/problems/problems_phase_07.md` P7-6 and `docs/problems/problems_phase_10.md` P10-2
   originally documented for their *own* endpoints -- this phase
   narrows, but does not close, those two entries (see the updated text
   in those files).

@@ -64,7 +64,7 @@ def test_in_memory_random_token_vault_tokens_are_not_derivable_from_value() -> N
 
 
 def test_in_memory_random_token_vault_mapping_is_not_durable() -> None:
-    # Demonstrates the documented limitation (problems_phase_03.md P3-2):
+    # Demonstrates the documented limitation (docs/problems/problems_phase_03.md P3-2):
     # a fresh vault has no memory of a previous vault's tokens.
     vault_1 = InMemoryRandomTokenVault()
     token = vault_1.tokenize("SYN-MBR-000007", "s")

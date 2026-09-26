@@ -74,7 +74,7 @@ orphan classification).
   writing the multi-format estate rather than reimplementing them.
 - Does **not** learn scenario parameters from real distribution
   statistics (cost thresholds, drug-interaction pairs, boundary dates are
-  hand-authored) — see `problems_phase_05.md`.
+  hand-authored) — see `docs/problems/problems_phase_05.md`.
 - Does **not** yet wire into a control-plane job or metadata-plane
   snapshot registry — same scope boundary Phases 3/4 documented for
   their own outputs.

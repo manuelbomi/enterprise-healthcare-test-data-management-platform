@@ -54,12 +54,12 @@ every reviewer of this portfolio) needing Docker Compose running before
 they could run a single test. The chosen tradeoff — write portable SQL,
 test against SQLite by default, verify against real Postgres separately —
 means the *portability itself* has to be verified independently, which is a
-real, admitted gap until Phase 12: `problems_phase_07.md` P7-1 tracked
+real, admitted gap until Phase 12: `docs/problems/problems_phase_07.md` P7-1 tracked
 "Real PostgreSQL verification remains deferred" as an open problem the whole
 time Phase 7-11 ran only against SQLite. Phase 12 closed it for real, not
 just in theory: `infra/docker/docker-compose.yml`'s real `control-plane`
 container against a real `postgres` container, with `GET /api/v1/ready`
-confirmed reporting the database reachable — see `problems_master.md`'s
+confirmed reporting the database reachable — see `docs/problems/problems_master.md`'s
 resolved-problems section for the exact before/after. The honest lesson: a
 portability decision made in an ADR isn't proven until something actually
 exercises the other backend — writing portable SQL and *believing* it works
@@ -73,8 +73,8 @@ answer to this tradeoff:
 
 | Artifact | Mechanism | Guarantee | Real limit |
 |---|---|---|---|
-| `CertificationReport` (`certification_report.json`) | Keyed HMAC-SHA256 (`data_plane.certification.signing`) | Non-repudiation-*shaped*: forging a valid edit requires the signing key, not just file write access | The key itself has no secrets-provider-backed storage yet (`problems_phase_03.md` P3-2's identical vault gap); anyone with both file access *and* the key can still forge a consistent edit — this is a **detection**, not **prevention**, mechanism (`docs/CERTIFICATION_VS_MASKING.md`) |
-| `AuditEvidencePackage.bundle_checksum` (Phase 13) | Plain SHA-256 (`control_plane.domain.evidence.compute_bundle_checksum`) | Accidental-corruption/truncation detection only | Uses **no secret key at all** — anyone with database write access can edit the underlying rows and regenerate a self-consistent checksum for a freshly-regenerated package ([ADR-0016](../adr/0016-audit-evidence-lives-in-control-plane.md)'s Consequences; `problems_phase_13.md` P13-2) |
+| `CertificationReport` (`certification_report.json`) | Keyed HMAC-SHA256 (`data_plane.certification.signing`) | Non-repudiation-*shaped*: forging a valid edit requires the signing key, not just file write access | The key itself has no secrets-provider-backed storage yet (`docs/problems/problems_phase_03.md` P3-2's identical vault gap); anyone with both file access *and* the key can still forge a consistent edit — this is a **detection**, not **prevention**, mechanism (`docs/CERTIFICATION_VS_MASKING.md`) |
+| `AuditEvidencePackage.bundle_checksum` (Phase 13) | Plain SHA-256 (`control_plane.domain.evidence.compute_bundle_checksum`) | Accidental-corruption/truncation detection only | Uses **no secret key at all** — anyone with database write access can edit the underlying rows and regenerate a self-consistent checksum for a freshly-regenerated package ([ADR-0016](../adr/0016-audit-evidence-lives-in-control-plane.md)'s Consequences; `docs/problems/problems_phase_13.md` P13-2) |
 
 **Why not the same mechanism for both?** The certification report is a
 single, self-contained file that has to prove its own integrity
@@ -131,7 +131,7 @@ There is no `spark-worker`/`spark-master` service anywhere in `infra/`.
 **The alternative and its cost:** standing up a real Kubernetes-native or
 standalone Spark cluster is a substantial infrastructure undertaking Phase
 14 deliberately scoped out (consistent with Phase 12's decision not to
-containerize `services/data-plane` at all — `problems_phase_12.md`). The
+containerize `services/data-plane` at all — `docs/problems/problems_phase_12.md`). The
 cost of *not* doing this is real and stated plainly in every number Phase
 14 produced: `docs/SCALE_AND_PERFORMANCE.md` reports real Catalyst query
 plans, real Arrow-vectorized `pandas_udf` execution, real broadcast joins,
@@ -217,7 +217,7 @@ best-effort label.
 database-backed, control-plane-*approved* version registry by itself — they
 are plain code constants, trustworthy for reproducing *this repository's*
 masking runs but not yet independently auditable outside the source tree
-(`problems_phase_03.md` P3-3, still open as of this ADR). That governance
+(`docs/problems/problems_phase_03.md` P3-3, still open as of this ADR). That governance
 layer is what Phase 10 actually built on top: `control_plane.domain.governance`'s
 `MaskingPolicyVersion`/`PolicyApproval` wraps a real `MaskingPolicy` in a
 governed, immutable, database-backed snapshot with an enforced five-state

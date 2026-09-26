@@ -145,11 +145,11 @@ documented heuristic (`ROWS_PER_COMPUTE_UNIT_HOUR`), not a benchmark --
 `ROADMAP.md` Phase 14 (scale/performance engineering) has since happened
 and produced real measured per-stage throughput numbers
 (`docs/SCALE_AND_PERFORMANCE.md`), but this constant was not touched by
-that phase (see `problems_phase_08.md` P8-1 for why no single figure
+that phase (see `docs/problems/problems_phase_08.md` P8-1 for why no single figure
 from it was a direct drop-in replacement). `data_plane.capacity.incremental`
 models what an incremental-refresh engine would save; this platform does
 not build one. Both are documented explicitly, in their own module
 docstrings and in `docs/CAPACITY_COST_TRADEOFFS.md`, as illustrations of
 future or unbuilt capability -- never presented as measured fact. See
-`problems_phase_08.md` for the complete, honest list of what remains
+`docs/problems/problems_phase_08.md` for the complete, honest list of what remains
 open after this phase.

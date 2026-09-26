@@ -10,7 +10,7 @@ transition *table* is data, living in
 goes through `transition()`, and every status change on a
 `ConsumerDatasetRequestRow` goes through
 `transition_consumer_request()` (added Phase 18B,
-`problems_final_review.md` P3-4) -- each raises its own
+`docs/problems/problems_final_review.md` P3-4) -- each raises its own
 `Invalid*TransitionError` for anything not listed in its table.
 """
 

@@ -23,9 +23,9 @@ the same tradeoff ADR-0006 documents for the masking HMAC key, and the
 exact same limitation `control_plane.platform.evidence_signing`
 documents for the Phase 13 `AuditEvidencePackage.bundle_checksum` (Phase
 18A made that mechanism a keyed HMAC too, matching this one, closing the
-inconsistency `problems_final_review.md` P1-7 found between them). A
+inconsistency `docs/problems/problems_final_review.md` P1-7 found between them). A
 production deployment would keep this key in the security/governance
-plane's secrets provider (not implemented yet -- `problems_phase_03.md`
+plane's secrets provider (not implemented yet -- `docs/problems/problems_phase_03.md`
 P3-2 tracks the same gap for the masking vault) and would likely also
 append signed events to an append-only audit log
 (`healthcare_tdm_contracts.AuditEvent`) rather than relying solely on a

@@ -53,7 +53,7 @@ export function CapacityCostPage() {
         <h2 id="vacuum-heading">Vacuum candidates</h2>
         <p>
           Dataset versions safe to physically delete: terminal status and referenced by zero environments.
-          Read-only — see <code>problems_phase_08.md</code> P8-3.
+          Read-only — see <code>docs/problems/problems_phase_08.md</code> P8-3.
         </p>
         <AsyncSection state={vacuumCandidates} loadingLabel="Loading vacuum candidates">
           {(rows) => (

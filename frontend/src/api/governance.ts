@@ -11,10 +11,10 @@ import type {
 /**
  * Read-only client for the Phase 10 centralized masking governance API
  * (`api/v1/governance.py`). Added in Phase 18A
- * (`problems_final_review.md` P1-4): before this phase, no frontend
+ * (`docs/problems/problems_final_review.md` P1-4): before this phase, no frontend
  * code called any Phase 10 governance endpoint at all, and this module
  * did not exist. Deliberately read-only for now -- there is still no
- * governance UI/page consuming these (`problems_final_review.md`
+ * governance UI/page consuming these (`docs/problems/problems_final_review.md`
  * P3-5 tracks that separately); this module exists so that gap is a
  * missing *page*, not also a missing *API client*.
  */

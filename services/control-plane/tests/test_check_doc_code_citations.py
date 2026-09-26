@@ -1,4 +1,4 @@
-"""Real, executed proof for `problems_final_review.md` P2-9 ("ROADMAP.md's
+"""Real, executed proof for `docs/problems/problems_final_review.md` P2-9 ("ROADMAP.md's
 Phase 16 section and docs/tutorial/guide/ chapters cite real code paths
 ... with no automated cross-check"): `scripts/check_doc_code_citations.py`
 is a real, runnable cross-check that greps every module-path/route

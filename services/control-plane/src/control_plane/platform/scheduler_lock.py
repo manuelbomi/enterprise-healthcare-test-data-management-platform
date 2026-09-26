@@ -1,7 +1,7 @@
 """A real, portable mutual-exclusion lock for concurrent scheduler
-sweeps -- resolves `problems_final_review.md` P2-2 ("no distributed
+sweeps -- resolves `docs/problems/problems_final_review.md` P2-2 ("no distributed
 lock on concurrent scheduler sweeps"), tracked since
-`problems_phase_07.md` P7-2.
+`docs/problems/problems_phase_07.md` P7-2.
 
 Why this is real (not a fake/no-op lock)
 -----------------------------------------

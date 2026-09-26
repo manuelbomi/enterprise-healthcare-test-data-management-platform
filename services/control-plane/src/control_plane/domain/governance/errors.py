@@ -26,7 +26,7 @@ class InvalidPolicyApprovalTransitionError(RuntimeError):
 
 
 class InvalidConsumerRequestTransitionError(RuntimeError):
-    """Phase 18B (`problems_final_review.md` P3-4): an attempted
+    """Phase 18B (`docs/problems/problems_final_review.md` P3-4): an attempted
     `ConsumerRequestStatus` transition is not listed in
     `healthcare_tdm_contracts.CONSUMER_REQUEST_STATUS_TRANSITIONS` -- e.g.
     trying to fulfill/reject/cancel a request that is already in one of

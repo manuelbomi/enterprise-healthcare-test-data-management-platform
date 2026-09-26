@@ -11,7 +11,7 @@ for why this package exists in the data plane at all.
 ## What actually runs here vs. what is documented conceptually
 
 This repository has no real Spark cluster (`infra/` has no
-`spark-worker`/`spark-master` service -- `problems_phase_12.md`'s
+`spark-worker`/`spark-master` service -- `docs/problems/problems_phase_12.md`'s
 container-build note already says so). Every job in this package runs
 against `SparkSession.builder.master("local[*]")` -- real PySpark APIs,
 real Catalyst query plans, real Arrow-vectorized UDF execution, real
@@ -28,7 +28,7 @@ distributed executor fleet. Concretely:
 | Small-file problem | Real, observed. See below. |
 | Shuffle behavior | Real for the parts of the jobs that do shuffle (`.distinct()`); the joins themselves are deliberately shuffle-free (broadcast). |
 | Skew | **Not reproduced from real measurement** -- this estate's synthetic member->claim fan-out is randomized within a bounded max per `ScaleProfile` (`reference_data/scale.py`), so it does not manufacture a realistically skewed key. Documented conceptually below, honestly labeled as such. |
-| Delta Lake optimization (`OPTIMIZE`, `ZORDER`, `VACUUM`, transaction log) | **Not executed** -- this environment has no cached Delta Lake Maven coordinates (`io.delta:delta-spark_*`) resolvable without a network fetch at Spark-submit time in every review environment this repository might run in, and Phase 14's scope is benchmark tooling, not adding a new hard runtime dependency on Maven-artifact resolution. `delta-spark` remains a declared dependency (`pyproject.toml`, per ADR-0007) for a later phase to actually wire up; this phase documents the concepts conceptually below instead of fabricating "measured" Delta numbers. See `problems_phase_14.md`. |
+| Delta Lake optimization (`OPTIMIZE`, `ZORDER`, `VACUUM`, transaction log) | **Not executed** -- this environment has no cached Delta Lake Maven coordinates (`io.delta:delta-spark_*`) resolvable without a network fetch at Spark-submit time in every review environment this repository might run in, and Phase 14's scope is benchmark tooling, not adding a new hard runtime dependency on Maven-artifact resolution. `delta-spark` remains a declared dependency (`pyproject.toml`, per ADR-0007) for a later phase to actually wire up; this phase documents the concepts conceptually below instead of fabricating "measured" Delta numbers. See `docs/problems/problems_phase_14.md`. |
 | Autoscaling | **Not applicable to `local[*]`** by construction -- documented conceptually below. |
 
 ## Windows: `winutils.exe`/`HADOOP_HOME`

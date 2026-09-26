@@ -20,12 +20,12 @@ working code, implemented in Phases 1-6, 8, and 14 respectively — each
 has its own README with a full module map and worked examples. `jobs/`
 remains a structural placeholder: none of the above are yet submitted as
 control-plane-orchestrated jobs (each has its own standalone CLI
-instead) — see `problems_master.md` and `problems_phase_06.md` P6-1.
+instead) — see `docs/problems/problems_master.md` and `docs/problems/problems_phase_06.md` P6-1.
 **Correction to this file's own earlier text**: this line used to point
 at "`ROADMAP.md` Phase 14" as where that gap would close; Phase 14's
 actual scope turned out to be scale/performance benchmark tooling (real
 PySpark jobs + a benchmark harness), not job-orchestration wiring — see
-`problems_phase_14.md` P14-4, which keeps this exact gap open for the
+`docs/problems/problems_phase_14.md` P14-4, which keeps this exact gap open for the
 Spark jobs too, rather than re-promising a later phase that has not
 actually scoped it yet.
 

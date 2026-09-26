@@ -95,7 +95,7 @@ other router in this service already uses. `services/governance-service`
 is left untouched — this decision does not claim Phase 13 satisfies
 `ARCHITECTURE.md` section 2.4's RBAC responsibility (the new endpoints
 this phase adds remain unauthenticated/unauthorized by role, tracked
-honestly in `problems_phase_13.md` P13-3, the same acknowledged gap
+honestly in `docs/problems/problems_phase_13.md` P13-3, the same acknowledged gap
 ADR-0015 already leaves for most Phase 7/10/11 mutations), only that
 the evidence *aggregation and packaging* belongs alongside the tables
 it must read in one consistent transaction.
@@ -107,7 +107,7 @@ it must read in one consistent transaction.
   never an eventually-consistent read across two services' databases.
 - `CertificationReport`/`SubsetManifest` are embedded verbatim only
   when the caller supplies them (`services/control-plane` still does
-  not durably store either — see `problems_phase_13.md` P13-1); this
+  not durably store either — see `docs/problems/problems_phase_13.md` P13-1); this
   ADR does not change that, and does not claim it should be fixed here.
 - If `services/governance-service` is built out for real in a later
   phase, RBAC enforcement for the evidence-generation and
@@ -121,4 +121,4 @@ it must read in one consistent transaction.
   `data_plane.certification.signing`'s `CertificationReport.integrity_signature`
   — an honest, narrower guarantee (accidental-corruption detection, not
   non-repudiation), documented in `docs/COMPLIANCE_EVIDENCE.md` and
-  `problems_phase_13.md` P13-2.
+  `docs/problems/problems_phase_13.md` P13-2.

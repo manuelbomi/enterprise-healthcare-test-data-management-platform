@@ -12,7 +12,7 @@ not properties of the classification itself: masking requirement, owning
 team, and retention classification. See ADR-0009
 (`docs/adr/0009-catalog-artifact-handoff.md`) for why this shape is
 handed between planes as a JSON artifact today rather than a database
-row, and `problems_phase_02.md` (P2-4) for the tracked follow-up.
+row, and `docs/problems/problems_phase_02.md` (P2-4) for the tracked follow-up.
 """
 
 from __future__ import annotations

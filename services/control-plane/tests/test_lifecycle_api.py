@@ -301,7 +301,7 @@ def test_revoke_dataset_version_endpoint(client: TestClient) -> None:
 def test_revoke_and_rollback_audit_events_record_the_verified_identity_not_free_text(
     client: TestClient,
 ) -> None:
-    """Phase 18B (`problems_final_review.md` P2-13): `revoke_dataset_version`/
+    """Phase 18B (`docs/problems/problems_final_review.md` P2-13): `revoke_dataset_version`/
     `rollback_environment_request` already require a verified
     bearer-token identity for RBAC -- this proves the audit trail's own
     `actor` field now uses that verified identity (the seeded login
@@ -393,7 +393,7 @@ def test_scheduler_due_endpoint_lists_and_runs_due_refreshes(client: TestClient)
 def test_run_due_refreshes_is_refused_while_another_sweep_holds_the_lock(
     client: TestClient, tmp_path: Path
 ) -> None:
-    """`problems_final_review.md` P2-2, now resolved: a second,
+    """`docs/problems/problems_final_review.md` P2-2, now resolved: a second,
     overlapping `POST /scheduler/run-due` call must not be allowed to
     race the first -- it is refused with 409, not silently duplicated
     or silently allowed to interleave."""

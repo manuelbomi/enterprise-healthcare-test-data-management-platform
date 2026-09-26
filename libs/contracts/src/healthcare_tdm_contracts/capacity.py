@@ -38,7 +38,7 @@ model, never presented as a measurement):
 
 - `IncrementalRefreshEstimate` — a modeled illustration of what a real
   incremental-refresh engine (which this repository does not build —
-  see `problems_phase_08.md` P8-2's sibling reasoning) would have
+  see `docs/problems/problems_phase_08.md` P8-2's sibling reasoning) would have
   saved relative to Phase 7's actual full-reprocessing `refresh()`,
   computed from two real, already-registered dataset versions' row
   counts.
@@ -269,7 +269,7 @@ class VacuumCandidate(BaseModel):
     EXPIRED/REVOKED/ROLLED_BACK *and* zero `EnvironmentDatasetRequest`
     rows currently reference it. See
     `control_plane.domain.capacity.planner.CapacityPlanner.vacuum_candidates`
-    and `problems_phase_08.md` P8-3 for why this is read-only (identifies
+    and `docs/problems/problems_phase_08.md` P8-3 for why this is read-only (identifies
     candidates; does not delete anything)."""
 
     version_id: UUID
@@ -434,7 +434,7 @@ class IllustrativeCapacityPlan(BaseModel):
 
 class SavedIllustrativeCapacityPlan(BaseModel):
     """One historical, persisted `IllustrativeCapacityPlan` snapshot --
-    Phase 18B (`problems_final_review.md` P3-3, resolved: "illustrative
+    Phase 18B (`docs/problems/problems_final_review.md` P3-3, resolved: "illustrative
     capacity scenarios are stateless; nothing can be saved/compared over
     time"). Written by
     `control_plane.domain.capacity.scenario_history.CapacityScenarioHistoryRepository`.

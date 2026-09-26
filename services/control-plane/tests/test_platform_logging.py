@@ -1,6 +1,6 @@
 """Tests for `control_plane.platform.logging_config` and the request
 logging middleware wired into `main.create_app` (Phase 18A, resolves
-`problems_final_review.md` P1-5: "`ARCHITECTURE.md`'s observability
+`docs/problems/problems_final_review.md` P1-5: "`ARCHITECTURE.md`'s observability
 claim is 100% unimplemented ... `log_level` config is dead code").
 
 Proves real behavior, not just that the module imports cleanly: a real

@@ -12,7 +12,7 @@ logging was actually built in Phase 11, but inside
 per ADR-0015/ADR-0016 -- `services/governance-service` remains a
 scaffold with no running application logic of its own (see
 `ARCHITECTURE.md` section 2.4 for the same explanation aimed at a
-reader of that file, and `problems_final_review.md` P2-11, which this
+reader of that file, and `docs/problems/problems_final_review.md` P2-11, which this
 docstring update resolves: an earlier version of this docstring said
 "Implemented in Phase 3," which was never true in either direction --
 audit logging was never built in this service in Phase 3 or any other

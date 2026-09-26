@@ -109,7 +109,7 @@ def test_select_risk_edge_case_finds_members_touching_known_edge_cases(estate) -
 def test_select_risk_edge_case_max_members_caps_the_pool(estate, record_skip_guard_fired) -> None:
     full = select_risk_edge_case(estate)
     if len(full.member_ids) < 2:
-        # Phase 18B (`problems_final_review.md` P3-9): make this loud,
+        # Phase 18B (`docs/problems/problems_final_review.md` P3-9): make this loud,
         # not silent -- see `conftest.record_skip_guard_fired`.
         record_skip_guard_fired("risk pool too small at this seed/scale to test capping")
         pytest.skip("risk pool too small at this seed/scale to test capping")

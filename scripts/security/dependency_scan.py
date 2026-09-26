@@ -5,7 +5,7 @@
 wiring is explicitly Phase 12's scope (`ROADMAP.md`: "Production CI/CD
 and cloud testing (GitHub Actions, K8s, Terraform)") -- this script is
 the *hook definition* Phase 12 wires in, not a claim that scanning is
-already running in CI. See `problems_phase_11.md` P11-3.
+already running in CI. See `docs/problems/problems_phase_11.md` P11-3.
 
 This script runs `pip-audit` (if installed) against every Python
 package in this repository (`libs/contracts`, `services/control-plane`,
@@ -87,7 +87,7 @@ def run_pip_audit_for_package(pip_audit_cmd: list[str], package_root: Path) -> t
     against PyPI to audit it and fails with "Dependency not found on
     PyPI and could not be audited" -- a real failure hit and fixed
     while verifying this script's first real CI run (Phase 12; see
-    problems_phase_12.md). This is the semantically correct fix, not a
+    docs/problems/problems_phase_12.md). This is the semantically correct fix, not a
     workaround: this scan's job is to audit *third-party* dependencies
     for known vulnerabilities, and our own workspace packages are
     neither third-party nor published, so they have no PyPI-tracked
@@ -102,7 +102,7 @@ def run_pip_audit_for_package(pip_audit_cmd: list[str], package_root: Path) -> t
     `--strict`, a skipped (editable, local) package is reported as a
     skip, not an error, and the scan's exit code reflects only whether
     a real, known vulnerability was found in an actual third-party
-    dependency -- see problems_phase_12.md for the real vulnerability
+    dependency -- see docs/problems/problems_phase_12.md for the real vulnerability
     findings this surfaced once fixed.
     """
 
@@ -124,7 +124,7 @@ def main() -> int:
             "dependency_scan: pip-audit is not installed on PATH -- this scan cannot run.\n"
             "This is reported as a FAILURE, not silently skipped, so it cannot be mistaken\n"
             "for a clean result. To fix: pip install pip-audit\n"
-            "(Phase 12 wires this script into CI; see problems_phase_11.md P11-3.)",
+            "(Phase 12 wires this script into CI; see docs/problems/problems_phase_11.md P11-3.)",
             file=sys.stderr,
         )
         return 1

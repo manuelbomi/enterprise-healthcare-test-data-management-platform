@@ -14,7 +14,7 @@ Local mode only, honestly
 --------------------------
 There is no real Spark cluster anywhere in this repository's
 infrastructure (`infra/` has no `spark-worker`/`spark-master` service --
-see `problems_phase_12.md`'s container-build note and
+see `docs/problems/problems_phase_12.md`'s container-build note and
 [ADR-0017](../../../../../docs/adr/0017-pyspark-benchmark-tooling-in-data-plane.md)).
 Every `SparkSession` this module builds uses `local[*]` -- one JVM
 process, threads instead of a distributed executor fleet. This is

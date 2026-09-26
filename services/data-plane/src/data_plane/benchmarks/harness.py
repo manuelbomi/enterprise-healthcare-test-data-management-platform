@@ -15,7 +15,7 @@ time:
 - `data_plane.reference_data` (Phase 1) for dataset generation, at a
   caller-selected `ScaleProfile` -- this phase does not build a second
   synthetic-data generator (see `ROADMAP.md` Phase 14's own guidance and
-  `problems_phase_14.md`).
+  `docs/problems/problems_phase_14.md`).
 - `data_plane.masking.dataset_masker`/`validation` (Phase 3) for the
   pandas-engine masking + validation baseline.
 - `data_plane.subsetting.engine` (Phase 4) for the pandas-engine

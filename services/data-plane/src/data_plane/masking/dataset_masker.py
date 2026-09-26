@@ -78,7 +78,7 @@ _LINKAGE_SAMPLE_CAP = 50
 
 
 # ---------------------------------------------------------------------------
-# Phase 18A (resolves `problems_final_review.md` P1-6): atomic per-file
+# Phase 18A (resolves `docs/problems/problems_final_review.md` P1-6): atomic per-file
 # writes.
 #
 # Before this phase, `mask_estate`'s own docstring honestly documented a
@@ -371,7 +371,7 @@ def mask_clinical_data_lake(
         rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
         out_path = bucket_out / folder / "part-0000.ndjson"
         # Phase 18A (P1-6): this is the exact writer
-        # `problems_final_review.md` P1-6 named as the concrete
+        # `docs/problems/problems_final_review.md` P1-6 named as the concrete
         # example -- rows written incrementally into an already-open
         # file handle, previously at `out_path` directly. It now writes
         # to a temporary path and is atomically renamed into place only
@@ -506,7 +506,7 @@ def is_masking_run_complete(out_root: Path) -> bool:
 
     Before Phase 18A, this did **not** guarantee every individual file
     under `out_root` was itself complete/uncorrupted (see
-    `problems_phase_11.md` P11-1 / `problems_final_review.md` P1-6: a
+    `docs/problems/problems_phase_11.md` P11-1 / `docs/problems/problems_final_review.md` P1-6: a
     per-source-system masker that wrote rows incrementally, e.g.
     `mask_clinical_data_lake`, could leave one truncated file for the
     source system that was mid-write when a crash happened). Phase 18A
@@ -550,8 +550,8 @@ def mask_estate(
     finished one. This is a real, tested mitigation for a real gap
     found while writing this phase's failure-injection tests.
 
-    **Phase 18A update (`problems_final_review.md` P1-6, now resolved):**
-    `problems_phase_11.md` P11-1 originally, honestly, noted this marker
+    **Phase 18A update (`docs/problems/problems_final_review.md` P1-6, now resolved):**
+    `docs/problems/problems_phase_11.md` P11-1 originally, honestly, noted this marker
     alone did not make each individual per-source-system masker's own
     writes atomic. Every writer below (`mask_postgres_enrollment`,
     `mask_claims_parquet`, `mask_clinical_data_lake`, `mask_pbm_extract`,

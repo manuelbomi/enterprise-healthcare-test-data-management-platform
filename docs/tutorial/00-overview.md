@@ -76,7 +76,7 @@ regardless of size, follows the same eight-step process described in
 `CONTRIBUTING.md`: inspect existing code, write down expected problems,
 implement, test, document, remove resolved problems, leave unresolved
 problems with repro details, and never declare a phase done with failing
-required tests. Reading `problems_master.md` at the start of any session
+required tests. Reading `docs/problems/problems_master.md` at the start of any session
 tells you exactly what's known-broken or known-missing right now.
 
 ## 5. What "done" looks like for the whole project
@@ -106,5 +106,5 @@ off on.
 - Skim the ADRs in `docs/adr/` — each one is a short "why we chose X over Y."
 - Read `DATA_GOVERNANCE.md` to understand the classification/masking/
   certification model in more depth.
-- Check `problems_master.md` for current known issues before starting any
+- Check `docs/problems/problems_master.md` for current known issues before starting any
   new work.

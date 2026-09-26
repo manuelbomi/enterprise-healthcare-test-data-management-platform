@@ -64,7 +64,7 @@ dataset.
    truncated file for whichever source system was mid-write when the crash
    happened, indistinguishable from a clean write except that the
    whole-run marker correctly shows incomplete. This is a real, honestly
-   documented remaining gap (`problems_phase_11.md` P11-1) — the runbook's
+   documented remaining gap (`docs/problems/problems_phase_11.md` P11-1) — the runbook's
    "delete everything, never resume" rule is the safe mitigation for it
    today, not a claim the gap is closed.
 3. **Fix the root cause** — a code bug (file/fix/regression-test per
@@ -92,7 +92,7 @@ output directory — blindly retrying against the same output path in that
 state risks making corruption *worse* (a second run's writes interleaving
 with the first run's partial ones), not safer, until the underlying
 per-file-atomicity gap is closed. See `docs/PLATFORM_INTEGRITY.md` section 4
-and `problems_phase_11.md` P11-6.
+and `docs/problems/problems_phase_11.md` P11-6.
 
 **One more thing a certification-pipeline run gets for free:** if the crash
 happens *inside* `data_plane.certification.pipeline.run_certification_pipeline`
@@ -169,7 +169,7 @@ covered by any column-name pattern or the two narrow value-regex detectors
 this engine has (email shape, SSN shape) — that would require NLP/named-
 entity recognition, which this repository does not attempt, and it is
 explicitly untested here because the synthetic estate doesn't model it
-(`problems_phase_02.md` P2-2). A senior engineer's honest answer names this
+(`docs/problems/problems_phase_02.md` P2-2). A senior engineer's honest answer names this
 limit rather than implying pattern-based drift detection is a complete
 solution.
 
@@ -190,7 +190,7 @@ gate BLOCKED."` Commit `dcc5008` (`git revert d575396 --no-edit`) reverted
 the breakage; [CI run
 #36187642266](https://github.com/manuelbomi/enterprise-healthcare-test-data-management-platform/actions/runs/36187642266)
 **SUCCEEDED**, the gate re-opening immediately with no other change needed.
-See `problems_phase_12.md`'s "Deliberate-failure experiment" section for
+See `docs/problems/problems_phase_12.md`'s "Deliberate-failure experiment" section for
 the full account, including why this one experiment was chosen to prove
 both the "masking tests fail" and "referential-integrity tests fail"
 release-gate requirements from `ROADMAP.md` at once, rather than four

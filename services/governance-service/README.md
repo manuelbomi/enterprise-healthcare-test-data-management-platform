@@ -11,7 +11,7 @@ events, or resolve secrets. This service never calls into the others — see
 
 ## Phase 0 status
 
-Structural scaffold only. See `problems_master.md` and `ROADMAP.md`
+Structural scaffold only. See `docs/problems/problems_master.md` and `ROADMAP.md`
 (Phase 3) for what's next.
 
 ## Phase 10 note

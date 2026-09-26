@@ -106,7 +106,7 @@ and is now verified by a real, passing test:
   control-plane wiring (**correction:** this used to say "Phase 14 (job
   orchestration)" — Phase 14 actually happened and its scope was
   scale/performance benchmark tooling, not job-orchestration wiring;
-  that remains unscheduled by name, see `problems_phase_14.md`);
+  that remains unscheduled by name, see `docs/problems/problems_phase_14.md`);
   `services/governance-service` (not currently scheduled by name) for a
   real certification evidence store.
 
@@ -121,7 +121,7 @@ and is now verified by a real, passing test:
   there is no independent, append-only audit log
   (`healthcare_tdm_contracts.AuditEvent`) a forged file could be
   cross-referenced against, because no such log is wired up yet (same
-  gap `problems_phase_03.md` P3-2 documents for the masking token
+  gap `docs/problems/problems_phase_03.md` P3-2 documents for the masking token
   vault).
 - **Repro / detail:** N/A -- see `signing.py`'s module docstring and
   `docs/CERTIFICATION_VS_MASKING.md`'s "Tamper evidence, honestly"
@@ -137,18 +137,18 @@ and is now verified by a real, passing test:
 - **Status:** **partially resolved in Phase 18A** -- a new, twelfth
   gate, `check_distribution_shape`, was added alongside (not instead
   of) `check_data_quality_thresholds` -- see the identical note added to
-  `problems_phase_03.md` P3-4, which this entry already pointed to.
+  `docs/problems/problems_phase_03.md` P3-4, which this entry already pointed to.
   `check_data_quality_thresholds` itself is unchanged (still a
   non-degeneracy check only); the distribution-shape gap is now closed
   by a sibling gate, not by extending this one.
 - **Status (original, Phase 6):** open (documented limitation, not a defect; this phase does
-  not close `problems_phase_03.md` P3-4, and does not claim to)
+  not close `docs/problems/problems_phase_03.md` P3-4, and does not claim to)
 - **Description:** `gates.check_data_quality_thresholds` verifies the
   final dataset isn't empty/degenerate (nonzero total rows, nonzero
   anchor-entity rows). It does not compare the masked dataset's
   statistical distribution (mean, variance, percentile shape of numeric
   fields like `billed_amount`) against the source estate's --
-  `problems_phase_03.md` P3-4 already documents that
+  `docs/problems/problems_phase_03.md` P3-4 already documents that
   `data_plane.masking.synthesizers`'s numeric replacement preserves
   per-value plausibility, not dataset-wide distribution shape, and nothing
   in this phase changes that.
@@ -172,7 +172,7 @@ and is now verified by a real, passing test:
   known orphans, but `uat` requires zero." A caller must know and pass
   the right values for the target environment itself today.
 - **Repro / detail:** N/A -- no per-environment policy registry exists
-  yet (same shape of gap `problems_phase_03.md` P3-3 documents for the
+  yet (same shape of gap `docs/problems/problems_phase_03.md` P3-3 documents for the
   masking policy itself not being control-plane-managed/versioned in a
   database).
 - **Affected files:** `services/data-plane/src/data_plane/certification/gates.py`,

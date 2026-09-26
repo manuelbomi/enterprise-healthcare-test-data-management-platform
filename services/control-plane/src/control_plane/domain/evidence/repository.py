@@ -8,7 +8,7 @@ Phase 2/6/7/10/11 artifact --
 - the dataset manifest and provisioning/refresh/rollback/revocation
   history come from `control_plane.domain.lifecycle.LifecycleRepository`
   (Phase 7, extended this phase with `list_refresh_runs`/
-  `list_rollback_events` -- see `problems_phase_13.md`);
+  `list_rollback_events` -- see `docs/problems/problems_phase_13.md`);
 - the masking policy version + its approval trail come from
   `control_plane.domain.governance.GovernanceRepository` (Phase 10);
 - the classification summary comes from
@@ -19,7 +19,7 @@ Phase 2/6/7/10/11 artifact --
 - the certification report / subset manifest are embedded verbatim
   *only* if the caller supplies them -- `services/control-plane` does
   not durably store either (see `healthcare_tdm_contracts.evidence`'s
-  module docstring and `problems_phase_13.md` P13-1).
+  module docstring and `docs/problems/problems_phase_13.md` P13-1).
 
 The one genuinely new piece of business logic here is the aggregation
 itself (which rows to pull for a given dataset version, how to merge
@@ -250,7 +250,7 @@ class EvidenceRepository:
             lineage=lineage,
             provenance_notes=provenance_notes,
         )
-        # Phase 18A (resolves `problems_final_review.md` P1-7): this was
+        # Phase 18A (resolves `docs/problems/problems_final_review.md` P1-7): this was
         # a plain, UNKEYED `hashlib.sha256` digest before this phase --
         # anyone with database write access alone (no key needed) could
         # regenerate a self-consistent checksum after editing the

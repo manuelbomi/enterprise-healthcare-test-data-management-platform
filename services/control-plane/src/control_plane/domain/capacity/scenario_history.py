@@ -1,9 +1,9 @@
 """`CapacityScenarioHistoryRepository` -- real persistence for a saved,
 point-in-time `IllustrativeCapacityPlan` snapshot.
 
-Resolves `problems_final_review.md` P3-3 ("illustrative capacity
+Resolves `docs/problems/problems_final_review.md` P3-3 ("illustrative capacity
 scenarios are stateless; nothing can be saved/compared over time,"
-tracked since `problems_phase_08.md` P8-4): before this module existed,
+tracked since `docs/problems/problems_phase_08.md` P8-4): before this module existed,
 both `GET /api/v1/capacity/illustrative-plan` and
 `POST /api/v1/capacity/illustrative-plan` were pure, stateless
 calculations -- nothing about a scenario a caller built (a hypothetical

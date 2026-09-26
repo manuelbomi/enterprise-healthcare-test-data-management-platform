@@ -1,4 +1,4 @@
-# Root .dockerignore -- resolves `problems_final_review.md` P2-12.
+# Root .dockerignore -- resolves `docs/problems/problems_final_review.md` P2-12.
 #
 # `services/control-plane/Dockerfile` and
 # `services/governance-service/Dockerfile` both build with the

@@ -134,7 +134,7 @@ class RevokeVersionRequest(BaseModel):
     #: Phase 11: checked via `control_plane.platform.rbac.authorize`
     #: against `Permission.REVOKE_DATASET_VERSION` before the revocation
     #: is attempted. Not a no-op -- see `test_failure_injection.py`'s
-    #: RBAC-rejection test. Phase 18A (`problems_final_review.md` P0-1):
+    #: RBAC-rejection test. Phase 18A (`docs/problems/problems_final_review.md` P0-1):
     #: the role checked is no longer a field on this request body -- it
     #: is derived from the caller's verified bearer token instead (see
     #: `revoke_dataset_version`'s `actor: AuthenticatedActor` parameter
@@ -165,7 +165,7 @@ class RefreshRequestBody(BaseModel):
 
 class RecordDatasetVersionAccessRequest(BaseModel):
     """Phase 13: record that someone accessed/used a provisioned dataset
-    version -- the "who accessed it" requirement `problems_phase_13.md`
+    version -- the "who accessed it" requirement `docs/problems/problems_phase_13.md`
     found genuinely unmet (only ACCESS_DENIED was ever wired; nothing
     recorded a successful access). Self-reported, like every other
     actor field in this service (`accessed_by` is not verified against
@@ -204,13 +204,13 @@ def register_dataset_version(
     or `PUBLISHED` Phase 6 `CertificationReport` -- see
     `LifecycleRepository.register_dataset_version`, which is now
     idempotent per `certification_report_id` (Phase 11 -- see
-    `problems_phase_11.md`'s "Resolved problems").
+    `docs/problems/problems_phase_11.md`'s "Resolved problems").
 
     **This is the UNGOVERNED/direct registration path** -- it does not
     verify that `certification_report.masking_policy_name`/
     `masking_policy_version` were ever actually drafted/approved through
-    Phase 10's governance workflow (see `problems_phase_10.md` P10-1 /
-    `problems_final_review.md` P1-8, and
+    Phase 10's governance workflow (see `docs/problems/problems_phase_10.md` P10-1 /
+    `docs/problems/problems_final_review.md` P1-8, and
     `docs/adr/0019-governed-vs-ungoverned-dataset-version-registration.md`).
     Use `POST /dataset-versions/governed` below instead when governance
     enforcement is required."""
@@ -250,7 +250,7 @@ _FINAL_ROW_COUNT_RE = re.compile(r"final=(\d+)")
 
 
 def _independently_derived_row_counts(row_count_reconciliation: dict[str, str]) -> dict[str, int]:
-    """Phase 18B (`problems_final_review.md` P2-4): parse the "final=<N>"
+    """Phase 18B (`docs/problems/problems_final_review.md` P2-4): parse the "final=<N>"
     component out of each entity's entry in
     `CertificationReport.row_count_reconciliation` -- a human-readable
     trail built by `data_plane.certification.pipeline` from a real read
@@ -283,7 +283,7 @@ def register_dataset_version_governed(
     governance: GovernanceRepository = Depends(get_governance_repository_for_lifecycle),
     audit: AuditLogRepository = Depends(get_audit_log),
 ) -> DatasetVersion:
-    """Phase 18A (`problems_final_review.md` P1-8, now resolved): the
+    """Phase 18A (`docs/problems/problems_final_review.md` P1-8, now resolved): the
     GOVERNED counterpart to `register_dataset_version` above.
 
     Before Phase 18A, nothing in this service verified that a dataset
@@ -331,14 +331,14 @@ def register_dataset_version_governed(
             ),
         ) from exc
 
-    # Phase 18B (`problems_final_review.md` P2-4, now partially resolved
+    # Phase 18B (`docs/problems/problems_final_review.md` P2-4, now partially resolved
     # for the GOVERNED path -- see `_independently_derived_row_counts`'s
     # own docstring): cross-check `body.row_counts` against whatever the
     # certification pipeline's own `row_count_reconciliation` trail
     # already measured, for the entities it covers. `size_bytes` has no
     # equivalent already-measured source anywhere in `CertificationReport`
     # -- re-deriving it would need a real control-plane-side storage
-    # adapter (`problems_final_review.md` P2-5), which remains out of
+    # adapter (`docs/problems/problems_final_review.md` P2-5), which remains out of
     # scope; this closes the smaller, genuinely-already-available half
     # of the gap, not the whole thing.
     derived_row_counts = _independently_derived_row_counts(
@@ -452,7 +452,7 @@ def revoke_dataset_version(
     calls `session.commit()` directly instead of relying on
     `session_scope`'s end-of-request commit).
 
-    Phase 18A (`problems_final_review.md` P0-1): `actor.role` is now a
+    Phase 18A (`docs/problems/problems_final_review.md` P0-1): `actor.role` is now a
     verified claim from the caller's bearer token
     (`Depends(get_current_actor)`), not a caller-supplied,
     unverified request-body field -- see
@@ -482,7 +482,7 @@ def revoke_dataset_version(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     audit.record(
-        # Phase 18B (`problems_final_review.md` P2-13): the audit
+        # Phase 18B (`docs/problems/problems_final_review.md` P2-13): the audit
         # trail's `actor` field now records the verified bearer-token
         # identity (`actor.username`), not the unverified
         # `body.revoked_by` free-text field -- `body.revoked_by` itself
@@ -508,7 +508,7 @@ def record_dataset_version_access(
     audit: AuditLogRepository = Depends(get_audit_log),
 ) -> DatasetVersion:
     """Phase 13: record that `body.accessed_by` accessed/used this
-    dataset version. Not RBAC-gated (see `problems_phase_13.md` P13-3)
+    dataset version. Not RBAC-gated (see `docs/problems/problems_phase_13.md` P13-3)
     -- any caller may self-report an access, the same way every other
     unrestricted lifecycle mutation in this router works. Returns the
     dataset version unchanged (this call has no state effect other than
@@ -655,7 +655,7 @@ def refresh_environment_request(
     `RefreshRunRow` log entries, which is correct (each is a real,
     distinct execution), not corruption. See
     `test_failure_injection.py::test_duplicate_refresh_requests_do_not_corrupt_state`
-    and `problems_phase_07.md` P7-2 for the one remaining, honestly
+    and `docs/problems/problems_phase_07.md` P7-2 for the one remaining, honestly
     documented gap this does *not* close (no distributed lock across
     concurrent *scheduler sweeps*, as opposed to this single-request
     endpoint)."""
@@ -725,7 +725,7 @@ def rollback_environment_request(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     audit.record(
-        # Phase 18B (`problems_final_review.md` P2-13): see
+        # Phase 18B (`docs/problems/problems_final_review.md` P2-13): see
         # `revoke_dataset_version`'s identical comment above.
         event_type=AuditEventType.DATASET_VERSION_ROLLED_BACK,
         actor=actor.username,
@@ -749,7 +749,7 @@ def list_refresh_runs(
 ) -> list[RefreshRunRecord]:
     """Phase 13: full refresh history (most recent first), optionally
     filtered by `dataset_name` and/or `request_id` -- the read side
-    `problems_phase_13.md` (issue 2) found missing: `refresh()` above
+    `docs/problems/problems_phase_13.md` (issue 2) found missing: `refresh()` above
     only ever returned the one run it had just created."""
 
     return repository.list_refresh_runs(dataset_name=dataset_name, request_id=request_id)
@@ -803,7 +803,7 @@ def run_due_refreshes(
     from inside its own scheduled execution -- see the module docstring
     on `control_plane.domain.lifecycle.scheduler` and ADR-0012.
 
-    Phase 18A (`problems_final_review.md` P1-2, now resolved): this
+    Phase 18A (`docs/problems/problems_final_review.md` P1-2, now resolved): this
     endpoint previously had no RBAC check at all, despite having a
     strictly larger blast radius (every currently-due request, in one
     call) than any of the four endpoints RBAC already gated. It now
@@ -819,7 +819,7 @@ def run_due_refreshes(
     `control_plane.domain.lifecycle.scheduler`); RBAC is defense in
     depth, not a substitute for that.
 
-    Phase 18B (`problems_final_review.md` P2-2, now resolved): two
+    Phase 18B (`docs/problems/problems_final_review.md` P2-2, now resolved): two
     concurrent calls to this endpoint used to have no application-level
     mutual exclusion at all -- both would independently compute "what's
     due" and could both attempt to refresh the same request. It now

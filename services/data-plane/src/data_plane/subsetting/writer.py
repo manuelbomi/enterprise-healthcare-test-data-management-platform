@@ -16,7 +16,7 @@ Design note: a dataset with zero selected rows is skipped entirely
 schema-correct artifact. This mirrors how the original writers already
 behave when a batch/dataset is empty (`writers/parquet_writer.py` skips
 the `claims-2024Q4` batch directory entirely if no legacy claims exist),
-and is called out explicitly in `problems_phase_04.md` as a known,
+and is called out explicitly in `docs/problems/problems_phase_04.md` as a known,
 low-risk limitation (a downstream reader must tolerate a missing
 table/file, not assume all fourteen datasets are always present) rather
 than silently pretending otherwise.

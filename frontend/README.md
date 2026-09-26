@@ -10,7 +10,7 @@ A real, working, well-typed console. Thirteen route-mounted pages plus a
 Dataset Detail page (see `src/pages/README.md`), a typed API client
 layer (`src/api/`), Vitest + React Testing Library component tests, and
 Playwright E2E tests for the critical workflows (Dashboard, Data
-Catalog, Dataset Detail). See `problems_phase_09.md` (repository root)
+Catalog, Dataset Detail). See `docs/problems/problems_phase_09.md` (repository root)
 for exactly which pages are backed by real live control-plane APIs vs.
 honest "not yet available" placeholders, and why.
 

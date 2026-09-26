@@ -46,7 +46,7 @@ Each entry should have:
   planning," was the closest candidate and is now complete -- as
   anticipated, its scope was real footprint *measurement* and *planning*
   (`data_plane.capacity`, `control_plane.domain.capacity`), not
-  implementing this adapter; see `problems_phase_08.md` P8-2 for the
+  implementing this adapter; see `docs/problems/problems_phase_08.md` P8-2 for the
   concrete way that gap continues to matter (`CapacityPlanner` still
   trusts caller-supplied `size_bytes` rather than independently
   re-deriving it through a storage adapter). This entry remains open,
@@ -72,7 +72,7 @@ Each entry should have:
 - **P0-1** (`npm install` had not been performed for `frontend/`) --
   resolved in Phase 9: `npm install` now runs cleanly (435 packages),
   and `frontend/` is a real, working, tested console. See
-  `ROADMAP.md`'s Phase 9 section and `problems_phase_09.md`.
+  `ROADMAP.md`'s Phase 9 section and `docs/problems/problems_phase_09.md`.
 - **P0-2** (no CI runs had ever been executed against this repository)
   -- resolved in Phase 12: `.github/workflows/ci.yml` was rewritten
   into real lint/typecheck/unit/integration/data-quality/security/
@@ -84,5 +84,5 @@ Each entry should have:
   notes independently flagged: `infra/docker/docker-compose.yml` now
   runs a real control-plane container against a real Postgres
   container, and `GET /api/v1/ready` reports the database reachable.
-  See `ROADMAP.md`'s Phase 12 section and `problems_phase_12.md` for
+  See `ROADMAP.md`'s Phase 12 section and `docs/problems/problems_phase_12.md` for
   the full account, including the real workflow run IDs/URLs.

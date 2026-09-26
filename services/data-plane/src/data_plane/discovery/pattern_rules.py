@@ -193,7 +193,7 @@ PATTERN_DETECTORS: list[PatternDetector] = [
 ]
 
 
-#: Phase 18B (`problems_final_review.md` P3-10, narrowed -- see
+#: Phase 18B (`docs/problems/problems_final_review.md` P3-10, narrowed -- see
 #: `match_all`'s own docstring for exactly what this does and does not
 #: fix): entity names this repository's own schema
 #: (`data_plane.reference_data.domain`) already treats as
@@ -219,7 +219,7 @@ def match_all(
     "novel source system with no schema entry" example, but for an
     entity name this repository *does* still recognize).
 
-    Phase 18B (`problems_final_review.md` P3-10, narrowed, not closed):
+    Phase 18B (`docs/problems/problems_final_review.md` P3-10, narrowed, not closed):
     when ``entity`` is one of `BUSINESS_ENTITY_NAMES` and `pattern:npi`
     matches, this now returns a confidence-boosted, reason-clarified
     variant of that hit instead of the generic one -- schema-level

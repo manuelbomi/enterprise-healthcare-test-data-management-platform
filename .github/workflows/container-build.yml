@@ -7,7 +7,7 @@ name: Container build & scan
 # any registry — build+scan only, no real registry credentials exist in
 # this repository (see infra/terraform/README.md and SECURITY.md).
 #
-# data-plane is deliberately not built here — see problems_phase_12.md
+# data-plane is deliberately not built here — see docs/problems/problems_phase_12.md
 # for the decision record (PySpark/pandas batch/CLI toolkit, not a
 # long-running containerized service, as of this phase).
 #
@@ -16,7 +16,7 @@ name: Container build & scan
 # ci.yml, as this platform's "critical security validation" release
 # gate — ROADMAP.md Phase 12), and is non-blocking (report-only) for
 # HIGH/MEDIUM/LOW so a base-image CVE with no fix yet doesn't stall
-# every release; see problems_phase_12.md for what was actually found
+# every release; see docs/problems/problems_phase_12.md for what was actually found
 # the first time this ran.
 
 on:

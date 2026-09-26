@@ -439,7 +439,7 @@ export type CertificationGateType =
   | "manifest_generation"
   | "policy_version_recorded"
   | "masking_version_recorded"
-  // Phase 18A (problems_final_review.md P1-9): a twelfth gate.
+  // Phase 18A (docs/problems/problems_final_review.md P1-9): a twelfth gate.
   | "distribution_shape";
 
 export interface CertificationGateResult {
@@ -486,7 +486,7 @@ export interface CertificationReportRecord {
 }
 
 // ---------------------------------------------------------------------
-// masking.py (full policy shape -- added Phase 18A, problems_final_review.md
+// masking.py (full policy shape -- added Phase 18A, docs/problems/problems_final_review.md
 // P1-4, alongside governance.py's MaskingPolicyVersion below, which embeds
 // this in full)
 // ---------------------------------------------------------------------
@@ -529,7 +529,7 @@ export interface MaskingPolicy {
 
 // ---------------------------------------------------------------------
 // governance.py (Phase 10 -- added to types.ts in Phase 18A,
-// problems_final_review.md P1-4: these six contract shapes had no
+// docs/problems/problems_final_review.md P1-4: these six contract shapes had no
 // TypeScript equivalent at all before this phase)
 // ---------------------------------------------------------------------
 
@@ -567,7 +567,7 @@ export interface BusinessConsumer {
   created_at: string;
 }
 
-// Phase 18B (`problems_final_review.md` P3-4): REJECTED/CANCELLED added
+// Phase 18B (`docs/problems/problems_final_review.md` P3-4): REJECTED/CANCELLED added
 // as real terminal states alongside FULFILLED -- see
 // `healthcare_tdm_contracts.governance.ConsumerRequestStatus`'s own
 // docstring for what each means.

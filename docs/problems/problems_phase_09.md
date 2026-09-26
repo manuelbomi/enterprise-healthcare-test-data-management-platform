@@ -126,7 +126,7 @@ survives independently of the code:
 - **Affected files:**
   `services/control-plane/src/control_plane/artifacts/*.py`
 - **Owner for resolution:** Not currently scheduled by name — tracked
-  alongside ADR-0009's own open item (`problems_phase_02.md` P2-4:
+  alongside ADR-0009's own open item (`docs/problems/problems_phase_02.md` P2-4:
   superseded once the metadata plane's real PostgreSQL schema exists
   and lifecycle registration becomes the single source of truth for
   "what runs exist," at which point these directory scans become

@@ -48,7 +48,7 @@ for why.
 | Masking (`mask_estate`, full pipeline, two independent runs) | Yes — already tested | Phase 3: `test_masking_is_idempotent_across_two_independent_runs`, `test_rerunning_the_engine_twice_is_idempotent_end_to_end` |
 | `LifecycleRepository.request_environment` | Yes — already documented/tested | Phase 7: idempotent per `(environment, dataset_name)` |
 | `LifecycleRepository.refresh` (called twice) | Yes — safe, not corrupting (two real, distinct log entries) | **New test (Phase 11)**: `test_duplicate_refresh_requests_do_not_corrupt_state` |
-| `LifecycleRepository.register_dataset_version` (called twice with the identical report) | **Was NOT idempotent — real bug found and fixed this phase** | `test_duplicate_dataset_version_registration_is_idempotent`; see `problems_phase_11.md`'s "Resolved problems" |
+| `LifecycleRepository.register_dataset_version` (called twice with the identical report) | **Was NOT idempotent — real bug found and fixed this phase** | `test_duplicate_dataset_version_registration_is_idempotent`; see `docs/problems/problems_phase_11.md`'s "Resolved problems" |
 
 The one genuine gap this phase found and fixed: a caller retrying
 `register_dataset_version` after an ambiguous failure (e.g. a network
@@ -73,7 +73,7 @@ atomicity guarantee (see section 6 below). Blindly retrying a job
 against the same output path in that state risks making corruption
 *worse* (a second run's writes interleaving with the first run's
 partial ones), not safer, until that gap is closed. See
-`problems_phase_11.md` P11-6.
+`docs/problems/problems_phase_11.md` P11-6.
 
 ## 5. Dead-letter handling
 
@@ -112,10 +112,10 @@ those gates:
 **New (Phase 11), and genuinely enforced, not a no-op**:
 `control_plane.platform.rbac` — see
 [ADR-0015](adr/0015-platform-integrity-controls-in-control-plane.md)
-for the full design and `problems_phase_11.md` P11-4 for its honest,
+for the full design and `docs/problems/problems_phase_11.md` P11-4 for its honest,
 narrow scope (four endpoints: dataset-version revoke/rollback,
-policy-version approve/reject). `problems_phase_07.md` P7-6 and
-`problems_phase_10.md` P10-2 are updated to reflect this partial
+policy-version approve/reject). `docs/problems/problems_phase_07.md` P7-6 and
+`docs/problems/problems_phase_10.md` P10-2 are updated to reflect this partial
 resolution.
 
 ## 8. Audit logging
@@ -129,7 +129,7 @@ registration/revocation, environment requests/refreshes, environment
 rollback, policy version approval/rejection, consumer request
 submission/fulfillment, and RBAC denials themselves. Read via
 `GET /api/v1/audit/events` (filterable by `event_type`/`subject`/`actor`,
-no write endpoint exists). See `problems_phase_11.md` P11-5 for the
+no write endpoint exists). See `docs/problems/problems_phase_11.md` P11-5 for the
 honest scope boundary (this is not yet `services/governance-service`'s
 own store).
 
@@ -163,7 +163,7 @@ actual current tracked tree
 `pip-audit` against every workspace package if installed; reports an
 explicit, non-zero failure (never a silent pass) if `pip-audit` is
 unavailable. Not yet wired into CI — that is Phase 12's job (see
-`problems_phase_11.md` P11-3). In this environment, `pip-audit` is not
+`docs/problems/problems_phase_11.md` P11-3). In this environment, `pip-audit` is not
 installed, so running the script today correctly reports failure —
 this is documented honestly rather than worked around.
 
@@ -187,7 +187,7 @@ endpoint (`/api/v1/health`) for its `livenessProbe` (restart on
 failure) and the **readiness** endpoint (`/api/v1/ready`) for its
 `readinessProbe` (pull traffic, do not restart) — exactly the split
 this phase's `control_plane/platform/readiness.py` module docstring
-explains. See `problems_phase_11.md` P11-2.
+explains. See `docs/problems/problems_phase_11.md` P11-2.
 
 ## 13. Backup / restore
 

@@ -5,7 +5,7 @@ engine (`services/data-plane/src/data_plane/masking/`) produces, via the
 JSON artifact handoff pattern ADR-0009 established for the catalog.
 Read-only: the control plane does not run masking itself -- masking is a
 data-plane concern (`ARCHITECTURE.md` section 2.2) not yet wired to a
-control-plane-submitted job (see `problems_phase_03.md` P3-3 and
+control-plane-submitted job (see `docs/problems/problems_phase_03.md` P3-3 and
 `ARCHITECTURE.md`'s Phase 3 note).
 
 Every route can raise HTTP 503 (not 500) if the configured artifact root

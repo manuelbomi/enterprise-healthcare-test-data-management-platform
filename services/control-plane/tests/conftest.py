@@ -71,7 +71,7 @@ def auth_header(client: TestClient, role: Role) -> dict[str, str]:
     `Authorization` header a test can pass to an RBAC-gated endpoint --
     the real, end-to-end replacement for the pre-Phase-18A pattern of
     setting `"actor_role": role.value` directly in a request body (see
-    `problems_final_review.md` P0-1, now resolved)."""
+    `docs/problems/problems_final_review.md` P0-1, now resolved)."""
 
     username, password = demo_credentials_for_role(role)
     response = client.post("/api/v1/auth/login", json={"username": username, "password": password})

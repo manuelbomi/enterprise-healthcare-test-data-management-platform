@@ -8,7 +8,7 @@ between them without changing every call site. This module is that seam:
 `TokenVault` is the abstract interface, `HmacTokenVault` is the default,
 stateless implementation this phase actually uses, and
 `InMemoryRandomTokenVault` demonstrates the alternative (a real, storable
-mapping) for teaching purposes -- see `problems_phase_03.md` P3-2 for why
+mapping) for teaching purposes -- see `docs/problems/problems_phase_03.md` P3-2 for why
 neither of these is a production-grade governed vault yet.
 
 Why the default is stateless (HMAC-derived), not a stored random mapping
@@ -95,7 +95,7 @@ class InMemoryRandomTokenVault(TokenVault):
     NOT used by the default masking policy and NOT durable -- the mapping
     lives only in process memory and is lost when the process exits. A
     real implementation of this shape would need to live in a governed,
-    access-controlled, durable store (see `problems_phase_03.md` P3-2);
+    access-controlled, durable store (see `docs/problems/problems_phase_03.md` P3-2);
     building that store is explicitly out of scope for this phase. Kept
     here so the codebase demonstrates understanding of the tradeoff
     between the two vault shapes (stateless/keyed vs. stored/random)

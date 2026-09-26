@@ -3,7 +3,7 @@
 Every function here is an **independent re-derivation**, not a re-trust,
 of an earlier phase's own claims -- `ARCHITECTURE.md` section 2.2 warns
 explicitly that a real certifier "must not simply trust [masking
-validation's] own report," and `problems_phase_03.md` P3-1 says the same
+validation's] own report," and `docs/problems/problems_phase_03.md` P3-1 says the same
 about needing "a durable certification evidence record ... and a publish
 gate" beyond what Phase 3 itself checks. Concretely:
 
@@ -253,7 +253,7 @@ def check_schema_validation(final_estate: RawEstate, expected_counts: dict[str, 
     on-disk group of rows (a single table, a single Parquet batch, a
     single partner-feed file) has a single consistent key set within
     itself -- heterogeneous keys within one physical file/table broke a
-    real writer once before (Phase 5's own `problems_phase_05.md` risk
+    real writer once before (Phase 5's own `docs/problems/problems_phase_05.md` risk
     log documents exactly this bug for the PBM CSV writer). This is
     deliberately checked **per physical group, not per logical entity**:
     `claim`'s two Parquet batches (`claims-2024Q4` vs `claims-2025Q1`)
@@ -324,8 +324,8 @@ def check_data_quality_thresholds(
     degenerate. Fails if the total row count across every entity is
     below `min_total_rows`, or if the anchor entity (`member` by default
     -- every other entity's referential closure is anchored to it, per
-    Phase 4) has zero rows. See `problems_phase_03.md` P3-4 and
-    `problems_phase_06.md` for why this is deliberately NOT a
+    Phase 4) has zero rows. See `docs/problems/problems_phase_03.md` P3-4 and
+    `docs/problems/problems_phase_06.md` for why this is deliberately NOT a
     distribution-shape-preservation check (mean/variance/percentile
     comparison against the source estate) -- that is real future work,
     not something this phase's scope claims to solve.
@@ -445,7 +445,7 @@ def check_distribution_shape(
     min_sample_size: int = 5,
 ) -> CertificationGateResult:
     """GATE -- DISTRIBUTION_SHAPE (Phase 18A, resolves
-    `problems_final_review.md` P1-9: "no statistical distribution-shape
+    `docs/problems/problems_final_review.md` P1-9: "no statistical distribution-shape
     verification anywhere in the pipeline").
 
     **What this checks**: whether `masked_values` (a numeric column
@@ -467,8 +467,8 @@ def check_distribution_shape(
        tens of thousands, or vice versa.
 
     **What this deliberately does NOT check** (see
-    `docs/CERTIFICATION_VS_MASKING.md` and `problems_phase_03.md` P3-4 /
-    `problems_phase_06.md` P6-3, both of which this gate finally closes
+    `docs/CERTIFICATION_VS_MASKING.md` and `docs/problems/problems_phase_03.md` P3-4 /
+    `docs/problems/problems_phase_06.md` P6-3, both of which this gate finally closes
     as an *automated, enforced* check rather than only a documented,
     honest gap): this is NOT a rigorous statistical test. It does not
     compare variance, percentiles, or the shape of the distribution

@@ -1,4 +1,4 @@
-"""Login endpoint (Phase 18A, resolves `problems_final_review.md` P0-1).
+"""Login endpoint (Phase 18A, resolves `docs/problems/problems_final_review.md` P0-1).
 
 One route: exchange a seeded demo identity's username/password for a
 signed JWT naming its role. See `control_plane.platform.auth`'s module

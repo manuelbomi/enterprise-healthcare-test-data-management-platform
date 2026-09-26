@@ -45,8 +45,8 @@ class JobRequest(BaseModel):
     A single user-facing request (e.g., "give me a snapshot") typically
     becomes a small DAG of JobRequests (subsetting -> masking ->
     certification), not one JobRequest — the control plane's orchestrator
-    (not yet built, and not Phase 14 — see `problems_master.md` and
-    `problems_phase_14.md`, which corrected this module's own earlier
+    (not yet built, and not Phase 14 — see `docs/problems/problems_master.md` and
+    `docs/problems/problems_phase_14.md`, which corrected this module's own earlier
     "(Phase 14)" pointer once that phase's actual scope turned out to be
     scale/performance benchmark tooling, not job-orchestration wiring)
     owns sequencing that DAG. Each JobRequest is independently idempotent

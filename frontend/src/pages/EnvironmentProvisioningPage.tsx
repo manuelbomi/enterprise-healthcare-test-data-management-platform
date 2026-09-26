@@ -14,7 +14,7 @@ import { formatDate, titleCase } from "@/lib/format";
  * request/refresh/rollback write actions this data backs are exercised
  * by `scripts/demo_phase7_lifecycle.py` and covered by
  * `services/control-plane/tests/test_lifecycle_api.py` -- adding an
- * in-console write workflow is future scope (see `problems_phase_09.md`). */
+ * in-console write workflow is future scope (see `docs/problems/problems_phase_09.md`). */
 export function EnvironmentProvisioningPage() {
   const requests = useApiData(() => lifecycleApi.listEnvironmentRequests());
 

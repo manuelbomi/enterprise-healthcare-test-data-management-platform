@@ -69,7 +69,7 @@ A regex matching a column name has no idea what the column actually
   gets this right for the real Phase 1 estate whenever the schema layer
   (which does know the owning entity) takes precedence for every column
   that's a literal field of a known entity. Phase 18B
-  (`problems_final_review.md` P3-10) narrowed, but did not eliminate,
+  (`docs/problems/problems_final_review.md` P3-10) narrowed, but did not eliminate,
   the *next* weakest case: a column that is **not** a literal schema
   field (a renamed/drifted variant) but whose owning entity name the
   caller still supplies and this repository's schema still recognizes as
@@ -81,7 +81,7 @@ A regex matching a column name has no idea what the column actually
   schema has never seen at all still gets the unmodified, weaker,
   name-only guess -- entity-name recognition is itself necessarily a
   fixed, finite list, the same limitation every schema-based mechanism in
-  this engine already has. See `problems_phase_02.md` P2-1.
+  this engine already has. See `docs/problems/problems_phase_02.md` P2-1.
 - The engine has no idea what a `specialty` value like "Behavioral
   Health" *means* until a human tells it (`manual_overrides.yaml`'s first
   worked example) — it cannot infer sensitivity from cell *values* in
@@ -99,7 +99,7 @@ unlikely to be reliably caught by a simple value-regex either — that
 requires NLP/named-entity recognition, which this engine does not
 attempt. This is the single largest reason this is not a de-identification
 guarantee, and it is explicitly **untested** here because the underlying
-synthetic estate doesn't yet model it (`problems_phase_02.md` P2-2).
+synthetic estate doesn't yet model it (`docs/problems/problems_phase_02.md` P2-2).
 
 ### 3. Column-name conventions are not universal
 

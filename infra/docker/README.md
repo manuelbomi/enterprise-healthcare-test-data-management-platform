@@ -41,7 +41,7 @@ TDM_POSTGRES_HOST_PORT=15432 TDM_CONTROL_PLANE_HOST_PORT=18000 \
 ```
 
 `data-plane` is deliberately not containerized here — see
-`problems_phase_12.md` for the explicit decision record (it is a
+`docs/problems/problems_phase_12.md` for the explicit decision record (it is a
 PySpark/pandas batch/CLI toolkit, not a long-running service).
 
 All credentials in `docker-compose.yml` and `.env.example` are obvious
@@ -55,8 +55,8 @@ governance-service frontend` brings up all four containers healthy, and
 real Postgres container as `"healthy": true, "detail": "reachable"` --
 this is the first time this repository has proven its metadata-plane
 database against real application code in a real container (previously
-tracked as open in `problems_master.md` P0-2 and `problems_phase_01.md`
-P1-1). See `problems_phase_12.md` for the full verification record,
+tracked as open in `docs/problems/problems_master.md` P0-2 and `docs/problems/problems_phase_01.md`
+P1-1). See `docs/problems/problems_phase_12.md` for the full verification record,
 including one real bug found and fixed while verifying (`frontend/nginx.conf`'s
 reverse-proxy rewrite) and one real external blocker (MinIO's Docker
 Hub images are no longer publicly pullable as of this phase --

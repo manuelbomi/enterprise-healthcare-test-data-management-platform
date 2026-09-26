@@ -10,14 +10,14 @@ Module map
 - `estimator.py` -- pure, dependency-free compute-demand/processing-volume
   heuristics (`estimate_compute_unit_hours`, `estimate_refreshes_per_year`,
   ...). Honestly documented as illustrative, not benchmarked -- see
-  `problems_phase_08.md` P8-1.
+  `docs/problems/problems_phase_08.md` P8-1.
 - `planner.py` -- `CapacityPlanner`, the real, DB-backed service
   (`dataset_version_footprint`, `environment_capacity_demand`,
   `capacity_plan`, `vacuum_candidates`), plus `illustrative_capacity_plan`,
   the pure function implementing `ROADMAP.md` Phase 8's "Production:
   100 TB, QA 10%, SIT 5%, UAT 15%" example as a real, configurable model.
 - `scenario_history.py` -- `CapacityScenarioHistoryRepository` (Phase
-  18B, `problems_final_review.md` P3-3): real, DB-backed, append-only
+  18B, `docs/problems/problems_final_review.md` P3-3): real, DB-backed, append-only
   persistence for a saved `IllustrativeCapacityPlan` snapshot, so a
   scenario can be saved and compared against a later one instead of
   every plan being purely stateless.

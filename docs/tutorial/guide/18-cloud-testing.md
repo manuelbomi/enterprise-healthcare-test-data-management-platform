@@ -70,7 +70,7 @@ The storage-adapter interface
 make MinIO (local), AWS S3, and Azure Blob/ADLS interchangeable behind
 one interface. As of this repository's current state, **this interface
 is still a design contract, not implemented code** (tracked as `P0-3` in
-`problems_master.md`, still open) — every data-plane job reads/writes a
+`docs/problems/problems_master.md`, still open) — every data-plane job reads/writes a
 local filesystem path directly. `infra/terraform/azure/main.tf`'s
 storage resources provision the *target* this adapter will eventually
 write to; nothing in this repository makes the data plane actually use

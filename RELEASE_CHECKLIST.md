@@ -4,7 +4,7 @@ Every check below was **actually executed** in this environment on
 2026-09-26, immediately before this checklist was written — none of these
 results are assumed or carried over from an earlier phase's own claim
 without being re-run. Where a result differs from a prior phase's snapshot
-(e.g. `problems_final_review.md`'s Phase 18B test table), that is called out
+(e.g. `docs/problems/problems_final_review.md`'s Phase 18B test table), that is called out
 explicitly rather than silently reconciled.
 
 ## 1. Backend test suites (`python -m pytest -q`, run fresh, per package)
@@ -18,7 +18,7 @@ explicitly rather than silently reconciled.
 | **Backend total** | | **788 passed, 0 failed, 0 unexpected skips** |
 
 `services/data-plane`'s known data-dependent skip guards
-(`problems_final_review.md` P3-9 mechanism) reported "2/3 known
+(`docs/problems/problems_final_review.md` P3-9 mechanism) reported "2/3 known
 data-dependent guard(s) fired this run" — both are the seed/scale-dependent
 guards this mechanism exists to surface loudly, not a silent regression;
 neither is a `@pytest.mark.skip`/`xfail` hiding a real failure. **788
@@ -68,7 +68,7 @@ application-code/config change, out of this phase's scope per its own
 instructions). Flagged here for a follow-up maintenance pass rather than
 silently omitted.
 
-## 4. `problems_final_review.md` — current state
+## 4. `docs/problems/problems_final_review.md` — current state
 
 **11 findings remain open (6 P2 + 5 P3), unchanged by this phase** (this
 phase is documentation/release-prep only; it does not fix or delete any
@@ -78,7 +78,7 @@ finding):
 - P3: P3-1, P3-2, P3-5, P3-6, P3-10
 
 Every one of these is summarized honestly in `README.md` §19 and linked
-directly to this file rather than re-derived — see `problems_final_review.md`
+directly to this file rather than re-derived — see `docs/problems/problems_final_review.md`
 itself for the authoritative, full reasoning behind each.
 
 ## 5. Documentation cross-references
@@ -160,7 +160,7 @@ One documentation staleness issue, found incidentally while researching this
 phase and **not fixed** (out of this phase's explicit deliverable list —
 flagged for a future pass): `frontend/src/pages/README.md`'s inventory table
 still describes `AuditTrailPage` as "Honest placeholder (Phase 13 not built
-yet)," but Phase 18A (`problems_final_review.md` P1-4) rewrote that page to
+yet)," but Phase 18A (`docs/problems/problems_final_review.md` P1-4) rewrote that page to
 call the real `GET /api/v1/audit/events` endpoint — `README.md` §16 in this
 release describes the page correctly; `frontend/src/pages/README.md` itself
 was not updated in Phase 18A and still needs a one-line correction.
@@ -169,6 +169,6 @@ was not updated in Phase 18A and still needs a one-line correction.
 
 - Full phase-by-phase history: [`ROADMAP.md`](ROADMAP.md)
 - Versioned summary: [`CHANGELOG.md`](CHANGELOG.md)
-- Current open findings (authoritative): [`problems_final_review.md`](problems_final_review.md)
+- Current open findings (authoritative): [`docs/problems/problems_final_review.md`](docs/problems/problems_final_review.md)
 - Recruiter/interviewer entry point: [`README.md`](README.md)
 - Live, tested walkthrough: [`DEMO.md`](DEMO.md)

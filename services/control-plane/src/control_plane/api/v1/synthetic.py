@@ -7,7 +7,7 @@ JSON-artifact-handoff pattern as `api/v1/catalog.py` (ADR-0009).
 Read-only; synthetic generation is not yet submitted as a control-plane
 job (`ARCHITECTURE.md`'s Phase 5 note is silent on this because Phase 5
 predates that convention being written down explicitly, but the same gap
-applies -- see `problems_phase_09.md`).
+applies -- see `docs/problems/problems_phase_09.md`).
 """
 
 from __future__ import annotations

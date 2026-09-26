@@ -93,7 +93,7 @@ one: a masking run that crashes mid-way used to leave no signal that its
 output was incomplete. The fix — a checkable
 `_MASKING_RUN_INCOMPLETE.marker` — is a real, if partial, mitigation:
 individual per-source-system files still aren't written atomically
-(`problems_phase_11.md` P11-1), which is exactly why retry is not
+(`docs/problems/problems_phase_11.md` P11-1), which is exactly why retry is not
 blindly wired into job execution (above).
 
 ## Where to go next

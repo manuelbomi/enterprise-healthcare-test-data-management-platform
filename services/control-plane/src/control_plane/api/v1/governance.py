@@ -79,7 +79,7 @@ class PolicyApprovalDecisionRequest(PolicyApprovalActionRequest):
     `PolicyApprovalActionRequest` unchanged. Phase 11: the caller must
     hold `Permission.APPROVE_POLICY_VERSION`/`Permission.REJECT_POLICY_VERSION`
     (only `COMPLIANCE_APPROVER`/`PLATFORM_ADMIN` hold either). Phase 18A
-    (`problems_final_review.md` P0-1): this used to carry its own
+    (`docs/problems/problems_final_review.md` P0-1): this used to carry its own
     `actor_role` field, trusted directly from the request body -- it no
     longer does. The role checked now comes from the caller's verified
     bearer token (`AuthenticatedActor`, `Depends(get_current_actor)`) --
@@ -113,7 +113,7 @@ class FulfillConsumerRequestBody(BaseModel):
 
 
 class ResolveConsumerRequestBody(BaseModel):
-    """Phase 18B (`problems_final_review.md` P3-4): shared request body
+    """Phase 18B (`docs/problems/problems_final_review.md` P3-4): shared request body
     for both `reject_consumer_request`/`cancel_consumer_request` -- same
     shape (who + an optional free-text reason), same as
     `FulfillConsumerRequestBody`'s own "who triggered this" convention."""
@@ -238,10 +238,10 @@ def approve_policy_version(
 
     Phase 11: requires the caller to hold
     `Permission.APPROVE_POLICY_VERSION` -- resolves
-    `problems_phase_10.md` P10-2 for this one endpoint specifically
+    `docs/problems/problems_phase_10.md` P10-2 for this one endpoint specifically
     (every other governance mutation remains ungated; see
-    `problems_phase_11.md` P11-4). Phase 18A
-    (`problems_final_review.md` P0-1): the role is now a verified claim
+    `docs/problems/problems_phase_11.md` P11-4). Phase 18A
+    (`docs/problems/problems_final_review.md` P0-1): the role is now a verified claim
     from the caller's bearer token (`Depends(get_current_actor)`), not a
     caller-supplied `body.actor_role` field -- see
     `control_plane.platform.auth`'s module docstring."""
@@ -263,7 +263,7 @@ def approve_policy_version(
     except InvalidPolicyApprovalTransitionError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     audit.record(
-        # Phase 18B (`problems_final_review.md` P2-13): the audit
+        # Phase 18B (`docs/problems/problems_final_review.md` P2-13): the audit
         # trail's own `actor` field -- what `docs/COMPLIANCE_EVIDENCE.md`
         # says an auditor would rely on -- now records the verified
         # bearer-token identity (`actor.username`), not the unverified
@@ -314,7 +314,7 @@ def reject_policy_version(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     audit.record(
-        # Phase 18B (`problems_final_review.md` P2-13): see
+        # Phase 18B (`docs/problems/problems_final_review.md` P2-13): see
         # `approve_policy_version`'s identical comment above -- the
         # audit trail's `actor` field is now the verified bearer-token
         # identity, not the unverified `body.performed_by`.
@@ -461,7 +461,7 @@ def reject_consumer_request(
     repository: GovernanceRepository = Depends(get_governance_repository),
     audit: AuditLogRepository = Depends(get_audit_log),
 ) -> ConsumerDatasetRequest:
-    """Phase 18B (`problems_final_review.md` P3-4): SUBMITTED -> REJECTED.
+    """Phase 18B (`docs/problems/problems_final_review.md` P3-4): SUBMITTED -> REJECTED.
     Terminal. Rejected with 409 if the request is not currently
     SUBMITTED (e.g. already FULFILLED/REJECTED/CANCELLED) -- see
     `GovernanceRepository.reject_consumer_request`."""
@@ -491,7 +491,7 @@ def cancel_consumer_request(
     repository: GovernanceRepository = Depends(get_governance_repository),
     audit: AuditLogRepository = Depends(get_audit_log),
 ) -> ConsumerDatasetRequest:
-    """Phase 18B (`problems_final_review.md` P3-4): SUBMITTED -> CANCELLED.
+    """Phase 18B (`docs/problems/problems_final_review.md` P3-4): SUBMITTED -> CANCELLED.
     Terminal. Rejected with 409 if the request is not currently
     SUBMITTED -- see `GovernanceRepository.cancel_consumer_request`."""
 

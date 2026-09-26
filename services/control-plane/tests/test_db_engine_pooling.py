@@ -1,4 +1,4 @@
-"""Regression tests for `problems_final_review.md` P2-1 -- the
+"""Regression tests for `docs/problems/problems_final_review.md` P2-1 -- the
 control-plane's Postgres engine now carries real connection-pool
 resilience configuration (`pool_pre_ping`, bounded `pool_size`/
 `max_overflow`, `pool_recycle`) instead of a bare
