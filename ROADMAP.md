@@ -34,11 +34,104 @@ repository going forward.
 | 13 | Auditability and compliance evidence | **Complete** |
 | 14 | Scale and performance engineering (PySpark benchmarks) | **Complete** |
 | 15 | Complete junior-engineer tutorial (20 chapters) | **Complete** |
-| 16 | Interview / system design documentation | Not started |
+| 16 | Interview / system design documentation | **Complete** |
 | 17 | Principal-engineer production readiness review (findings only, no fixes) | Not started |
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 16 — what was actually delivered
+
+- Audited the whole repository before writing anything, per
+  `CONTRIBUTING.md`: `ARCHITECTURE.md`, all seventeen ADRs in `docs/adr/`,
+  every `problems_phase_01.md`-`problems_phase_14.md` (specifically their
+  still-open items, honest material for `failure-scenarios.md`/
+  `tradeoffs.md`), `docs/tutorial/guide/` (the Phase 15 onboarding
+  tutorial), `docs/CERTIFICATION_VS_MASKING.md`,
+  `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md`,
+  `docs/CAPACITY_COST_TRADEOFFS.md`, `docs/COMPLIANCE_EVIDENCE.md`,
+  `docs/SCALE_AND_PERFORMANCE.md`, `docs/PLATFORM_INTEGRITY.md`,
+  `docs/runbooks/`, `docs/diagrams/`, `DATA_GOVERNANCE.md`, and
+  `THREAT_MODEL.md` — this phase is a synthesis of what already exists,
+  not new application code, so nothing below was written without first
+  locating the real repository artifact it cites.
+- Four new files in `docs/interview/`, split by concern rather than
+  repeating the same content four times:
+  - `docs/interview/system-design.md` — how a senior engineer would
+    whiteboard the six planes and the nine-stage pipeline
+    (`INGEST -> ... -> PUBLISH`), reusing/adapting the real
+    `docs/diagrams/system-context.mmd`/`data-flow-sequence.mmd` diagrams
+    and `ARCHITECTURE.md`'s own plane diagram rather than inventing new,
+    inconsistent ones; answers "how do you preserve referential integrity
+    while masking identifiers," "how do you prove masking completed
+    correctly," "how do you prevent PHI from reaching lower
+    environments," and "how do you produce audit evidence."
+  - `docs/interview/tradeoffs.md` — the real, already-documented
+    tradeoffs this repository made, each cited to the ADR and
+    `problems_phase_NN.md` entries that actually recorded the decision:
+    deterministic pseudonymization vs. true anonymization (ADR-0006),
+    SQLite-locally/Postgres-portable (ADR-0004, `problems_phase_07.md`
+    P7-1's real deferred-then-closed verification gap), checksum vs.
+    HMAC vs. asymmetric signature for tamper-evidence
+    (`data_plane.certification.signing`'s keyed HMAC vs.
+    `control_plane.domain.evidence`'s unkeyed SHA-256 checksum, per
+    ADR-0016 and `problems_phase_13.md` P13-2), shared immutable
+    snapshots vs. per-environment copies (Phase 7's foreign-key
+    architecture, Phase 8's real measured 80% savings), local-mode Spark
+    vs. a real cluster (ADR-0017), and synthetic vs.
+    masked-production-like data (Phase 5's `DataProvenance` tagging);
+    also answers "when should you use synthetic data rather than masked
+    data" and "how do you version masking policies" (ADR-0011's
+    policy-version/engine-version split plus Phase 10's governed
+    approval workflow).
+  - `docs/interview/failure-scenarios.md` — Phase 11's eight real
+    failure-injection scenarios and their real recovery mechanisms (the
+    `_MASKING_RUN_INCOMPLETE.marker`, the dead-letter store, the
+    retry/backoff helper's deliberately narrow scope, rollback/
+    revocation), the real Phase 12 release-gate failure actually
+    triggered and observed (CI run IDs, not a hypothetical), plus the
+    explicit questions "how would you recover from a partially completed
+    masking job" and "how do you handle schema drift" answered in full
+    runbook-referencing depth.
+  - `docs/interview/scaling.md` — the "500 TB estate," "50 teams," "avoid
+    20 TB copies," and "how would Databricks/Spark fit" questions,
+    grounded in Phase 8's real capacity planner and its real, configurable
+    illustrative scenario, Phase 14's real local-mode Spark jobs and
+    measured throughput numbers, and Phase 7's shared-immutable-snapshot
+    architecture — explicit throughout about which numbers are real
+    measurements, which are real aggregations of registered data, and
+    which are illustrative models, and never claiming a distributed-
+    cluster number that `docs/SCALE_AND_PERFORMANCE.md` itself says was
+    never measured (only `local[*]` was).
+- All twelve of the promptbook's required example questions are answered,
+  each citing real repository paths — see the map above; none is answered
+  only in the abstract.
+- **No `problems_phase_16.md` was created.** Unlike every phase before it,
+  `ROADMAP.md`'s own Phase 16 prompt does not ask for one, and this phase
+  adds no new application code, no new test surface, and no new design
+  decision of its own to record as an open problem — it is a citation
+  layer over decisions and gaps every earlier phase already recorded in
+  its own `problems_phase_NN.md`. Manufacturing a Phase 16 problems file
+  would either duplicate those entries under a new ID or invent problems
+  that don't exist; `problems_master.md` is unchanged by this phase for
+  the same reason (nothing this phase built introduces a new open
+  problem, and it resolves none of the existing ones, since it touches no
+  code).
+- This phase adds no new application code and therefore no new pytest
+  test file. The full workspace suite was run, unmodified, to confirm
+  writing documentation touched no application code path: `libs/contracts`
+  62 passed, `services/control-plane` 195 passed, `services/data-plane`
+  439 passed, `services/governance-service` 2 passed — 698 total,
+  unchanged from `problems_phase_15.md`.
+- Left open, inherited (not introduced) by this phase: every gap this
+  phase's four files cite honestly (P0-3's missing storage adapter,
+  P0-4's un-rendered diagrams, P2-2's untested free-text classification
+  gap, P7-1/P7-2's scheduler-concurrency gap, P8-3's read-only vacuum
+  candidates, P11-1's non-atomic per-file masking writes, P13-2's unkeyed
+  evidence-bundle checksum, P14-1/P14-2/P14-5's Delta/skew/apples-to-
+  apples gaps) remains exactly as open as its owning phase's problems
+  file already describes it — this phase's job was to cite each
+  accurately, not to close any of them.
 
 ## Phase 15 — what was actually delivered
 
