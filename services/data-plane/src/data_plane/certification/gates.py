@@ -436,6 +436,112 @@ def check_provenance(
     )
 
 
+def check_distribution_shape(
+    source_values: list[float],
+    masked_values: list[float],
+    *,
+    column_label: str,
+    max_mean_ratio: float = 10.0,
+    min_sample_size: int = 5,
+) -> CertificationGateResult:
+    """GATE -- DISTRIBUTION_SHAPE (Phase 18A, resolves
+    `problems_final_review.md` P1-9: "no statistical distribution-shape
+    verification anywhere in the pipeline").
+
+    **What this checks**: whether `masked_values` (a numeric column
+    AFTER masking/subsetting) is grossly distorted relative to
+    `source_values` (the SAME column BEFORE masking, i.e. straight out
+    of SUBSET) -- specifically:
+
+    1. **Degenerate collapse**: `source_values` has real variation (at
+       least one non-zero value) but every `masked_values` entry is
+       zero -- masking collapsed all variation in this column, which is
+       never correct behavior for a column meant to preserve
+       plausibility (as opposed to a column deliberately redacted to a
+       constant, which is a different, explicit policy choice this gate
+       does not evaluate).
+    2. **Order-of-magnitude mean shift**: the ratio between
+       `masked_values`' mean and `source_values`' mean (larger over
+       smaller) exceeds `max_mean_ratio` -- e.g. a source column
+       averaging hundreds of dollars whose masked counterpart averages
+       tens of thousands, or vice versa.
+
+    **What this deliberately does NOT check** (see
+    `docs/CERTIFICATION_VS_MASKING.md` and `problems_phase_03.md` P3-4 /
+    `problems_phase_06.md` P6-3, both of which this gate finally closes
+    as an *automated, enforced* check rather than only a documented,
+    honest gap): this is NOT a rigorous statistical test. It does not
+    compare variance, percentiles, or the shape of the distribution
+    beyond its mean, and it does not use a real statistical test (e.g.
+    Kolmogorov-Smirnov). It is a real, lightweight, gross-distortion
+    sanity check -- proportionate to this repository's stated scope, not
+    a claim that masked numeric data faithfully preserves the source's
+    full statistical distribution (`data_plane.masking.synthesizers`'
+    numeric replacement only ever claimed same-order-of-magnitude
+    plausibility, never distributional fidelity; this gate now actually
+    verifies that claim rather than leaving it unchecked).
+
+    Passes trivially (with `metrics` explaining why) if either side has
+    fewer than `min_sample_size` values -- too few values to compare
+    meaningfully without risking a false positive on a tiny/edge-case
+    population.
+    """
+
+    if len(source_values) < min_sample_size or len(masked_values) < min_sample_size:
+        return CertificationGateResult(
+            gate=CertificationGateType.DISTRIBUTION_SHAPE,
+            passed=True,
+            detail=(
+                f"{column_label}: too few values to compare meaningfully "
+                f"(source={len(source_values)}, masked={len(masked_values)}, "
+                f"minimum={min_sample_size}) -- passing trivially."
+            ),
+            metrics={
+                "column": column_label,
+                "source_count": str(len(source_values)),
+                "masked_count": str(len(masked_values)),
+            },
+        )
+
+    source_mean = sum(source_values) / len(source_values)
+    masked_mean = sum(masked_values) / len(masked_values)
+
+    reasons: list[str] = []
+    if source_mean != 0 and all(v == 0 for v in masked_values):
+        reasons.append(
+            f"source has real variation (mean={source_mean:.2f}) but every masked value is zero "
+            "-- masking collapsed all variation in this column"
+        )
+    elif source_mean != 0 and masked_mean != 0:
+        ratio = max(source_mean, masked_mean) / min(source_mean, masked_mean)
+        if ratio > max_mean_ratio:
+            reasons.append(
+                f"source mean {source_mean:.2f} vs. masked mean {masked_mean:.2f} "
+                f"(ratio {ratio:.1f}x) exceeds the allowed {max_mean_ratio}x order-of-magnitude "
+                "threshold"
+            )
+
+    passed = not reasons
+    detail = (
+        f"{column_label}: masked mean {masked_mean:.2f} within {max_mean_ratio}x of source mean "
+        f"{source_mean:.2f} ({len(source_values)} source / {len(masked_values)} masked values compared)."
+        if passed
+        else f"{column_label}: " + "; ".join(reasons)
+    )
+    return CertificationGateResult(
+        gate=CertificationGateType.DISTRIBUTION_SHAPE,
+        passed=passed,
+        detail=detail,
+        metrics={
+            "column": column_label,
+            "source_mean": f"{source_mean:.4f}",
+            "masked_mean": f"{masked_mean:.4f}",
+            "source_count": str(len(source_values)),
+            "masked_count": str(len(masked_values)),
+        },
+    )
+
+
 def check_manifest_generation(
     subset_manifest_path: Path,
     masking_summary_path: Path,
@@ -509,6 +615,7 @@ def check_masking_version_recorded(masking_engine_version: str) -> Certification
 
 __all__ = [
     "check_data_quality_thresholds",
+    "check_distribution_shape",
     "check_manifest_generation",
     "check_masking_completion",
     "check_masking_version_recorded",

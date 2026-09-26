@@ -69,7 +69,8 @@ def test_audit_evidence_package_defaults_are_empty_not_none() -> None:
     assert package.audit_trail == []
     assert package.lineage == {}
     assert package.bundle_checksum == ""
-    assert package.bundle_checksum_algorithm == "sha256"
+    # Phase 18A (P1-7): upgraded from unkeyed "sha256" to keyed "hmac-sha256".
+    assert package.bundle_checksum_algorithm == "hmac-sha256"
     assert package.provenance_notes == []
 
 

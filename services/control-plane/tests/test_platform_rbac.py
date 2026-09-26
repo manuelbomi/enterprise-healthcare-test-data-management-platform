@@ -21,6 +21,7 @@ from control_plane.platform.rbac import ROLE_PERMISSIONS, AuthorizationError, Pe
         (Role.PLATFORM_ADMIN, Permission.ROLLBACK_DATASET_VERSION),
         (Role.PLATFORM_ADMIN, Permission.APPROVE_POLICY_VERSION),
         (Role.PLATFORM_ADMIN, Permission.REJECT_POLICY_VERSION),
+        (Role.PLATFORM_ADMIN, Permission.RUN_SCHEDULER),
     ],
 )
 def test_authorize_allows_a_permitted_role(role: Role, permission: Permission) -> None:
@@ -39,6 +40,10 @@ def test_authorize_allows_a_permitted_role(role: Role, permission: Permission) -
         (Role.DATA_STEWARD, Permission.APPROVE_POLICY_VERSION),
         (Role.DATA_STEWARD, Permission.REJECT_POLICY_VERSION),
         (Role.COMPLIANCE_APPROVER, Permission.ROLLBACK_DATASET_VERSION),
+        (Role.VIEWER, Permission.RUN_SCHEDULER),
+        (Role.REQUESTER, Permission.RUN_SCHEDULER),
+        (Role.DATA_STEWARD, Permission.RUN_SCHEDULER),
+        (Role.COMPLIANCE_APPROVER, Permission.RUN_SCHEDULER),
     ],
 )
 def test_authorize_rejects_an_insufficiently_privileged_role(role: Role, permission: Permission) -> None:

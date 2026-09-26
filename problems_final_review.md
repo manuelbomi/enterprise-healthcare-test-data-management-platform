@@ -38,27 +38,55 @@ existing entry were newly discovered during this review's own re-inspection.
 
 ---
 
+## Phase 18A resolution note
+
+**All ten P0/P1 findings below (P0-1, P1-1 through P1-9) were fixed in
+Phase 18A** ("Fix/Delete Cycle for P0/P1") and have been removed from
+this document per `CONTRIBUTING.md`'s "remove resolved problems from
+the problems file" rule -- each was demonstrated fixed with a real,
+executed test before being deleted (never speculatively). See
+`ROADMAP.md`'s "Phase 18A — what was actually delivered" section for
+the full per-finding root-cause/fix/regression-test summary, and:
+
+- P0-1 → `control_plane.platform.auth`, `docs/adr/0018-minimal-jwt-identity-layer-for-rbac.md`
+- P1-1 → `THREAT_MODEL.md` (revised), `SECURITY.md`
+- P1-2 → `control_plane.platform.rbac.Permission.RUN_SCHEDULER`, `api/v1/lifecycle.py`
+- P1-3 → `services/control-plane/alembic.ini`, `migrations/`
+- P1-4 → `frontend/src/api/audit.ts`/`evidence.ts`/`governance.ts`, `AuditTrailPage.tsx`
+- P1-5 → `control_plane.platform.logging_config`, `ARCHITECTURE.md` section 3.3
+- P1-6 → `data_plane.masking.dataset_masker`'s `_atomic_write_via`/`_atomic_text_writer`
+- P1-7 → `control_plane.platform.evidence_signing`, `docs/TAMPER_EVIDENCE_LIMITATIONS.md`
+- P1-8 → `POST /api/v1/lifecycle/dataset-versions/governed`, `docs/adr/0019-governed-vs-ungoverned-dataset-version-registration.md`
+- P1-9 → `data_plane.certification.gates.check_distribution_shape`
+
+The P2/P3 findings below are **unchanged** from the original Phase 17
+review -- Phase 18A's scope was P0/P1 only, per its own phase prompt
+("Work ONLY on P0 and P1 issues... When all P0/P1 issues are resolved,
+STOP"). They remain open, tracked here exactly as Phase 17 left them,
+for a future Phase 18B.
+
 ## Severity summary
 
 | Severity | Count |
 |---|---|
-| P0 | 1 |
-| P1 | 9 |
+| P0 | 0 (resolved in Phase 18A) |
+| P1 | 0 (resolved in Phase 18A) |
 | P2 | 13 |
 | P3 | 10 |
-| **Total** | **33** |
-
-Of these, **12 are genuinely new** (not named in any `problems_phase_NN.md`
-or `problems_master.md` entry before this review): P0-1 (as a synthesized,
-elevated top-level claim — see its own note on why it's listed as new despite
-citing prior entries), P1-2's `/scheduler/run-due` sub-finding, P1-3, P1-4,
-P1-5, P2-1, P2-9, P2-10, P2-11, P2-12, P3-8, P3-9. The remaining 21 are this
-review's own independent re-inspection and severity classification of gaps
-prior phases already, honestly, documented.
+| **Total** | **23** |
 
 ---
 
 ## Test suite: real results (run today, not assumed)
+
+**This table is Phase 17's own snapshot, kept as-is for historical
+accuracy of what Phase 17 actually ran and verified.** Phase 18A added
+substantial new test coverage on top of it (new auth/migration/logging/
+atomic-write/distribution-shape/frontend tests) — see `ROADMAP.md`'s
+"Phase 18A — what was actually delivered" section for the current,
+post-Phase-18A pass counts across all four Python packages and the
+frontend, run and reported fresh rather than assumed to still match
+this table.
 
 | Package | Command | Result |
 |---|---|---|
@@ -82,450 +110,6 @@ none is a `@pytest.mark.skip`/`xfail` decorator hiding a known regression.
 This claim (698, real, reproducible) is itself worth recording as a
 **positive** finding: it is one of the only claims checked in this review
 that required no correction.
-
----
-
-## P0 findings
-
-### P0-1 — RBAC provides no real security boundary: there is no identity verification anywhere in the platform
-
-- **Problem:** `control_plane.platform.rbac.authorize()` is real, enforced
-  code (not a no-op) on exactly four endpoints (dataset-version revoke,
-  environment rollback, policy-version approve/reject). But every one of
-  those checks operates on an `actor_role` field the *caller supplies in the
-  request body*, with zero verification that the caller is actually entitled
-  to claim that role. There is no authentication mechanism anywhere in this
-  repository — no JWT, no OAuth, no session token, no API key, nothing
-  (confirmed by a repo-wide grep for `JWT|OAuth|HTTPBearer|OAuth2PasswordBearer|session_token`
-  across `services/control-plane/src`: zero matches). A caller who wants to
-  revoke any dataset version needs to send `{"actor_role": "PLATFORM_ADMIN", ...}`
-  in the JSON body — nothing checks that the caller is who they claim, or
-  that they are authorized to claim `PLATFORM_ADMIN` in the first place.
-- **Risk:** For this repository's actual, stated purpose (a portfolio/
-  teaching reference implementation using only synthetic data, never
-  deployed), the real-world risk today is **zero** — there is no real PHI/PII
-  and no real deployment for anyone to attack. But this is exactly the class
-  of gap the Phase 17 prompt asks to be evaluated as if this were a
-  production-readiness exercise: if this codebase were pointed at a real
-  source system tomorrow, the entire RBAC layer — the only access-control
-  mechanism this platform has — would provide **no actual protection**
-  against an adversarial or merely careless caller. `THREAT_MODEL.md`'s own
-  "Elevation of privilege" mitigation ("authorization decisions are made
-  server-side by the security/governance plane, never inferred from
-  client-supplied fields") is the literal opposite of what the real code
-  does: the role IS a client-supplied field, and no plane verifies it.
-- **Reproduction/evidence:** `services/control-plane/src/control_plane/platform/rbac.py`'s
-  own module docstring states this limitation explicitly (confirmed by the
-  RBAC audit performed for this review). `services/control-plane/src/control_plane/api/v1/lifecycle.py:266`
-  and `:490`, `services/control-plane/src/control_plane/api/v1/governance.py:228,266`
-  are the only four `authorize(...)` call sites in the entire codebase, and
-  each reads `body.actor_role` (a plain Pydantic string field on the request
-  body) as its input — not a decoded token, not a session lookup. A live
-  demonstration: `POST /api/v1/lifecycle/dataset-versions/{id}/revoke` with
-  body `{"actor_role": "PLATFORM_ADMIN", "revoked_by": "anyone", "reason": "x"}`
-  succeeds regardless of who sends it.
-- **Recommended fix:** This is exactly the seam `services/governance-service`
-  was always intended to fill (`ARCHITECTURE.md` section 2.4: "RBAC:
-  role-based authorization decisions"), and every phase since Phase 10 has
-  correctly deferred it there rather than faking it. The fix is not a
-  patch to `rbac.py` — it is standing up a real identity provider (even a
-  minimal one: signed JWTs issued by a real login flow, verified via
-  middleware before any router body is trusted) so `actor_role` is *derived*
-  from a verified identity, not accepted as a bare claim. Until that exists,
-  every actor-attribution field in this codebase (`revoked_by`, `performed_by`,
-  `requested_by`, `generated_by`, `accessed_by`, and `actor_role` itself)
-  should be documented — as it already honestly is in scattered form across
-  `problems_phase_07.md` P7-6, `problems_phase_10.md` P10-2,
-  `problems_phase_11.md` P11-4, `problems_phase_13.md` P13-3 — as **advisory
-  metadata, not a security control**, and this review recommends stating
-  that once, prominently, in `THREAT_MODEL.md` and `SECURITY.md` rather than
-  leaving a reader to piece it together from four different phase files (see
-  P1-1 below).
-- **Why this is listed as a top-level P0 despite citing existing entries:**
-  P7-6/P10-2/P11-4/P13-3 each honestly document *their own endpoint's* lack of
-  RBAC. None of them, nor `ARCHITECTURE.md`, nor `THREAT_MODEL.md`, states
-  the single integrated fact that matters most for a production-readiness
-  verdict: the RBAC mechanism that *does* exist provides no defense at all
-  against a non-cooperating caller, on any of the four endpoints it claims to
-  gate, because the role itself is unauthenticated. That synthesis is this
-  review's own contribution.
-- **Affected files:** `services/control-plane/src/control_plane/platform/rbac.py`,
-  `services/control-plane/src/control_plane/api/v1/lifecycle.py`,
-  `services/control-plane/src/control_plane/api/v1/governance.py`,
-  `THREAT_MODEL.md`, `SECURITY.md`.
-
----
-
-## P1 findings
-
-### P1-1 — `THREAT_MODEL.md` has never been revisited since Phase 0 and now materially misrepresents the platform's real security posture
-
-- **Problem:** `THREAT_MODEL.md` states its own policy: *"This document is
-  revisited at the end of every phase that changes a trust boundary."*
-  `git log --oneline -- THREAT_MODEL.md` shows exactly one commit —
-  `b8901a8`, "Phase 0: repository scaffolding" — ever. Phases 7 (metadata
-  plane), 10 (governance), 11 (RBAC/audit), and 13 (evidence) all
-  demonstrably changed trust boundaries and none updated this file. As a
-  result it currently makes at least three claims that are now false or
-  broken against the real, current codebase:
-  1. Control-plane STRIDE section: *"Spoofing... Mitigation: token-based
-     auth validated against the security/governance plane on every
-     request; no plane trusts a caller's claim about identity without
-     verifying it through the security/governance plane."* This is the
-     exact opposite of the real code — see P0-1. No token-based auth exists
-     anywhere, and every plane trusts a bare client-supplied field.
-  2. Control-plane STRIDE section: *"Denial of service: a flood of job
-     requests exhausts data-plane compute. Mitigation: control plane
-     enforces quota/footprint checks before submitting jobs (see ADR on
-     capacity planning, added in a later phase)."* Verified by grep: no file
-     under `services/control-plane/src/control_plane/domain/lifecycle/`
-     references `CapacityPlanner`/`capacity_plan`/`footprint` at all. Phase
-     8's capacity planner is a separate, read-only reporting/estimation API
-     (`/api/v1/capacity/*`) never wired as a gate on `POST
-     /api/v1/lifecycle/environment-requests` or any other request-submission
-     endpoint. No rate limiting exists anywhere either (repo-wide grep for
-     `RateLimit|rate_limit|slowapi|Throttl`: zero hits).
-  3. Infrastructure STRIDE section cites *"footprint management (Phase 15)"*
-     for quota/expiry enforcement on snapshots — the wrong phase number.
-     Footprint/capacity management is Phase 8; Phase 15 is the
-     junior-engineer tutorial. Even the citation is broken, which is itself
-     evidence nobody has read this section closely since it was written.
-- **Risk:** Zero risk to any real data today (no real PHI/PII exists in this
-  repository, matching this whole review's framing). The real risk is
-  reputational/credibility for the review process itself: this repository's
-  entire honesty discipline (`docs/CERTIFICATION_VS_MASKING.md`,
-  `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md`, `docs/COMPLIANCE_EVIDENCE.md`
-  all state, in nearly identical language, "overclaiming safety is worse
-  than not claiming it") is violated by its own foundational security
-  document, in the one file most likely to be read first by a security
-  reviewer or an interviewer probing this repository's rigor.
-- **Reproduction/evidence:** `git log --oneline -- THREAT_MODEL.md` → one
-  commit. `THREAT_MODEL.md` lines 59-61 (spoofing mitigation), line 74-75
-  (DoS mitigation), line 143 ("Phase 15" citation).
-  `grep -rn "CapacityPlanner\|capacity_plan\|footprint" services/control-plane/src/control_plane/domain/lifecycle/`
-  → no matches.
-- **Recommended fix:** Rewrite `THREAT_MODEL.md`'s per-plane STRIDE
-  mitigations to state what is actually built today (citing the real
-  mechanisms: `control_plane.platform.rbac`, the honest "advisory metadata"
-  framing from P0-1, the actual absence of quota enforcement/rate limiting),
-  the same way every `docs/*.md` file written after Phase 6 already does.
-  Fix the Phase 15 → Phase 8 citation. Add the revisit this document has
-  been promising since Phase 0.
-- **Affected files:** `THREAT_MODEL.md`.
-
-### P1-2 — RBAC covers 4 of the ~20 real mutation endpoints, and the widest-blast-radius one is entirely unauthenticated
-
-- **Problem:** Already tracked at the individual-endpoint level in
-  `problems_phase_07.md` P7-6, `problems_phase_10.md` P10-2, and
-  `problems_phase_11.md` P11-4 ("RBAC is enforced only on the four
-  highest-sensitivity mutations"). This review's own re-inspection of every
-  router in `services/control-plane/src/control_plane/api/v1/` found one
-  concrete instance not named in any of those three entries:
-  `POST /api/v1/lifecycle/scheduler/run-due` (`lifecycle.py:577-597`)
-  executes a scheduled refresh for **every** currently-due environment
-  request in a single call. It has no RBAC check at all (not even the "at
-  least accepts an unauthenticated role claim" pattern the four gated
-  endpoints have), and `triggered_by` defaults to the literal string
-  `"scheduler"` with no verification the caller is an actual scheduler
-  rather than an arbitrary API client. Its blast radius (every due request,
-  in one call) is strictly larger than the single-request
-  `POST /environment-requests/{id}/refresh` endpoint, yet it has strictly
-  less protection.
-- **Risk:** For this portfolio system: none (synthetic data, no real
-  deployment, and a refresh only re-runs the certification pipeline against
-  already-approved policies — it cannot exfiltrate or corrupt anything a
-  normal refresh couldn't). For a production-readiness evaluation: this is
-  a real gap — an unauthenticated endpoint that can trigger unbounded
-  compute work across every environment in the system on demand is exactly
-  the kind of DoS/abuse surface `THREAT_MODEL.md` claims (falsely, per P1-1)
-  is mitigated.
-- **Reproduction/evidence:** `services/control-plane/src/control_plane/api/v1/lifecycle.py:577-597`
-  — no `authorize(...)` call in the handler body, unlike the four gated
-  endpoints; `triggered_by: str = "scheduler"` default with no auth
-  dependency. Confirmed via full read of all 11 router files in
-  `services/control-plane/src/control_plane/api/v1/`; every other
-  known-ungated mutation (dataset-version registration, environment
-  request/refresh, policy draft/submit, business-consumer registration,
-  consumer-request submit/fulfill, the Phase 13 access/evidence endpoints)
-  was already named in P7-6/P10-2/P11-4/P13-3 — this is the one genuinely
-  new gap this pass found.
-- **Recommended fix:** Gate `/scheduler/run-due` behind the same RBAC
-  mechanism as the other four sensitive endpoints at minimum (e.g. restrict
-  to `PLATFORM_ADMIN`), and treat it as the highest-priority addition if/when
-  RBAC scope is widened, given its blast radius. Longer-term, this endpoint
-  should only ever be called by a trusted internal scheduler (Airflow, a
-  Kubernetes CronJob), never exposed to arbitrary API callers at all — a
-  network-level restriction, not just an application-level one.
-- **Affected files:** `services/control-plane/src/control_plane/api/v1/lifecycle.py`.
-
-### P1-3 — No schema-migration framework exists for the control-plane's real, evolving database
-
-- **Problem (genuinely new finding):** `services/control-plane/src/control_plane/db/models.py`
-  has grown a real, substantive SQLAlchemy schema across four separate
-  phases (Phase 7: dataset lifecycle tables; Phase 10: governance tables;
-  Phase 11: audit/dead-letter tables; Phase 13: no new tables, but new
-  columns/queries against existing ones) — this is not a toy schema, it is
-  the platform's actual system of record. Yet the *only* schema-management
-  mechanism anywhere in the repository is
-  `Base.metadata.create_all(engine)` (`models.py:336-340`, `init_schema`).
-  There is no Alembic (or any other migration tool) anywhere in the
-  repository — confirmed by `grep -rn "alembic" services/control-plane` and
-  a filesystem search for `*alembic*`/`*migrat*` under
-  `services/control-plane`: zero hits in either case, and the two hits for
-  the word "migration" elsewhere in the repo (`problems_phase_05.md`,
-  `problems_phase_13.md`) are about unrelated schema-migration *concepts*
-  discussed in prose, not this actual capability gap.
-  `create_all` only creates tables that do not yet exist — it has no ability
-  to alter an existing table (add/rename/drop a column, change a type,
-  add an index) once a database already has rows in it.
-- **Risk:** Zero today — every test and demo in this repository runs
-  against a fresh SQLite file created from scratch each time, so `create_all`
-  has never needed to alter anything. But this is a real, structural gap for
-  the platform's own stated production-readiness bar: any real deployment
-  that actually persisted data across a code upgrade (the entire point of
-  choosing PostgreSQL as "the system of record," `ADR-0004`) would have no
-  supported way to apply the next phase's schema change without either
-  manual, undocumented DDL or a destructive drop-and-recreate. Given this
-  schema has already changed in 4 of the last 10 phases, the next real
-  schema change is a near-certainty, not a hypothetical.
-- **Reproduction/evidence:** `grep -rn "alembic\|create_all\|migration" services/control-plane/src`
-  → only hit is `models.py:340: Base.metadata.create_all(engine)`.
-  No `alembic.ini`, no `migrations/` or `versions/` directory anywhere in
-  the repository.
-- **Recommended fix:** Add Alembic (the SQLAlchemy-ecosystem standard),
-  generate an initial baseline migration matching the current
-  `Base.metadata`, and require every future phase that changes
-  `control_plane/db/models.py` to also add a migration — the same
-  discipline `CONTRIBUTING.md` already enforces for tests ("every new
-  behavior needs a test"). This is squarely a "database" review-category
-  finding and a natural, well-scoped Phase 18A/B item.
-- **Affected files:** `services/control-plane/src/control_plane/db/models.py`,
-  `services/control-plane/src/control_plane/db/session.py`.
-
-### P1-4 — The frontend's "Audit Trail" page makes a factually false claim, and no frontend code anywhere calls the Phase 11/13 backends it was waiting for
-
-- **Problem (genuinely new finding):** Phase 9's `AuditTrailPage.tsx`
-  correctly showed an honest `NotYetAvailable` placeholder because, at the
-  time, no audit log existed. Its copy reads (verbatim,
-  `frontend/src/pages/AuditTrailPage.tsx`): *"The security/governance
-  plane's immutable audit event log (ARCHITECTURE.md section 2.4) does not
-  exist yet -- there is no backing API for this page to call..."* Phase 11
-  built a real, real, DB-backed audit log (`GET /api/v1/audit/events`) and
-  Phase 13 built a real evidence-package endpoint
-  (`POST /api/v1/evidence/dataset-versions/{id}/package`). Neither
-  `problems_phase_11.md` nor `problems_phase_13.md` records going back to
-  update this page — and an exhaustive grep of `frontend/src` for
-  `audit|evidence|governance` (case-insensitive) confirms **zero** code
-  anywhere in the frontend calls any of these three backends: there is no
-  `frontend/src/api/audit.ts`, no `evidence.ts`, no `governance.ts` — only
-  `capacity.ts, catalog.ts, certification.ts, client.ts, health.ts, index.ts,
-  lifecycle.ts, masking.ts, subsetting.ts, synthetic.ts, types.ts` exist.
-  The false claim is locked in place by the page's own test
-  (`AuditTrailPage.test.tsx`), which asserts the placeholder text renders.
-  Separately, `frontend/src/api/types.ts` has no TypeScript type at all
-  (not merely out of sync, per the already-tracked `problems_phase_09.md`
-  P9-5) for `MaskingPolicyVersion`, `PolicyApproval`, `BusinessConsumer`,
-  `ConsumerDatasetRequest` (Phase 10), `AuditEvidencePackage` (Phase 13), or
-  `AuditEvent`/`AuditEventType` (Phase 11) — six real, shipped
-  `libs/contracts` models the frontend has never been extended to know
-  about at all.
-- **Risk:** For this portfolio system: no data-safety risk (this is a
-  read-only console gap, not a masking/certification defect). But it is a
-  direct instance of exactly the kind of cross-phase seam the Phase 17
-  prompt asked this review to hunt for ("does the frontend actually call the
-  Phase 13 evidence endpoint anywhere?" — no), and the false "no backing API
-  exists" claim is a genuine regression in the honesty this project holds
-  itself to everywhere else — a reviewer clicking through the live console
-  would be told something that has been false since Phase 11.
-- **Reproduction/evidence:** `frontend/src/pages/AuditTrailPage.tsx` (copy
-  quoted above); `frontend/src/api/` directory listing (11 files, none named
-  audit/evidence/governance); grep of `frontend/src` for
-  `audit|evidence|governance` returning only the placeholder copy, a nav
-  label, and unrelated English-word matches (e.g. "tamper-evidence
-  signature" in `CertificationPage.tsx`).
-- **Recommended fix:** Either build the (small, read-only, following the
-  exact `ADR-0009`/Phase-9 JSON-artifact-repository pattern already used for
-  masking/subsetting/synthetic/certification) `frontend/src/api/audit.ts` +
-  an `AuditTrailPage` that actually renders `GET /api/v1/audit/events`, or,
-  at minimum, correct the placeholder copy to stop claiming no backend
-  exists and instead say "not yet wired into this console" — the latter is a
-  ~10-minute fix that immediately restores honesty even before the former is
-  scheduled. Add the six missing TypeScript types to `types.ts` regardless
-  of whether a page consumes them yet, so `problems_phase_09.md` P9-5's
-  "drift" framing at least starts from complete coverage.
-- **Affected files:** `frontend/src/pages/AuditTrailPage.tsx`,
-  `frontend/src/pages/AuditTrailPage.test.tsx`, `frontend/src/api/types.ts`,
-  `frontend/src/api/` (missing `audit.ts`/`evidence.ts`/`governance.ts`).
-
-### P1-5 — `ARCHITECTURE.md`'s observability claim is 100% unimplemented, and nothing has ever flagged it
-
-- **Problem (genuinely new finding):** `ARCHITECTURE.md` section 3.3 states:
-  *"Every plane emits structured logs (JSON, correlation-ID tagged), metrics
-  (job duration, rows processed, storage footprint, masking coverage), and
-  traces (a request through control plane -> data plane -> metadata plane is
-  one trace). Audit events... are a distinct stream from operational
-  logs."* A repo-wide grep across all of `services/` for
-  `logging|structlog|getLogger|correlation|trace_id|opentelemetry|prometheus|statsd|metrics\.`
-  found: zero real logging setup, zero structured/JSON logging, zero
-  correlation-ID mechanism, zero metrics emission (Prometheus/StatsD/any),
-  zero distributed tracing. The only near-hit is a dead configuration field:
-  `control_plane.config.Settings.log_level` is validated at startup
-  (`config.py:51,115-124`, and tested by `test_config_validation.py`) but is
-  **never read by anything** — it is not passed to `logging.basicConfig` or
-  any handler anywhere in the codebase. The claim "audit events are a
-  distinct stream from operational logs" is also literally false: there is
-  no operational log stream at all for the audit table to be "distinct
-  from" — `AuditLogRepository` (Phase 11) is the *only* logging-like
-  mechanism that exists anywhere, and it uses plain `session.add()`, not any
-  Python `logging` call.
-- **Risk:** For this portfolio system: none directly (every test/demo
-  captures its own evidence via JSON artifacts and DB rows, which is a
-  legitimate substitute at this scale). For production readiness
-  specifically: this is a real, unmitigated operational blind spot — no way
-  to correlate a request across the control plane and a data-plane job run,
-  no way to alert on job duration/throughput regressions outside of manually
-  re-running `data_plane.benchmarks`, no centralized log aggregation story at
-  all.
-- **Reproduction/evidence:** grep results above (zero hits for every real
-  observability library/pattern across all four Python packages); a
-  repo-wide search of every `problems_phase_NN.md`/`problems_master.md` for
-  "observability", "structured log", "trace"/"correlation", "metrics"
-  (case-insensitive) returns only false positives (a PySpark stack-trace
-  mention in `problems_phase_14.md`, and "audit logging" meaning the DB
-  table in `problems_phase_11.md`) — this specific gap has never been
-  recorded anywhere before this review.
-- **Recommended fix:** Either scope this claim down honestly in
-  `ARCHITECTURE.md` (the same way every other aspirational Phase-0 claim in
-  that document has been progressively corrected phase-by-phase in its own
-  "Phase N note" sections) to say what actually exists — JSON artifacts and
-  DB rows, no logging/metrics/tracing infrastructure — or treat "basic
-  structured logging with a correlation ID, wired to the existing
-  `log_level` config field" as a well-scoped, high-value Phase 18 item; it
-  is one of the cheapest real gaps in this review to close.
-- **Affected files:** `ARCHITECTURE.md` (section 3.3),
-  `services/control-plane/src/control_plane/config.py`.
-
-### P1-6 — Masking's per-source-system writers are not atomic; a mid-run crash can leave one truncated, plausible-looking file
-
-- **Problem:** Already tracked precisely as `problems_phase_11.md` P11-1.
-  Re-verified directly against the current code: `mask_estate`
-  (`services/data-plane/src/data_plane/masking/dataset_masker.py:415-442`)
-  writes a whole-run `_MASKING_RUN_INCOMPLETE.marker` at the start and
-  removes it only on full completion — this is real and correctly tested.
-  But its own docstring (lines 429-441) states explicitly that this does
-  **not** make each individual per-source-system masker's writes atomic;
-  `mask_clinical_data_lake` writes NDJSON rows into an already-open file
-  handle one at a time, so a crash mid-write leaves one truncated file for
-  whichever source system was in progress, indistinguishable from a valid
-  file except via the run-level marker.
-- **Risk:** For this portfolio system: low — the runbook
-  (`docs/runbooks/masking-job-failure-recovery.md`) correctly instructs
-  "delete the whole output directory, never resume," which fully mitigates
-  the gap operationally. For production readiness: a masking pipeline where
-  an individual output file's own byte-level completeness cannot be trusted
-  independent of a separate marker file is a real robustness gap that would
-  need closing before this engine ran unattended, at scale, without a human
-  checking the marker every time.
-- **Reproduction/evidence:** `services/data-plane/src/data_plane/masking/dataset_masker.py:404-409`
-  (docstring: "does **not** guarantee every individual file... is itself
-  complete"); `test_masking_job_crash_leaves_an_incomplete_marker_not_silent_partial_output`
-  proves the run-level marker but "does not assert anything about the
-  byte-level completeness of the one partially-written NDJSON file itself"
-  per the test's own documented scope.
-- **Recommended fix:** As `problems_phase_11.md` P11-1 itself recommends:
-  change each per-source-system masker to write to a temporary path and
-  rename atomically on completion. Scoped as a deliberately deferred,
-  higher-risk refactor of code covered by ~80 existing tests — a reasonable,
-  well-bounded Phase 18 candidate.
-- **Affected files:** `services/data-plane/src/data_plane/masking/dataset_masker.py`.
-
-### P1-7 — Both tamper-evidence mechanisms (certification HMAC, evidence-package checksum) are defeatable by anyone with database/filesystem write access plus the key
-
-- **Problem:** Already tracked as `problems_phase_03.md` P3-2,
-  `problems_phase_06.md` P6-2, `problems_phase_13.md` P13-2, and explained at
-  length in `docs/CERTIFICATION_VS_MASKING.md` and
-  `docs/COMPLIANCE_EVIDENCE.md`. Re-confirmed directly: the certification
-  report's keyed HMAC-SHA256 (`data_plane/certification/signing.py`) requires
-  both file access and the signing key to forge — a real detection, not
-  prevention, mechanism, and the key itself has no secrets-provider-backed
-  storage (env var / `.env` only, same as the masking key). The evidence
-  package's `bundle_checksum` (Phase 13) is a **plain, unkeyed** SHA-256 —
-  anyone with database write access alone (no key needed at all) can edit
-  the underlying rows and regenerate a self-consistent checksum.
-- **Risk:** For this portfolio system: none (no adversary with database
-  write access exists; this is documented, deliberate, and honestly scoped
-  as "corruption detection," never "non-repudiation," in
-  `docs/COMPLIANCE_EVIDENCE.md`). For production readiness: an auditor
-  relying on either mechanism as evidence a dataset/record wasn't tampered
-  with needs to understand this limit precisely — the evidence package in
-  particular provides *weaker* protection than the certification report it
-  may embed, which is a subtlety easy to miss if a reader only skims one of
-  the two documents.
-- **Reproduction/evidence:** `data_plane/certification/signing.py`'s module
-  docstring; `control_plane.domain.evidence.compute_bundle_checksum`'s use
-  of unkeyed `hashlib.sha256` (per `docs/COMPLIANCE_EVIDENCE.md`'s own
-  "checksum is an integrity check, not a signature" section, independently
-  confirmed against ADR-0016).
-- **Recommended fix:** Already correctly named in `problems_phase_13.md`
-  P13-2 and `docs/interview/tradeoffs.md` item 3: a real production
-  deployment wanting external, independently-verifiable non-repudiation for
-  either artifact needs an asymmetric signature (public/private keypair)
-  backed by a real secrets provider, not implemented anywhere in this
-  repository. No change recommended for the portfolio scope; flagged here so
-  a reader of this review sees both artifacts' real limits side by side.
-- **Affected files:** `services/data-plane/src/data_plane/certification/signing.py`,
-  `services/control-plane/src/control_plane/domain/evidence/`.
-
-### P1-8 — No enforced link between a registered `DatasetVersion`'s claimed masking policy and Phase 10's governed, approved policy version
-
-- **Problem:** Already tracked as `problems_phase_10.md` P10-1. Re-confirmed:
-  `LifecycleRepository.register_dataset_version` never calls into
-  `GovernanceRepository.get_approved_policy_version` — an operator can run
-  the certification pipeline with a hand-built `MaskingPolicy` that was never
-  drafted/approved through Phase 10's governance workflow at all, and Phase
-  7 will register the resulting `DatasetVersion` without complaint, purely
-  by convention (the demo scripts always pass the actually-approved policy
-  object, but nothing enforces that discipline in code).
-- **Risk:** For this portfolio system: none (both demo paths are internally
-  consistent). For production readiness: this is the exact gap that would
-  let an ungoverned masking policy reach a published dataset while every UI
-  and API surface implies governance was followed — a real compliance-integrity
-  hole for an organization actually relying on the governance layer to mean
-  something.
-- **Reproduction/evidence:** as documented in `problems_phase_10.md` P10-1:
-  `run_certification_pipeline(..., masking_policy=some_other_policy)` with a
-  never-approved policy, then `POST /api/v1/lifecycle/dataset-versions` with
-  the resulting report, registers successfully.
-- **Recommended fix:** As P10-1 already recommends: add a certification gate
-  or a `LifecycleRepository`-side check against
-  `GovernanceRepository.get_approved_policy_version` before registration
-  succeeds.
-- **Affected files:** `services/control-plane/src/control_plane/domain/lifecycle/repository.py`,
-  `services/control-plane/src/control_plane/domain/governance/repository.py`.
-
-### P1-9 — No verification anywhere in the pipeline that masked numeric data preserves the source's statistical distribution
-
-- **Problem:** Already tracked as `problems_phase_03.md` P3-4 and
-  `problems_phase_06.md` P6-3, and explained in
-  `docs/CERTIFICATION_VS_MASKING.md`. Confirmed unchanged through Phase 16:
-  `data_plane.masking.synthesizers`'s numeric replacement preserves
-  per-value plausibility (same order of magnitude) only; no gate anywhere
-  (`check_data_quality_thresholds` is an explicit non-degeneracy check only)
-  compares masked-vs-source mean/variance/percentile shape.
-- **Risk:** For this portfolio system: low (the gap is honestly documented
-  everywhere it's relevant, and the platform never claims otherwise). For
-  production readiness: this is a real gap in the core value proposition —
-  "test data that looks and behaves like production" (`ARCHITECTURE.md`
-  section 1) is only partially true for numeric fields; a load/perf/analytics
-  test relying on realistic dollar-amount distributions would not get them.
-- **Reproduction/evidence:** mask a `tiny`-scale estate and compare the
-  distribution of masked `billed_amount` to the original — same rough order
-  of magnitude only, per the already-documented repro in P3-4/P6-3.
-- **Recommended fix:** As already named: a future data-quality-focused phase
-  once the metadata plane holds real aggregate statistics to compare
-  against, per P5-1's same owner note.
-- **Affected files:** `services/data-plane/src/data_plane/masking/synthesizers.py`,
-  `services/data-plane/src/data_plane/certification/gates.py`.
 
 ---
 

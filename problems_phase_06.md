@@ -134,7 +134,14 @@ and is now verified by a real, passing test:
 
 ### P6-3 — `data_quality_thresholds` is a minimal non-degeneracy check, not a distribution-shape-preservation guarantee
 
-- **Status:** open (documented limitation, not a defect; this phase does
+- **Status:** **partially resolved in Phase 18A** -- a new, twelfth
+  gate, `check_distribution_shape`, was added alongside (not instead
+  of) `check_data_quality_thresholds` -- see the identical note added to
+  `problems_phase_03.md` P3-4, which this entry already pointed to.
+  `check_data_quality_thresholds` itself is unchanged (still a
+  non-degeneracy check only); the distribution-shape gap is now closed
+  by a sibling gate, not by extending this one.
+- **Status (original, Phase 6):** open (documented limitation, not a defect; this phase does
   not close `problems_phase_03.md` P3-4, and does not claim to)
 - **Description:** `gates.check_data_quality_thresholds` verifies the
   final dataset isn't empty/degenerate (nonzero total rows, nonzero

@@ -32,8 +32,9 @@ from control_plane.domain.lifecycle import LifecycleRepository
 from control_plane.domain.lifecycle.scheduler import LocalRefreshOrchestrator
 from control_plane.main import create_app
 from control_plane.platform.dead_letter import DeadLetterStore
+from control_plane.platform.rbac import Role
 
-from conftest import make_certified_report, make_sample_masking_policy
+from conftest import auth_header, make_certified_report, make_sample_masking_policy
 
 
 def _client(db_path: Path) -> TestClient:
@@ -81,13 +82,36 @@ def test_insufficiently_privileged_actor_is_rejected_revoking_a_dataset_version(
 
     response = client.post(
         f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/revoke",
-        json={"reason": "attempted defect fix", "revoked_by": "intern@example.org", "actor_role": "requester"},
+        json={"reason": "attempted defect fix", "revoked_by": "intern@example.org"},
+        headers=auth_header(client, Role.REQUESTER),
     )
     assert response.status_code == 403
     assert "requester" in response.json()["detail"]
 
     # The version was NOT actually revoked -- rejection happened before
     # any repository mutation was attempted.
+    fetched = client.get(f"/api/v1/lifecycle/dataset-versions/{version['version_id']}")
+    assert fetched.json()["status"] == "active"
+
+
+def test_an_unauthenticated_caller_is_rejected_before_an_insufficiently_privileged_one_would_be(
+    client: TestClient,
+) -> None:
+    """Phase 18A (`problems_final_review.md` P0-1, now resolved): before
+    this phase, `actor_role` was a plain, unverified request-body field
+    -- ANY caller could claim `PLATFORM_ADMIN` and succeed. This proves
+    the real fix end to end: a request with no bearer token at all (the
+    exact shape of the pre-Phase-18A live demonstration in P0-1's own
+    write-up) is rejected with 401 *before* RBAC is even evaluated, and
+    the dataset version is provably left untouched."""
+
+    version = _register_version(client)
+    response = client.post(
+        f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/revoke",
+        json={"reason": "attempted defect fix", "revoked_by": "attacker@example.org"},
+    )
+    assert response.status_code == 401
+
     fetched = client.get(f"/api/v1/lifecycle/dataset-versions/{version['version_id']}")
     assert fetched.json()["status"] == "active"
 
@@ -99,8 +123,8 @@ def test_a_correctly_privileged_actor_can_revoke(client: TestClient) -> None:
         json={
             "reason": "real defect",
             "revoked_by": "compliance@example.org",
-            "actor_role": "compliance_approver",
         },
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
     )
     assert response.status_code == 200
     assert response.json()["status"] == "revoked"
@@ -123,7 +147,8 @@ def test_insufficiently_privileged_actor_is_rejected_approving_a_policy_version(
 
     response = client.post(
         f"/api/v1/governance/policy-versions/{draft['policy_version_id']}/approve",
-        json={"performed_by": "random-consumer@example.org", "actor_role": "requester"},
+        json={"performed_by": "random-consumer@example.org"},
+        headers=auth_header(client, Role.REQUESTER),
     )
     assert response.status_code == 403
 
@@ -135,7 +160,8 @@ def test_rbac_denial_is_itself_recorded_as_an_audit_event(client: TestClient) ->
     version = _register_version(client)
     client.post(
         f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/revoke",
-        json={"reason": "x", "revoked_by": "intern@example.org", "actor_role": "requester"},
+        json={"reason": "x", "revoked_by": "intern@example.org"},
+        headers=auth_header(client, Role.REQUESTER),
     )
     events = client.get("/api/v1/audit/events", params={"event_type": "access_denied"}).json()
     assert any(e["subject"] == version["version_id"] for e in events)
@@ -150,7 +176,8 @@ def test_registering_and_revoking_a_dataset_version_produces_real_audit_events(c
     version = _register_version(client)
     client.post(
         f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/revoke",
-        json={"reason": "x", "revoked_by": "sec@example.org", "actor_role": "compliance_approver"},
+        json={"reason": "x", "revoked_by": "sec@example.org"},
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
     )
 
     events = client.get(
@@ -270,7 +297,8 @@ def test_consumer_cannot_fulfill_request_against_a_dataset_whose_only_version_is
     )
     approved = client.post(
         f"/api/v1/governance/policy-versions/{draft['policy_version_id']}/approve",
-        json={"performed_by": "compliance@example.org", "actor_role": "compliance_approver"},
+        json={"performed_by": "compliance@example.org"},
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
     ).json()
 
     # Register a business consumer and the ONLY dataset version.
@@ -283,7 +311,8 @@ def test_consumer_cannot_fulfill_request_against_a_dataset_whose_only_version_is
     # Revoke the only version BEFORE the consumer's request is fulfilled.
     revoke_resp = client.post(
         f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/revoke",
-        json={"reason": "defect found before fulfillment", "revoked_by": "sec@example.org", "actor_role": "compliance_approver"},
+        json={"reason": "defect found before fulfillment", "revoked_by": "sec@example.org"},
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
     )
     assert revoke_resp.status_code == 200
 

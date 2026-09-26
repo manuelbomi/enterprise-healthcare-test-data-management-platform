@@ -296,11 +296,36 @@ snapshot" — not an afterthought.
 
 ### 3.3 Observability
 
-Every plane emits structured logs (JSON, correlation-ID tagged), metrics
-(job duration, rows processed, storage footprint, masking coverage), and
-traces (a request through control plane → data plane → metadata plane is one
-trace). Audit events (security/governance plane) are a distinct stream from
-operational logs — audit events are evidence, not debugging output.
+**Phase 0 claim, corrected in Phase 18A** (`problems_final_review.md`
+P1-5 found this section 100% unimplemented for 17 phases, including a
+dead `log_level` config field that was validated at startup but never
+read by anything): what is actually real today is real, minimal
+structured logging — `services/control-plane` now configures the root
+logger from `Settings.log_level` and emits one JSON log line per HTTP
+request (method, path, status code, duration, a correlation ID either
+propagated from an incoming `X-Correlation-Id` header or generated per
+request and echoed back on the response), plus real job-event log
+lines for the scheduler sweep endpoint (`control_plane.platform.logging_config`,
+wired in `main.py`/`api/v1/lifecycle.py`). `services/data-plane` and
+`services/governance-service` do not have an equivalent yet.
+
+**What remains aspirational, stated honestly rather than left
+standing as a false claim**: real metrics emission (Prometheus/StatsD
+counters and histograms for job duration, rows processed, storage
+footprint, masking coverage) and real distributed tracing (an actual
+trace collector correlating a request across control plane → data
+plane → metadata plane, e.g. OpenTelemetry) are **not implemented
+anywhere in this repository**. A correlation ID threaded through
+structured logs is a real, useful, but much smaller thing than a
+distributed trace, and this document no longer conflates the two — see
+`control_plane.platform.logging_config`'s own module docstring for why
+building a trace-shaped or metrics-shaped feature without the
+collector/backend to consume it was rejected as disproportionate for
+this phase, the same principle `docs/adr/0012-refresh-orchestration-abstraction.md`
+already applies to a different capability. Audit events (Phase 11,
+`control_plane.platform.audit`) remain a distinct, real, DB-backed
+stream from these operational logs — audit events are evidence
+(queryable via `GET /api/v1/audit/events`), not debugging output.
 
 ### 3.4 Disaster recovery
 

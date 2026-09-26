@@ -26,11 +26,15 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import sqlite3
+import uuid
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 import pandas as pd
 
@@ -71,6 +75,83 @@ class MaskingRunReport:
 
 
 _LINKAGE_SAMPLE_CAP = 50
+
+
+# ---------------------------------------------------------------------------
+# Phase 18A (resolves `problems_final_review.md` P1-6): atomic per-file
+# writes.
+#
+# Before this phase, `mask_estate`'s own docstring honestly documented a
+# real gap: the run-level `INCOMPLETE_MARKER_FILENAME` marker proves the
+# *run as a whole* did not finish, but does NOT guarantee any individual
+# per-source-system masker's OWN output file is itself complete -- a
+# crash mid-write (e.g. `mask_clinical_data_lake` writing NDJSON rows
+# into an already-open file handle one at a time) could leave one
+# truncated, plausible-looking file at its final path, indistinguishable
+# from a valid file except via the separate marker.
+#
+# The fix below is the standard one for this exact problem: every writer
+# in this module now writes its full output to a temporary path in the
+# SAME directory as its final destination, then atomically renames it
+# into place (`os.replace`, which POSIX and Windows both guarantee is
+# atomic for a rename within the same filesystem/volume) only once the
+# write has fully succeeded. A crash mid-write now leaves, at most, a
+# stray `.tmp-*` file that was never renamed -- the final path either
+# does not exist yet, or holds the complete, previous (or current)
+# write, NEVER a partial one. See
+# `tests/masking/test_dataset_masker_atomic_writes.py` for a real
+# regression test that simulates a crash mid-write and asserts no
+# partial file is ever visible at the final path.
+# ---------------------------------------------------------------------------
+
+
+def _temp_path_for(path: Path) -> Path:
+    return path.with_name(f".{path.name}.tmp-{uuid.uuid4().hex}")
+
+
+def _atomic_write_via(path: Path, write: Callable[[Path], None]) -> None:
+    """Call `write(tmp_path)` (any callable that fully writes its output
+    to the given path, e.g. `df.to_parquet`/`df.to_csv`, or a whole
+    SQLite file being moved into place), then atomically replace `path`
+    with the result. On any exception, the temporary file is removed and
+    `path` is left exactly as it was before this call -- never a
+    partially-written file at the final path."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = _temp_path_for(path)
+    try:
+        write(tmp_path)
+    except BaseException:
+        if tmp_path.exists():
+            tmp_path.unlink()
+        raise
+    else:
+        os.replace(tmp_path, path)
+
+
+@contextmanager
+def _atomic_text_writer(path: Path, *, newline: str | None = None) -> Iterator[TextIO]:
+    """Context manager: open a temporary file (in `path`'s own
+    directory) for text writing, yield the handle for a caller to write
+    incrementally (e.g. row by row), and atomically replace `path` with
+    it only on clean exit. On an exception raised inside the `with`
+    block, the temporary file is closed and removed, and `path` is left
+    untouched -- the same guarantee `_atomic_write_via` gives a
+    single-call writer, extended to an incremental one."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = _temp_path_for(path)
+    handle = tmp_path.open("w", encoding="utf-8", newline=newline)
+    try:
+        yield handle
+    except BaseException:
+        handle.close()
+        if tmp_path.exists():
+            tmp_path.unlink()
+        raise
+    else:
+        handle.close()
+        os.replace(tmp_path, path)
 
 
 class CatalogLookup:
@@ -191,8 +272,6 @@ def mask_postgres_enrollment(
     if not sqlite_in.exists():
         return
     sqlite_out.parent.mkdir(parents=True, exist_ok=True)
-    if sqlite_out.exists():
-        sqlite_out.unlink()
 
     table_to_dataset = {
         "member": "member",
@@ -202,28 +281,38 @@ def mask_postgres_enrollment(
         "coverage": "coverage",
         "provider": "provider",
     }
-    source_conn = sqlite3.connect(str(sqlite_in))
-    out_conn = sqlite3.connect(str(sqlite_out))
-    try:
-        for table, dataset in table_to_dataset.items():
-            try:
-                df = pd.read_sql_query(f"SELECT * FROM {table}", source_conn)
-            except pd.errors.DatabaseError:
-                continue
-            masked = _mask_dataframe(
-                df,
-                source_system="postgres_enrollment",
-                dataset=dataset,
-                catalog=catalog,
-                engine=engine,
-                policy=policy,
-                report=report,
-            )
-            masked.to_sql(table, out_conn, index=False, if_exists="replace")
-        out_conn.commit()
-    finally:
-        source_conn.close()
-        out_conn.close()
+
+    def _write(tmp_path: Path) -> None:
+        # Phase 18A (P1-6): the whole SQLite output file is built at a
+        # temporary path first -- `mask_estate`'s atomic-rename move
+        # into `sqlite_out` only happens once every table below has
+        # been written and committed successfully.
+        if tmp_path.exists():
+            tmp_path.unlink()
+        source_conn = sqlite3.connect(str(sqlite_in))
+        out_conn = sqlite3.connect(str(tmp_path))
+        try:
+            for table, dataset in table_to_dataset.items():
+                try:
+                    df = pd.read_sql_query(f"SELECT * FROM {table}", source_conn)
+                except pd.errors.DatabaseError:
+                    continue
+                masked = _mask_dataframe(
+                    df,
+                    source_system="postgres_enrollment",
+                    dataset=dataset,
+                    catalog=catalog,
+                    engine=engine,
+                    policy=policy,
+                    report=report,
+                )
+                masked.to_sql(table, out_conn, index=False, if_exists="replace")
+            out_conn.commit()
+        finally:
+            source_conn.close()
+            out_conn.close()
+
+    _atomic_write_via(sqlite_out, _write)
     report.files_written.append(sqlite_out)
 
 
@@ -257,7 +346,10 @@ def mask_claims_parquet(
                 policy=policy,
                 report=report,
             )
-            masked.to_parquet(out_path, index=False)
+            def _write_parquet(tmp_path: Path, *, _masked: pd.DataFrame = masked) -> None:
+                _masked.to_parquet(tmp_path, index=False)
+
+            _atomic_write_via(out_path, _write_parquet)
             report.files_written.append(out_path)
 
 
@@ -278,8 +370,14 @@ def mask_clinical_data_lake(
             continue
         rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
         out_path = bucket_out / folder / "part-0000.ndjson"
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        with out_path.open("w", encoding="utf-8") as f:
+        # Phase 18A (P1-6): this is the exact writer
+        # `problems_final_review.md` P1-6 named as the concrete
+        # example -- rows written incrementally into an already-open
+        # file handle, previously at `out_path` directly. It now writes
+        # to a temporary path and is atomically renamed into place only
+        # on clean completion (`_atomic_text_writer`); a crash mid-write
+        # leaves no partial file visible at `out_path`.
+        with _atomic_text_writer(out_path) as f:
             for row in rows:
                 masked = mask_row_dict(
                     row,
@@ -321,8 +419,11 @@ def mask_pbm_extract(
             report=report,
         )
         out_path = container_out / folder / "part-0000.csv"
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        masked.to_csv(out_path, index=False)
+
+        def _write_csv(tmp_path: Path, *, _masked: pd.DataFrame = masked) -> None:
+            _masked.to_csv(tmp_path, index=False)
+
+        _atomic_write_via(out_path, _write_csv)
         report.files_written.append(out_path)
 
 
@@ -345,9 +446,8 @@ def mask_partner_lab_feed(
             fieldnames = reader.fieldnames or []
             rows = list(reader)
         out_path = partner_out / "inbound" / "v1_legacy_flat_file" / v1_path.name
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        with out_path.open("w", encoding="utf-8", newline="") as f:
-            f.write("|".join(fieldnames) + "\n")
+        with _atomic_text_writer(out_path, newline="") as out_f:
+            out_f.write("|".join(fieldnames) + "\n")
             for row in rows:
                 masked = mask_row_dict(
                     dict(row),
@@ -358,7 +458,7 @@ def mask_partner_lab_feed(
                     policy=policy,
                     report=report,
                 )
-                f.write("|".join(str(masked.get(col, "") or "") for col in fieldnames) + "\n")
+                out_f.write("|".join(str(masked.get(col, "") or "") for col in fieldnames) + "\n")
                 report.rows_processed += 1
         report.files_written.append(out_path)
 
@@ -379,8 +479,11 @@ def mask_partner_lab_feed(
         ]
         report.rows_processed += len(masked_rows)
         out_path = partner_out / "inbound" / "v2_api_json" / v2_path.name
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(json.dumps(masked_rows, indent=2), encoding="utf-8")
+
+        def _write_json(tmp_path: Path, *, _rows: list[Any] = masked_rows) -> None:
+            tmp_path.write_text(json.dumps(_rows, indent=2), encoding="utf-8")
+
+        _atomic_write_via(out_path, _write_json)
         report.files_written.append(out_path)
 
 
@@ -401,12 +504,21 @@ def is_masking_run_complete(out_root: Path) -> bool:
     `out_root` as untrustworthy -- do not read it as a complete masked
     estate -- whenever this returns `False`.
 
-    This does **not** guarantee every individual file under `out_root`
-    is itself complete/uncorrupted (see `problems_phase_11.md` P11-1
-    for the honest limit: a per-source-system masker that writes rows
-    incrementally, e.g. `mask_clinical_data_lake`, can still leave one
-    truncated file for the source system that was mid-write when a
-    crash happened). It guarantees the *run as a whole* did not finish.
+    Before Phase 18A, this did **not** guarantee every individual file
+    under `out_root` was itself complete/uncorrupted (see
+    `problems_phase_11.md` P11-1 / `problems_final_review.md` P1-6: a
+    per-source-system masker that wrote rows incrementally, e.g.
+    `mask_clinical_data_lake`, could leave one truncated file for the
+    source system that was mid-write when a crash happened). Phase 18A
+    made every per-source-system writer in this module atomic
+    (write-to-temp-path-then-`os.replace`, via `_atomic_write_via`/
+    `_atomic_text_writer`), so that gap is now closed too: a crash
+    mid-write leaves, at most, a stray `.tmp-*` file, never a partial
+    file at its final path. This function's own guarantee (the *run as
+    a whole* did or did not finish) is unchanged and remains useful on
+    its own -- it is the cheap, single-check way to know whether ANY
+    per-source-system masker was still in flight, without having to stat
+    every individual output file.
     """
 
     return out_root.exists() and not (out_root / INCOMPLETE_MARKER_FILENAME).exists()
@@ -436,9 +548,20 @@ def mask_estate(
     left in place, so `is_masking_run_complete(out_root)` reports
     `False` rather than a caller mistaking a partial `out_root` for a
     finished one. This is a real, tested mitigation for a real gap
-    found while writing this phase's failure-injection tests -- see
-    `problems_phase_11.md` P11-1 for what it does and does not fully
-    solve (it does not make each individual file's writes atomic).
+    found while writing this phase's failure-injection tests.
+
+    **Phase 18A update (`problems_final_review.md` P1-6, now resolved):**
+    `problems_phase_11.md` P11-1 originally, honestly, noted this marker
+    alone did not make each individual per-source-system masker's own
+    writes atomic. Every writer below (`mask_postgres_enrollment`,
+    `mask_claims_parquet`, `mask_clinical_data_lake`, `mask_pbm_extract`,
+    `mask_partner_lab_feed`) now writes to a temporary path in its
+    destination directory and atomically renames it into place only on
+    clean completion (`_atomic_write_via`/`_atomic_text_writer`), so a
+    crash mid-write can no longer leave a truncated, plausible-looking
+    file at its final path -- see
+    `tests/masking/test_dataset_masker_atomic_writes.py` for a real
+    regression test that simulates exactly that crash.
     """
 
     policy = policy or DEFAULT_POLICY

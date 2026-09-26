@@ -17,6 +17,7 @@ dependencies = [
     "sqlalchemy>=2.0",
     "alembic>=1.13",
     "psycopg[binary]>=3.1",
+    "pyjwt>=2.8",  # Phase 18A: control_plane.platform.auth's real, minimal JWT layer (P0-1)
     "healthcare-tdm-contracts",  # workspace-local: installed via scripts/bootstrap-dev (see README)
 ]
 

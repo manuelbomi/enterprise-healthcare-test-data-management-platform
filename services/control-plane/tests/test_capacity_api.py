@@ -19,8 +19,9 @@ from control_plane.api.v1.lifecycle import get_db_session
 from control_plane.db.models import create_sqlite_engine
 from control_plane.db.session import build_session_factory, session_scope
 from control_plane.main import create_app
+from control_plane.platform.rbac import Role
 
-from conftest import make_certified_report
+from conftest import auth_header, make_certified_report
 
 
 def _client(db_path: Path) -> TestClient:
@@ -118,7 +119,8 @@ def test_vacuum_candidates_endpoint(client: TestClient) -> None:
     version = _register_version(client, dataset_name="claims")
     resp = client.post(
         f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/revoke",
-        json={"reason": "superseded", "revoked_by": "sec@example.org", "actor_role": "compliance_approver"},
+        json={"reason": "superseded", "revoked_by": "sec@example.org"},
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
     )
     assert resp.status_code == 200, resp.text
 
@@ -135,7 +137,8 @@ def test_vacuum_candidates_excludes_still_referenced(client: TestClient) -> None
     _request_environment(client, "dev", dataset_name="claims")
     client.post(
         f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/revoke",
-        json={"reason": "policy defect", "revoked_by": "sec@example.org", "actor_role": "compliance_approver"},
+        json={"reason": "policy defect", "revoked_by": "sec@example.org"},
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
     )
     resp = client.get("/api/v1/capacity/vacuum-candidates", params={"dataset_name": "claims"})
     assert resp.json() == []

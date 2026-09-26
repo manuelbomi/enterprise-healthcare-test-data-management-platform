@@ -103,7 +103,23 @@ above where a genuine gap was found.
 
 ### P11-1 — Masking's incremental per-file writes are not atomic; only the top-level completion marker is new
 
-- **Status:** open (partially mitigated, not fully solved)
+- **Status:** **resolved in Phase 18A.** Every per-source-system masker
+  in `data_plane.masking.dataset_masker` (`mask_postgres_enrollment`,
+  `mask_claims_parquet`, `mask_clinical_data_lake`, `mask_pbm_extract`,
+  `mask_partner_lab_feed`) now writes to a temporary path in its own
+  destination directory and atomically renames it into place
+  (`_atomic_write_via`/`_atomic_text_writer`) only on clean completion
+  -- the exact gap this entry's "what this does not fix" paragraph
+  below described. Proven by
+  `tests/masking/test_dataset_masker_atomic_writes.py`, including a real
+  crash injected mid-write into `mask_clinical_data_lake` (the same
+  writer this entry names) that leaves no truncated file at its final
+  path, on both a first write and an overwrite of a previous good run.
+  See `problems_final_review.md`'s (now-deleted) P1-6 for the
+  production-readiness framing that prompted this fix. The description
+  below is left as originally written, for the historical record of
+  what this phase (11) did and did not close.
+- **Status (original, Phase 11):** open (partially mitigated, not fully solved)
 - **Description:** `data_plane.masking.dataset_masker.mask_estate` now
   writes a `_MASKING_RUN_INCOMPLETE.marker` file at the start of a run
   and removes it only on successful completion (this phase's fix --

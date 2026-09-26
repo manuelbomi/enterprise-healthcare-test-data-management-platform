@@ -17,11 +17,16 @@ modules.
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+import logging
+import time
+
+from fastapi import FastAPI, Request
+
 from fastapi.middleware.cors import CORSMiddleware
 
 from control_plane.api.v1 import (
     audit,
+    auth,
     capacity,
     catalog,
     certification,
@@ -34,6 +39,13 @@ from control_plane.api.v1 import (
     synthetic,
 )
 from control_plane.config import get_settings
+from control_plane.platform.logging_config import (
+    configure_logging,
+    new_correlation_id,
+    set_correlation_id,
+)
+
+_request_logger = logging.getLogger("control_plane.request")
 
 
 def create_app() -> FastAPI:
@@ -46,6 +58,12 @@ def create_app() -> FastAPI:
     """
 
     settings = get_settings()
+    # Phase 18A (resolves `problems_final_review.md` P1-5): the first
+    # real consumer of `settings.log_level` -- see
+    # `control_plane.platform.logging_config`'s module docstring for
+    # exactly what this does (real structured JSON logs, correlation-ID
+    # tagged) and does not (no real metrics/tracing infrastructure).
+    configure_logging(settings.log_level)
     app = FastAPI(
         title="Enterprise Healthcare Test Data Management Platform — Control Plane",
         version="0.1.0",
@@ -66,7 +84,38 @@ def create_app() -> FastAPI:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):  # type: ignore[no-untyped-def]
+        """Phase 18A (P1-5): one structured JSON log line per request --
+        the real, minimal request/job-event emission
+        `ARCHITECTURE.md` section 3.3 claimed and this repository never
+        actually built before this phase. A correlation ID is read from
+        an incoming `X-Correlation-Id` header if present (so a caller
+        can thread its own trace ID through), otherwise generated fresh
+        per request, and echoed back on the response header so a client
+        can correlate its own logs with this service's."""
+
+        correlation_id = request.headers.get("x-correlation-id") or new_correlation_id()
+        set_correlation_id(correlation_id)
+        started_at = time.perf_counter()
+        response = await call_next(request)
+        duration_ms = (time.perf_counter() - started_at) * 1000
+        _request_logger.info(
+            "request completed",
+            extra={
+                "correlation_id": correlation_id,
+                "http_method": request.method,
+                "http_path": request.url.path,
+                "http_status_code": response.status_code,
+                "duration_ms": round(duration_ms, 2),
+            },
+        )
+        response.headers["X-Correlation-Id"] = correlation_id
+        return response
+
     app.include_router(health.router, prefix=settings.api_v1_prefix)
+    app.include_router(auth.router, prefix=settings.api_v1_prefix)
     app.include_router(catalog.router, prefix=settings.api_v1_prefix)
     app.include_router(lifecycle.router, prefix=settings.api_v1_prefix)
     app.include_router(capacity.router, prefix=settings.api_v1_prefix)

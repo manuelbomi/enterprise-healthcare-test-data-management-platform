@@ -44,6 +44,7 @@ from control_plane.domain.governance import (
 )
 from control_plane.domain.lifecycle import NoActiveDatasetVersionError
 from control_plane.platform.audit import AuditLogRepository
+from control_plane.platform.auth import AuthenticatedActor, get_current_actor
 from control_plane.platform.rbac import AuthorizationError, Permission, Role, authorize
 
 router = APIRouter(prefix="/governance", tags=["governance"])
@@ -74,13 +75,17 @@ class PolicyApprovalDecisionRequest(PolicyApprovalActionRequest):
     """Used only by `approve_policy_version`/`reject_policy_version`
     below -- `submit_policy_version_for_approval` (drafting/submitting,
     a lower-sensitivity action) keeps using the plain
-    `PolicyApprovalActionRequest` unchanged, so this phase's new
-    required field does not force every pre-existing Phase 10 caller of
-    `/submit` to change. Phase 11: required, checked against
-    `Permission.APPROVE_POLICY_VERSION`/`Permission.REJECT_POLICY_VERSION`
-    (only `COMPLIANCE_APPROVER`/`PLATFORM_ADMIN` hold either)."""
-
-    actor_role: Role
+    `PolicyApprovalActionRequest` unchanged. Phase 11: the caller must
+    hold `Permission.APPROVE_POLICY_VERSION`/`Permission.REJECT_POLICY_VERSION`
+    (only `COMPLIANCE_APPROVER`/`PLATFORM_ADMIN` hold either). Phase 18A
+    (`problems_final_review.md` P0-1): this used to carry its own
+    `actor_role` field, trusted directly from the request body -- it no
+    longer does. The role checked now comes from the caller's verified
+    bearer token (`AuthenticatedActor`, `Depends(get_current_actor)`) --
+    see `control_plane.platform.auth`'s module docstring. This class is
+    kept distinct from its parent (rather than merged, now that its
+    field set matches) as a placeholder for a future decision-specific
+    field (e.g. a required rejection reason)."""
 
 
 class RegisterBusinessConsumerRequest(BaseModel):
@@ -211,6 +216,7 @@ def _authorize_or_deny(
 def approve_policy_version(
     policy_version_id: UUID,
     body: PolicyApprovalDecisionRequest,
+    actor: AuthenticatedActor = Depends(get_current_actor),
     repository: GovernanceRepository = Depends(get_governance_repository),
     audit: AuditLogRepository = Depends(get_audit_log),
     session: Session = Depends(get_db_session),
@@ -219,18 +225,22 @@ def approve_policy_version(
     other currently-APPROVED version of the same `policy_name` -- see
     `GovernanceRepository.approve_policy_version`.
 
-    Phase 11: requires `body.actor_role` to hold
+    Phase 11: requires the caller to hold
     `Permission.APPROVE_POLICY_VERSION` -- resolves
     `problems_phase_10.md` P10-2 for this one endpoint specifically
     (every other governance mutation remains ungated; see
-    `problems_phase_11.md` P11-4)."""
+    `problems_phase_11.md` P11-4). Phase 18A
+    (`problems_final_review.md` P0-1): the role is now a verified claim
+    from the caller's bearer token (`Depends(get_current_actor)`), not a
+    caller-supplied `body.actor_role` field -- see
+    `control_plane.platform.auth`'s module docstring."""
 
     _authorize_or_deny(
-        actor_role=body.actor_role,
+        actor_role=actor.role,
         permission=Permission.APPROVE_POLICY_VERSION,
         audit=audit,
         session=session,
-        actor=body.performed_by,
+        actor=actor.username,
         subject=str(policy_version_id),
     )
     try:
@@ -246,7 +256,7 @@ def approve_policy_version(
         actor=body.performed_by,
         subject=str(policy_version_id),
         outcome="allowed",
-        detail={"comments": body.comments, "actor_role": body.actor_role.value},
+        detail={"comments": body.comments, "actor_role": actor.role.value, "authenticated_as": actor.username},
     )
     return result
 
@@ -255,20 +265,21 @@ def approve_policy_version(
 def reject_policy_version(
     policy_version_id: UUID,
     body: PolicyApprovalDecisionRequest,
+    actor: AuthenticatedActor = Depends(get_current_actor),
     repository: GovernanceRepository = Depends(get_governance_repository),
     audit: AuditLogRepository = Depends(get_audit_log),
     session: Session = Depends(get_db_session),
 ) -> MaskingPolicyVersion:
-    """Phase 11: requires `body.actor_role` to hold
+    """Phase 11: requires the caller to hold
     `Permission.REJECT_POLICY_VERSION` -- see `approve_policy_version`'s
-    docstring."""
+    docstring, including Phase 18A's switch to a verified bearer token."""
 
     _authorize_or_deny(
-        actor_role=body.actor_role,
+        actor_role=actor.role,
         permission=Permission.REJECT_POLICY_VERSION,
         audit=audit,
         session=session,
-        actor=body.performed_by,
+        actor=actor.username,
         subject=str(policy_version_id),
     )
     try:
@@ -286,7 +297,7 @@ def reject_policy_version(
         actor=body.performed_by,
         subject=str(policy_version_id),
         outcome="allowed",
-        detail={"comments": body.comments, "actor_role": body.actor_role.value},
+        detail={"comments": body.comments, "actor_role": actor.role.value, "authenticated_as": actor.username},
     )
     return result
 

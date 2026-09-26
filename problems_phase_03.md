@@ -108,7 +108,24 @@ resolved and is now verified by a real, passing test:
 
 ### P3-4 — Format-preserving synthetic replacement for money amounts is a simple magnitude-preserving heuristic
 
-- **Status:** open (documented limitation, not a defect)
+- **Status:** **partially resolved in Phase 18A** -- narrowed, not
+  closed. A real, automated, enforced certification gate,
+  `data_plane.certification.gates.check_distribution_shape`
+  (`CertificationGateType.DISTRIBUTION_SHAPE`), now compares
+  `claim.billed_amount`'s value distribution before vs. after masking
+  in every real pipeline run and fails certification on a gross
+  distortion (degenerate collapse to zero, or an order-of-magnitude
+  mean shift) -- closing the specific "nothing verifies this claim"
+  gap. **What remains open, unchanged by Phase 18A**: the underlying
+  heuristic this entry describes (`synthesizers.py`'s numeric path)
+  itself still only preserves per-value plausibility, not full
+  statistical distribution shape (mean/variance/percentile fidelity) --
+  the new gate *checks for gross distortion*, it does not make masking
+  itself distributionally faithful. See `problems_final_review.md`'s
+  (now-deleted) P1-9 for the fix's exact scope, and
+  `data_plane/certification/gates.py`'s `check_distribution_shape`
+  docstring for what it deliberately does and does not verify.
+- **Status (original, Phase 3):** open (documented limitation, not a defect)
 - **Description:** `synthesizers.py`'s numeric path derives a
   deterministic pseudo-random number of the same order of magnitude as
   the original (so a masked `billed_amount` still looks like a plausible

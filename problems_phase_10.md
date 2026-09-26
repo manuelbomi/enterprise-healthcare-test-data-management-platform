@@ -64,7 +64,26 @@ the end of the phase is a genuine open issue for a later phase.
 
 ### P10-1 — No enforced link between a Phase 6/7 `DatasetVersion`'s recorded masking policy and Phase 10's governed `MaskingPolicyVersion`
 
-- **Status:** open
+- **Status:** **partially resolved in Phase 18A** -- narrowed, not
+  closed by removing the gap outright. A new, additive endpoint,
+  `POST /api/v1/lifecycle/dataset-versions/governed`
+  (`register_dataset_version_governed`), independently re-derives
+  whether the certification report's masking policy name/version match
+  the currently-APPROVED `MaskingPolicyVersion` before allowing
+  registration, exactly the `LifecycleRepository`-side check this
+  entry's "Owner for resolution" paragraph below asked for. The
+  pre-existing `register_dataset_version` (used by
+  `scripts/demo_phase10_governance.py` and every earlier-phase test)
+  is unchanged and now explicitly documented as the ungoverned/direct
+  path -- see
+  [ADR-0019](docs/adr/0019-governed-vs-ungoverned-dataset-version-registration.md)
+  for why an additive second endpoint was chosen over a breaking change
+  to the first. A real deployment relying on Phase 10 governance to
+  mean something end to end should route registration through the
+  governed endpoint; nothing in this codebase forces that choice, which
+  is why this is narrowed, not closed. Proven by
+  `services/control-plane/tests/test_lifecycle_governed_registration.py`.
+- **Status (original, Phase 10):** open
 - **Description:** `DatasetVersion.masking_policy_name`/
   `masking_policy_version` (Phase 7, from ADR-0011) and
   `MaskingPolicyVersion.policy_name`/`policy_version` (Phase 10) are

@@ -32,6 +32,7 @@ Usage::
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 from pathlib import Path
@@ -43,12 +44,31 @@ from control_plane.api.v1.lifecycle import get_db_session
 from control_plane.db.models import create_sqlite_engine
 from control_plane.db.session import build_session_factory, session_scope
 from control_plane.main import create_app
+from control_plane.platform import auth as control_plane_auth
+from control_plane.platform.rbac import Role
 from data_plane.certification import signing as certification_signing
 from data_plane.certification.pipeline import run_certification_pipeline
 from data_plane.masking import secrets as masking_secrets
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = REPO_ROOT / "data" / "tmp" / "phase7-demo"
+
+# Phase 18A (P0-1): a throwaway dev key for this script's own process --
+# RBAC-gated endpoints (revoke/rollback) now require a real, verified
+# bearer token, not a caller-supplied `actor_role` field. See
+# `control_plane.platform.auth`'s module docstring.
+os.environ.setdefault("TDM_CONTROL_PLANE_JWT_SIGNING_KEY", control_plane_auth.generate_dev_key())
+
+
+def auth_header(client: TestClient, role: Role) -> dict[str, str]:
+    """Log in as the seeded demo identity for `role` and return the
+    `Authorization` header -- see
+    `control_plane.platform.auth.SEEDED_DEMO_USERS`."""
+
+    username, password = control_plane_auth.demo_credentials_for_role(role)
+    response = client.post("/api/v1/auth/login", json={"username": username, "password": password})
+    assert response.status_code == 200, response.text
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
 def banner(title: str) -> None:
@@ -249,11 +269,11 @@ def main() -> int:
             "to_version_number": 1,
             "performed_by": "oncall@example.org",
             "reason": "version 2 introduced a regression in DEV smoke tests",
-            # Phase 11: rollback now requires a real, checked actor_role
-            # (control_plane.platform.rbac) -- see ARCHITECTURE.md's
-            # Phase 11 note.
-            "actor_role": "data_steward",
         },
+        # Phase 11: rollback requires a real, checked role (Phase 18A:
+        # now verified via a real bearer token, not a request field --
+        # see control_plane.platform.auth).
+        headers=auth_header(client, Role.DATA_STEWARD),
     )
     assert resp.status_code == 200, resp.text
     rollback = resp.json()
@@ -274,9 +294,9 @@ def main() -> int:
         json={
             "reason": "demonstration: simulated post-publication policy defect",
             "revoked_by": "security@example.org",
-            # Phase 11: revoke now requires a real, checked actor_role.
-            "actor_role": "compliance_approver",
         },
+        # Phase 18A: revoke requires a real, verified bearer token.
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
     )
     assert resp.status_code == 200, resp.text
     print(f"Version 1 status: {resp.json()['status']}")
@@ -298,8 +318,8 @@ def main() -> int:
             "to_version_number": 1,
             "performed_by": "a",
             "reason": "try to select the revoked version",
-            "actor_role": "data_steward",
         },
+        headers=auth_header(client, Role.DATA_STEWARD),
     )
     print(f"Attempting to roll QA back to the now-revoked version 1: HTTP {blocked_rollback.status_code} "
           f"({blocked_rollback.json()['detail'][:90]}...)")
@@ -319,9 +339,13 @@ def main() -> int:
     print(f"Due 400 days from now: {len(due)} request(s) -> {[d['environment'] for d in due]}")
     print("(UAT never appears here -- release_driven has no fixed schedule, matching ROADMAP.md.)")
 
+    # Phase 18A (P1-2): this endpoint now requires a real, verified
+    # PLATFORM_ADMIN bearer token; `triggered_by` is derived from the
+    # verified identity rather than accepted as a caller-supplied field.
     sweep = client.post(
         "/api/v1/lifecycle/scheduler/run-due",
-        params={"as_of": far_future, "triggered_by": "airflow-demo-dag"},
+        params={"as_of": far_future},
+        headers=auth_header(client, Role.PLATFORM_ADMIN),
     ).json()
     print(f"Scheduled sweep executed: {sweep['succeeded_count']} succeeded, {sweep['failed_count']} failed")
 

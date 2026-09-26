@@ -37,6 +37,37 @@ scoped to own (job orchestration/DAG construction, RBAC enforcement)
 remains not yet implemented -- see `problems_master.md` and
 `problems_phase_08.md` for what's next.
 
+## Database migrations (Phase 18A)
+
+`src/control_plane/db/models.py`'s `init_schema`/`create_all` remains
+the from-scratch path (a fresh test/dev SQLite file). For a real
+deployment that needs to evolve an already-populated database, this
+service now has a real Alembic setup:
+
+```
+cd services/control-plane
+alembic upgrade head          # apply every migration not yet applied
+alembic revision --autogenerate -m "describe the schema change"
+```
+
+`migrations/env.py` resolves the target database URL the same way the
+running application does (`TDM_CONTROL_PLANE_LIFECYCLE_DATABASE_URL`,
+via `control_plane.config.Settings`), so `alembic upgrade head` always
+targets the same database the application would connect to. Every
+change to `db/models.py` should ship with a new migration -- see
+`migrations/versions/8387cacfabb1_phase18a_initial_schema.py`'s own
+docstring and `tests/test_migrations.py`.
+
+## Authentication (Phase 18A)
+
+`POST /api/v1/auth/login` issues a signed JWT for one of a small set of
+seeded, synthetic demo identities (`src/control_plane/platform/auth.py`),
+required by every RBAC-gated endpoint (dataset-version revoke,
+environment rollback, policy-version approve/reject, scheduler
+run-due). See that module's docstring and
+`docs/adr/0018-minimal-jwt-identity-layer-for-rbac.md` for exactly what
+this does and does not cover.
+
 ## Layout
 
 ```

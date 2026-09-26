@@ -31,8 +31,6 @@ than `services/governance-service`, mirroring ADR-0014/0015's reasoning.
 
 from __future__ import annotations
 
-import hashlib
-import json
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
@@ -50,7 +48,9 @@ from control_plane.catalog import CatalogNotAvailableError, CatalogRepository
 from control_plane.domain.governance import GovernanceRepository
 from control_plane.domain.governance.errors import MaskingPolicyVersionNotFoundError
 from control_plane.domain.lifecycle import LifecycleRepository
+from control_plane.platform import evidence_signing
 from control_plane.platform.audit import AuditLogRepository
+from control_plane.platform.evidence_signing import compute_bundle_checksum, verify_bundle_checksum
 
 #: Certification gates that answer "is this dataset referentially/
 #: structurally sound" -- the "integrity report" the phase brief asks
@@ -250,7 +250,25 @@ class EvidenceRepository:
             lineage=lineage,
             provenance_notes=provenance_notes,
         )
-        package = package.model_copy(update={"bundle_checksum": compute_bundle_checksum(package)})
+        # Phase 18A (resolves `problems_final_review.md` P1-7): this was
+        # a plain, UNKEYED `hashlib.sha256` digest before this phase --
+        # anyone with database write access alone (no key needed) could
+        # regenerate a self-consistent checksum after editing the
+        # underlying rows. It is now a keyed HMAC-SHA256
+        # (`control_plane.platform.evidence_signing`), matching
+        # `data_plane.certification.signing`'s guarantee for a
+        # `CertificationReport` exactly. See
+        # `docs/TAMPER_EVIDENCE_LIMITATIONS.md` for the one, honest,
+        # residual limitation neither mechanism solves (both are
+        # detection, not prevention, and both are only as strong as
+        # their key's secrecy).
+        signing_key = evidence_signing.resolve_signing_key()
+        package = package.model_copy(
+            update={
+                "bundle_checksum": compute_bundle_checksum(package, signing_key),
+                "bundle_checksum_algorithm": "hmac-sha256",
+            }
+        )
 
         self.audit.record(
             event_type=AuditEventType.EVIDENCE_PACKAGE_GENERATED,
@@ -260,39 +278,6 @@ class EvidenceRepository:
             detail={"package_id": str(package.package_id)},
         )
         return package
-
-
-def _canonical_payload(package: AuditEvidencePackage) -> bytes:
-    """The exact byte sequence `bundle_checksum` is computed over: every
-    field except `bundle_checksum` itself (checksumming a field that
-    includes itself is circular), serialized the same
-    `sort_keys=True, separators=(",", ":")` way
-    `data_plane.certification.signing._canonical_payload` uses for
-    `CertificationReport.integrity_signature` -- so re-checksumming the
-    same content always produces the same digest."""
-
-    payload = package.model_dump(mode="json", exclude={"bundle_checksum"})
-    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-
-
-def compute_bundle_checksum(package: AuditEvidencePackage) -> str:
-    """SHA-256 hex digest over `package`'s canonical JSON (excluding
-    `bundle_checksum` itself). See `problems_phase_13.md` P13-2 for why
-    this is an integrity check, not a cryptographic non-repudiation
-    signature (it uses no secret key, unlike
-    `data_plane.certification.signing`'s HMAC over `CertificationReport`)."""
-
-    return hashlib.sha256(_canonical_payload(package)).hexdigest()
-
-
-def verify_bundle_checksum(package: AuditEvidencePackage) -> bool:
-    """True iff `package.bundle_checksum` matches a freshly recomputed
-    checksum over its current fields -- i.e. the package has not been
-    modified since it was generated."""
-
-    if not package.bundle_checksum:
-        return False
-    return compute_bundle_checksum(package) == package.bundle_checksum
 
 
 __all__ = ["EvidenceRepository", "compute_bundle_checksum", "verify_bundle_checksum"]

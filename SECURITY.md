@@ -41,7 +41,15 @@ sensitive data in a real deployment), please open an issue describing:
 
 - **Least privilege** — RBAC roles are scoped to the minimum action needed
   (e.g., "request a subset of classification tier X" is a distinct
-  permission from "approve a masking policy change").
+  permission from "approve a masking policy change"). As of Phase 18A,
+  the role an authorization decision is made against is derived from a
+  real, verified bearer token (`POST /api/v1/auth/login`,
+  `control_plane.platform.auth`), not a caller-supplied field — see
+  `THREAT_MODEL.md` section 3 (Control plane) and
+  [ADR-0018](docs/adr/0018-minimal-jwt-identity-layer-for-rbac.md) for
+  exactly what this does and does not cover (a deliberately minimal
+  mechanism for a small set of seeded demo identities, not a production
+  identity provider).
 - **Defense in depth** — classification, masking, and certification are
   three independent checks; a failure in one does not silently bypass the
   others.

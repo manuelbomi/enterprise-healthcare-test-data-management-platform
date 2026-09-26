@@ -7,8 +7,9 @@ yet"). This module is Phase 11's answer -- not a full identity/auth
 system (out of scope, per the phase brief), but a real permission-table
 lookup that actually rejects an insufficiently-privileged actor,
 enforced at the API layer for the platform's highest-sensitivity
-mutations: revoking a dataset version, rolling an environment back, and
-approving/rejecting a governed masking policy version.
+mutations: revoking a dataset version, rolling an environment back,
+approving/rejecting a governed masking policy version, and (Phase 18A)
+running a scheduled bulk refresh sweep.
 
 What makes this "real" rather than a no-op:
 
@@ -21,13 +22,24 @@ What makes this "real" rather than a no-op:
   end over real HTTP requests (a `REQUESTER`-role actor attempting to
   revoke a dataset version gets HTTP 403, not 200).
 
-What this deliberately does not do (see `problems_phase_11.md` P11-4):
-verify that the caller-supplied `actor_role` actually belongs to the
-caller-supplied `revoked_by`/`performed_by` identity string -- there is
-still no identity provider anywhere in this repository. This module
-answers "if you claim this role, are you allowed to do this," not "are
-you who you claim to be." A real deployment would resolve `actor_role`
-from a verified identity/session, not accept it as a request field.
+**Phase 18A update (`problems_final_review.md` P0-1, now resolved):**
+before this phase, `role` here was accepted from a caller-supplied,
+*unverified* `actor_role` request-body field -- this module answered
+"if you claim this role, are you allowed to do this," never "are you
+who you claim to be," and nothing in the codebase verified the claim at
+all. `control_plane.platform.auth` now closes that gap with a real (but
+deliberately minimal -- see its own module docstring) JWT
+issuance/verification layer: every API-layer call site below resolves
+`role` from `control_plane.platform.auth.AuthenticatedActor.role`
+(`Depends(get_current_actor)`, which verifies a signed token) instead of
+trusting a request field. `authorize()` itself is unchanged -- it never
+trusted anything to begin with; only *where its `role` argument comes
+from* changed. Every other actor-attribution field in this service
+(`revoked_by`, `performed_by`, `requested_by`, `generated_by`,
+`accessed_by`) remains what `problems_phase_11.md` P11-4 already,
+honestly, called it: advisory metadata, not a security control -- only
+the field an authorization *decision* is made from needed to move
+behind real verification.
 """
 
 from __future__ import annotations
@@ -74,6 +86,15 @@ class Permission(str, Enum):
     ROLLBACK_DATASET_VERSION = "rollback_dataset_version"
     APPROVE_POLICY_VERSION = "approve_policy_version"
     REJECT_POLICY_VERSION = "reject_policy_version"
+    #: Phase 18A (`problems_final_review.md` P1-2): `POST
+    #: /api/v1/lifecycle/scheduler/run-due` executes a SCHEDULED refresh
+    #: for every currently-due request in one call -- a larger blast
+    #: radius than any single-request mutation this table already
+    #: gated, yet it previously had no RBAC check at all. Restricted to
+    #: `PLATFORM_ADMIN` only (not even `DATA_STEWARD`), reflecting that
+    #: in a real deployment this endpoint should only ever be invoked by
+    #: a trusted internal scheduler, never an arbitrary API caller.
+    RUN_SCHEDULER = "run_scheduler"
 
 
 #: The real permission table. A role not listed here (or a permission
@@ -96,6 +117,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.ROLLBACK_DATASET_VERSION,
             Permission.APPROVE_POLICY_VERSION,
             Permission.REJECT_POLICY_VERSION,
+            Permission.RUN_SCHEDULER,
         }
     ),
 }

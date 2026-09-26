@@ -77,6 +77,28 @@ class CertificationPipelineResult:
     final_dir: Path
 
 
+def _numeric_column_values(estate, entity: str, column: str) -> list[float]:
+    """Every real, present, numeric value of `column` across `entity`'s
+    rows in `estate` (a `data_plane.subsetting.estate_io.RawEstate`) --
+    used by `check_distribution_shape` (Phase 18A / P1-9) to compare a
+    column's value distribution before vs. after masking. Non-numeric/
+    null values are skipped (never coerced), matching this pipeline's
+    existing "never silently fabricate a value" convention."""
+
+    container = getattr(estate, entity, None)
+    if container is None:
+        return []
+    rows = container.all_rows() if hasattr(container, "all_rows") else container
+    values: list[float] = []
+    for row in rows:
+        value = row.get(column)
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, (int, float)):
+            values.append(float(value))
+    return values
+
+
 def _build_row_count_trail(
     source_counts: dict[str, int],
     selected_counts: dict[str, int],
@@ -173,6 +195,15 @@ def run_certification_pipeline(
     else:
         final_dir = masked_dir
 
+    # Phase 18A (P1-9): read SUBSET's own pre-mask output back from disk
+    # (the same physical layout `final_dir` uses) so
+    # `check_distribution_shape` below can compare a real numeric
+    # column's value distribution before vs. after MASK/optional
+    # synthetic augmentation -- neither side is re-derived or
+    # hand-built, both are read straight from what earlier pipeline
+    # stages actually wrote.
+    subset_estate = read_estate(subset_dir)
+
     final_estate = read_estate(final_dir)
     final_counts = final_estate.row_counts()
     # What the pipeline's OWN last-run stage claims the final estate
@@ -205,6 +236,16 @@ def run_certification_pipeline(
         ),
         g.check_policy_version_recorded(policy),
         g.check_masking_version_recorded(masking_report.masking_engine_version),
+        # Phase 18A (P1-9): compare claim.billed_amount's value
+        # distribution before (SUBSET output) vs. after (final output)
+        # masking/optional synthetic augmentation -- see
+        # check_distribution_shape's own docstring for exactly what
+        # this does and does not verify.
+        g.check_distribution_shape(
+            _numeric_column_values(subset_estate, "claim", "billed_amount"),
+            _numeric_column_values(final_estate, "claim", "billed_amount"),
+            column_label="claim.billed_amount",
+        ),
     ]
 
     # -- 7. CERTIFY ---------------------------------------------------------

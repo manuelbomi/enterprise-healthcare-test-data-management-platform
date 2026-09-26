@@ -18,8 +18,9 @@ from control_plane.api.v1.lifecycle import get_db_session
 from control_plane.db.models import create_sqlite_engine
 from control_plane.db.session import build_session_factory, session_scope
 from control_plane.main import create_app
+from control_plane.platform.rbac import Role
 
-from conftest import make_certified_report
+from conftest import auth_header, make_certified_report
 
 
 def _client(db_path: Path) -> TestClient:
@@ -229,8 +230,8 @@ def test_rollback_endpoint(client: TestClient) -> None:
             "to_version_number": 1,
             "performed_by": "oncall@example.org",
             "reason": "v2 broke the build",
-            "actor_role": "data_steward",
         },
+        headers=auth_header(client, Role.DATA_STEWARD),
     )
     assert response.status_code == 200
     body = response.json()
@@ -256,12 +257,14 @@ def test_rollback_to_revoked_version_returns_409(client: TestClient) -> None:
     )
     client.post(
         f"/api/v1/lifecycle/dataset-versions/{v1['version_id']}/revoke",
-        json={"reason": "known defect", "revoked_by": "security@example.org", "actor_role": "compliance_approver"},
+        json={"reason": "known defect", "revoked_by": "security@example.org"},
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
     )
 
     response = client.post(
         f"/api/v1/lifecycle/environment-requests/{request['request_id']}/rollback",
-        json={"to_version_number": 1, "performed_by": "a", "reason": "try anyway", "actor_role": "data_steward"},
+        json={"to_version_number": 1, "performed_by": "a", "reason": "try anyway"},
+        headers=auth_header(client, Role.DATA_STEWARD),
     )
     assert response.status_code == 409
 
@@ -273,8 +276,8 @@ def test_revoke_dataset_version_endpoint(client: TestClient) -> None:
         json={
             "reason": "policy defect discovered",
             "revoked_by": "security@example.org",
-            "actor_role": "compliance_approver",
         },
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
     )
     assert response.status_code == 200
     assert response.json()["status"] == "revoked"
@@ -282,7 +285,8 @@ def test_revoke_dataset_version_endpoint(client: TestClient) -> None:
     # Revoking again is rejected (terminal state).
     again = client.post(
         f"/api/v1/lifecycle/dataset-versions/{version['version_id']}/revoke",
-        json={"reason": "again", "revoked_by": "security@example.org", "actor_role": "compliance_approver"},
+        json={"reason": "again", "revoked_by": "security@example.org"},
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
     )
     assert again.status_code == 409
 
@@ -310,9 +314,23 @@ def test_scheduler_due_endpoint_lists_and_runs_due_refreshes(client: TestClient)
     due = client.get("/api/v1/lifecycle/scheduler/due", params={"as_of": far_future}).json()
     assert request["request_id"] in {r["request_id"] for r in due}
 
+    # Phase 18A (P1-2): this endpoint now requires a verified
+    # PLATFORM_ADMIN bearer token -- an unauthenticated call is rejected
+    # before any repository mutation is attempted.
+    unauthenticated = client.post("/api/v1/lifecycle/scheduler/run-due", params={"as_of": far_future})
+    assert unauthenticated.status_code == 401
+
+    insufficiently_privileged = client.post(
+        "/api/v1/lifecycle/scheduler/run-due",
+        params={"as_of": far_future},
+        headers=auth_header(client, Role.DATA_STEWARD),
+    )
+    assert insufficiently_privileged.status_code == 403
+
     swept = client.post(
         "/api/v1/lifecycle/scheduler/run-due",
-        params={"as_of": far_future, "triggered_by": "airflow-demo-dag"},
+        params={"as_of": far_future},
+        headers=auth_header(client, Role.PLATFORM_ADMIN),
     )
     assert swept.status_code == 200
     body = swept.json()
@@ -369,8 +387,8 @@ def test_list_refresh_runs_and_rollback_events(client: TestClient) -> None:
             "to_version_number": 1,
             "performed_by": "oncall@example.org",
             "reason": "v2 broke the build",
-            "actor_role": "data_steward",
         },
+        headers=auth_header(client, Role.DATA_STEWARD),
     )
 
     refresh_runs = client.get("/api/v1/lifecycle/refresh-runs", params={"dataset_name": "ds"}).json()

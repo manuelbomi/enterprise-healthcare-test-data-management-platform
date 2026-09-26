@@ -14,6 +14,7 @@ exceptions to HTTP status codes. No business logic lives here -- see
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from datetime import datetime
 from typing import Annotated
@@ -38,6 +39,7 @@ from sqlalchemy.orm import Session
 
 from control_plane.config import Settings, get_settings
 from control_plane.db.session import build_session_factory, get_engine_for_url, session_scope
+from control_plane.domain.governance import GovernanceRepository, MaskingPolicyVersionNotFoundError
 from control_plane.domain.lifecycle import (
     CannotSelectRevokedVersionError,
     DatasetVersionNotFoundError,
@@ -49,9 +51,12 @@ from control_plane.domain.lifecycle import (
     OnDemandRefreshNotAllowedError,
 )
 from control_plane.platform.audit import AuditLogRepository
-from control_plane.platform.rbac import AuthorizationError, Permission, Role, authorize
+from control_plane.platform.auth import AuthenticatedActor, get_current_actor
+from control_plane.platform.rbac import AuthorizationError, Permission, authorize
 
 router = APIRouter(prefix="/lifecycle", tags=["lifecycle"])
+
+_scheduler_logger = logging.getLogger("control_plane.lifecycle.scheduler")
 
 
 # ----------------------------------------------------------------------
@@ -79,6 +84,17 @@ def get_db_session(settings: Settings = Depends(get_settings)) -> Iterator[Sessi
 
 def get_lifecycle_repository(session: Session = Depends(get_db_session)) -> LifecycleRepository:
     return LifecycleRepository(session)
+
+
+def get_governance_repository_for_lifecycle(session: Session = Depends(get_db_session)) -> GovernanceRepository:
+    """A second dependency resolving `GovernanceRepository` against the
+    exact same request-scoped `Session` as `get_lifecycle_repository`
+    above -- defined locally (rather than imported from
+    `api/v1/governance.py`) to avoid a circular import between the two
+    routers. Used only by `register_dataset_version_governed` (Phase
+    18A, P1-8) below."""
+
+    return GovernanceRepository(session)
 
 
 def get_audit_log(session: Session = Depends(get_db_session)) -> AuditLogRepository:
@@ -113,11 +129,14 @@ class RegisterDatasetVersionRequest(BaseModel):
 class RevokeVersionRequest(BaseModel):
     reason: str
     revoked_by: str
-    #: Phase 11: required, checked via `control_plane.platform.rbac.authorize`
+    #: Phase 11: checked via `control_plane.platform.rbac.authorize`
     #: against `Permission.REVOKE_DATASET_VERSION` before the revocation
     #: is attempted. Not a no-op -- see `test_failure_injection.py`'s
-    #: RBAC-rejection test.
-    actor_role: Role
+    #: RBAC-rejection test. Phase 18A (`problems_final_review.md` P0-1):
+    #: the role checked is no longer a field on this request body -- it
+    #: is derived from the caller's verified bearer token instead (see
+    #: `revoke_dataset_version`'s `actor: AuthenticatedActor` parameter
+    #: below and `control_plane.platform.auth`'s module docstring).
 
 
 class UpsertPolicyRequest(BaseModel):
@@ -163,8 +182,9 @@ class RollbackRequestBody(BaseModel):
     to_version_number: int = Field(..., ge=1)
     performed_by: str
     reason: str
-    #: Phase 11: required, checked against `Permission.ROLLBACK_DATASET_VERSION`.
-    actor_role: Role
+    #: Phase 11: checked against `Permission.ROLLBACK_DATASET_VERSION`.
+    #: Phase 18A: no longer a field here -- see `RevokeVersionRequest`'s
+    #: docstring above.
 
 
 # ----------------------------------------------------------------------
@@ -182,7 +202,16 @@ def register_dataset_version(
     or `PUBLISHED` Phase 6 `CertificationReport` -- see
     `LifecycleRepository.register_dataset_version`, which is now
     idempotent per `certification_report_id` (Phase 11 -- see
-    `problems_phase_11.md`'s "Resolved problems")."""
+    `problems_phase_11.md`'s "Resolved problems").
+
+    **This is the UNGOVERNED/direct registration path** -- it does not
+    verify that `certification_report.masking_policy_name`/
+    `masking_policy_version` were ever actually drafted/approved through
+    Phase 10's governance workflow (see `problems_phase_10.md` P10-1 /
+    `problems_final_review.md` P1-8, and
+    `docs/adr/0019-governed-vs-ungoverned-dataset-version-registration.md`).
+    Use `POST /dataset-versions/governed` below instead when governance
+    enforcement is required."""
 
     try:
         version = repository.register_dataset_version(
@@ -215,6 +244,104 @@ def register_dataset_version(
     return version
 
 
+@router.post("/dataset-versions/governed", response_model=DatasetVersion, status_code=201)
+def register_dataset_version_governed(
+    body: RegisterDatasetVersionRequest,
+    repository: LifecycleRepository = Depends(get_lifecycle_repository),
+    governance: GovernanceRepository = Depends(get_governance_repository_for_lifecycle),
+    audit: AuditLogRepository = Depends(get_audit_log),
+) -> DatasetVersion:
+    """Phase 18A (`problems_final_review.md` P1-8, now resolved): the
+    GOVERNED counterpart to `register_dataset_version` above.
+
+    Before Phase 18A, nothing in this service verified that a dataset
+    version's claimed masking policy had ever actually been drafted,
+    submitted, and approved through Phase 10's governance workflow --
+    `register_dataset_version` would happily register a version
+    certified against a hand-built `MaskingPolicy` that bypassed
+    governance entirely, purely by convention (every demo script always
+    passed the actually-approved policy object, but nothing enforced
+    that discipline in code).
+
+    This endpoint closes that gap by independently re-deriving, from
+    `GovernanceRepository` (never trusting the certification report's
+    own claim), whether `body.certification_report.masking_policy_name`/
+    `masking_policy_version` actually match the currently-APPROVED
+    `MaskingPolicyVersion` for that policy name, and rejecting
+    registration with HTTP 409 if not.
+
+    **Why the plain `register_dataset_version` endpoint above still
+    exists, unchanged, rather than being replaced outright:** making
+    governance enforcement a breaking change on the one endpoint every
+    pre-Phase-18A demo script, tutorial chapter, and test already calls
+    would be a disproportionately large blast radius for this phase. See
+    `docs/adr/0019-governed-vs-ungoverned-dataset-version-registration.md`
+    for the full reasoning. `register_dataset_version` is now
+    explicitly, honestly documented as the UNGOVERNED/direct path (its
+    own docstring is unchanged in behavior but a reader following this
+    docstring's cross-reference will find that framing here); this
+    endpoint is the GOVERNED path a real deployment relying on Phase
+    10's governance workflow to mean something should use instead.
+    """
+
+    try:
+        approved = governance.get_approved_policy_version(body.certification_report.masking_policy_name)
+    except MaskingPolicyVersionNotFoundError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"No APPROVED MaskingPolicyVersion exists for policy_name="
+                f"{body.certification_report.masking_policy_name!r}. Governed registration "
+                "requires an approved Phase 10 policy version -- draft, submit, and approve one "
+                "first (POST /api/v1/governance/policy-versions, .../submit, .../approve), or use "
+                "POST /api/v1/lifecycle/dataset-versions (the ungoverned/direct path) if bypassing "
+                f"governance is intentional for this registration. ({exc})"
+            ),
+        ) from exc
+
+    if approved.policy_version != body.certification_report.masking_policy_version:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"certification_report.masking_policy_version="
+                f"{body.certification_report.masking_policy_version} does not match the "
+                f"currently-APPROVED policy_version={approved.policy_version} for policy_name="
+                f"{body.certification_report.masking_policy_name!r}. This dataset was certified "
+                "against a masking policy version that is not (or is no longer) the governed, "
+                "approved one -- registration refused."
+            ),
+        )
+
+    try:
+        version = repository.register_dataset_version(
+            dataset_name=body.dataset_name,
+            certification_report=body.certification_report,
+            storage_uri=body.storage_uri,
+            size_bytes=body.size_bytes,
+            row_counts=body.row_counts,
+            created_by=body.created_by,
+            retention_days=body.retention_days,
+            notes=body.notes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    audit.record(
+        event_type=AuditEventType.DATASET_VERSION_REGISTERED,
+        actor=body.created_by,
+        subject=str(version.version_id),
+        outcome="allowed",
+        detail={
+            "dataset_name": body.dataset_name,
+            "version_number": str(version.version_number),
+            "storage_uri": body.storage_uri,
+            "governed": "true",
+            "approved_policy_version_id": str(approved.policy_version_id),
+        },
+    )
+    return version
+
+
 @router.get("/dataset-versions", response_model=list[DatasetVersion])
 def list_dataset_versions(
     dataset_name: str | None = None,
@@ -241,6 +368,7 @@ def get_dataset_version(
 def revoke_dataset_version(
     version_id: UUID,
     body: RevokeVersionRequest,
+    actor: AuthenticatedActor = Depends(get_current_actor),
     repository: LifecycleRepository = Depends(get_lifecycle_repository),
     audit: AuditLogRepository = Depends(get_audit_log),
     session: Session = Depends(get_db_session),
@@ -250,27 +378,33 @@ def revoke_dataset_version(
     version can never again be selected by `request_environment`,
     `refresh`, or `rollback`.
 
-    Phase 11: requires `body.actor_role` to hold
-    `Permission.REVOKE_DATASET_VERSION` (only `COMPLIANCE_APPROVER`/
-    `PLATFORM_ADMIN` do -- see `control_plane.platform.rbac`). An
-    unauthorized attempt is rejected with HTTP 403 *before* the
-    repository is called at all, and is itself recorded as an
-    `ACCESS_DENIED` audit event (committed immediately so the denial
-    record survives the exception this handler then raises -- see
-    `control_plane.platform.audit`'s module docstring for why this is
-    the one handler in this router that calls `session.commit()`
-    directly instead of relying on `session_scope`'s end-of-request
-    commit)."""
+    Phase 11: requires the caller to hold `Permission.REVOKE_DATASET_VERSION`
+    (only `COMPLIANCE_APPROVER`/`PLATFORM_ADMIN` do -- see
+    `control_plane.platform.rbac`). An unauthorized attempt is rejected
+    with HTTP 403 *before* the repository is called at all, and is
+    itself recorded as an `ACCESS_DENIED` audit event (committed
+    immediately so the denial record survives the exception this
+    handler then raises -- see `control_plane.platform.audit`'s module
+    docstring for why this is one of the handlers in this router that
+    calls `session.commit()` directly instead of relying on
+    `session_scope`'s end-of-request commit).
+
+    Phase 18A (`problems_final_review.md` P0-1): `actor.role` is now a
+    verified claim from the caller's bearer token
+    (`Depends(get_current_actor)`), not a caller-supplied,
+    unverified request-body field -- see
+    `control_plane.platform.auth`'s module docstring. Requires
+    `Authorization: Bearer <token>` from `POST /api/v1/auth/login`."""
 
     try:
-        authorize(body.actor_role, Permission.REVOKE_DATASET_VERSION)
+        authorize(actor.role, Permission.REVOKE_DATASET_VERSION)
     except AuthorizationError as exc:
         audit.record(
             event_type=AuditEventType.ACCESS_DENIED,
-            actor=body.revoked_by,
+            actor=actor.username,
             subject=str(version_id),
             outcome="denied",
-            detail={"permission": Permission.REVOKE_DATASET_VERSION.value, "actor_role": body.actor_role.value},
+            detail={"permission": Permission.REVOKE_DATASET_VERSION.value, "actor_role": actor.role.value},
         )
         session.commit()
         raise HTTPException(status_code=403, detail=str(exc)) from exc
@@ -289,7 +423,7 @@ def revoke_dataset_version(
         actor=body.revoked_by,
         subject=str(version_id),
         outcome="allowed",
-        detail={"reason": body.reason, "actor_role": body.actor_role.value},
+        detail={"reason": body.reason, "actor_role": actor.role.value, "authenticated_as": actor.username},
     )
     return version
 
@@ -474,6 +608,7 @@ def refresh_environment_request(
 def rollback_environment_request(
     request_id: UUID,
     body: RollbackRequestBody,
+    actor: AuthenticatedActor = Depends(get_current_actor),
     repository: LifecycleRepository = Depends(get_lifecycle_repository),
     audit: AuditLogRepository = Depends(get_audit_log),
     session: Session = Depends(get_db_session),
@@ -481,20 +616,22 @@ def rollback_environment_request(
     """Roll one environment's request back to an earlier version of the
     same dataset. Rejected with 409 if the target version is REVOKED.
 
-    Phase 11: requires `body.actor_role` to hold
+    Phase 11: requires the caller to hold
     `Permission.ROLLBACK_DATASET_VERSION` (`DATA_STEWARD`/
     `PLATFORM_ADMIN`). See `revoke_dataset_version`'s docstring for why
-    the denial audit event is committed immediately."""
+    the denial audit event is committed immediately, and for Phase 18A's
+    switch from a caller-supplied `actor_role` field to a verified
+    bearer token (`Depends(get_current_actor)`)."""
 
     try:
-        authorize(body.actor_role, Permission.ROLLBACK_DATASET_VERSION)
+        authorize(actor.role, Permission.ROLLBACK_DATASET_VERSION)
     except AuthorizationError as exc:
         audit.record(
             event_type=AuditEventType.ACCESS_DENIED,
-            actor=body.performed_by,
+            actor=actor.username,
             subject=str(request_id),
             outcome="denied",
-            detail={"permission": Permission.ROLLBACK_DATASET_VERSION.value, "actor_role": body.actor_role.value},
+            detail={"permission": Permission.ROLLBACK_DATASET_VERSION.value, "actor_role": actor.role.value},
         )
         session.commit()
         raise HTTPException(status_code=403, detail=str(exc)) from exc
@@ -520,7 +657,12 @@ def rollback_environment_request(
         actor=body.performed_by,
         subject=str(request_id),
         outcome="allowed",
-        detail={"to_version_number": str(body.to_version_number), "reason": body.reason},
+        detail={
+            "to_version_number": str(body.to_version_number),
+            "reason": body.reason,
+            "actor_role": actor.role.value,
+            "authenticated_as": actor.username,
+        },
     )
     return result
 
@@ -577,16 +719,62 @@ def list_due_refreshes(
 @router.post("/scheduler/run-due")
 def run_due_refreshes(
     as_of: Annotated[datetime | None, Query()] = None,
-    triggered_by: str = "scheduler",
+    actor: AuthenticatedActor = Depends(get_current_actor),
     repository: LifecycleRepository = Depends(get_lifecycle_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
+    session: Session = Depends(get_db_session),
 ) -> dict[str, object]:
     """Execute a SCHEDULED refresh for every currently-due request. This
     is what a real Airflow task / Databricks Workflow job would call
     from inside its own scheduled execution -- see the module docstring
-    on `control_plane.domain.lifecycle.scheduler` and ADR-0012."""
+    on `control_plane.domain.lifecycle.scheduler` and ADR-0012.
+
+    Phase 18A (`problems_final_review.md` P1-2, now resolved): this
+    endpoint previously had no RBAC check at all, despite having a
+    strictly larger blast radius (every currently-due request, in one
+    call) than any of the four endpoints RBAC already gated. It now
+    requires `Permission.RUN_SCHEDULER` (`PLATFORM_ADMIN` only -- see
+    `control_plane.platform.rbac`), verified from a real bearer token
+    the same way `revoke_dataset_version`/`rollback_environment_request`
+    are. `triggered_by` is no longer a caller-supplied, unverified query
+    parameter (previously defaulting to the literal string
+    `"scheduler"` regardless of who actually called this) -- it is now
+    always the verified actor's username. A real deployment should
+    still additionally restrict this endpoint at the network level to a
+    trusted internal scheduler (see the module docstring on
+    `control_plane.domain.lifecycle.scheduler`); RBAC is defense in
+    depth, not a substitute for that."""
+
+    try:
+        authorize(actor.role, Permission.RUN_SCHEDULER)
+    except AuthorizationError as exc:
+        audit.record(
+            event_type=AuditEventType.ACCESS_DENIED,
+            actor=actor.username,
+            subject="lifecycle/scheduler/run-due",
+            outcome="denied",
+            detail={"permission": Permission.RUN_SCHEDULER.value, "actor_role": actor.role.value},
+        )
+        session.commit()
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
 
     orchestrator = LocalRefreshOrchestrator(repository)
-    result = orchestrator.run_due_refreshes(as_of, triggered_by=triggered_by)
+    result = orchestrator.run_due_refreshes(as_of, triggered_by=actor.username)
+    # Phase 18A (P1-5): a real job-event log line -- the request-level
+    # middleware in main.py already logs "this endpoint was called";
+    # this is the additional, job-specific event (how many requests
+    # were swept, how many succeeded/failed) a real scheduled job run
+    # is exactly the kind of thing `ARCHITECTURE.md` section 3.3's
+    # observability claim was about.
+    _scheduler_logger.info(
+        "scheduler sweep completed",
+        extra={
+            "triggered_by": actor.username,
+            "attempted_count": len(result.attempted),
+            "succeeded_count": len(result.results),
+            "failed_count": len(result.errors),
+        },
+    )
     return {
         "as_of": result.as_of,
         "attempted_count": len(result.attempted),

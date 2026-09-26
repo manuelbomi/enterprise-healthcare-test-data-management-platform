@@ -149,13 +149,20 @@ class AuditEvidencePackage(BaseModel):
     )
 
     # -- tamper-evidence for this bundle itself --
-    bundle_checksum_algorithm: str = Field(default="sha256")
+    #: Phase 18A (`problems_final_review.md` P1-7): upgraded from a
+    #: plain, unkeyed "sha256" to a keyed "hmac-sha256", matching
+    #: `data_plane.certification.signing`'s guarantee for a
+    #: `CertificationReport` -- see
+    #: `control_plane.platform.evidence_signing` and
+    #: `docs/TAMPER_EVIDENCE_LIMITATIONS.md`.
+    bundle_checksum_algorithm: str = Field(default="hmac-sha256")
     bundle_checksum: str = Field(
         default="",
-        description="Checksum over this package's own canonical JSON (every field except this "
-        "one), computed by EvidenceRepository at generation time. See problems_phase_13.md P13-2 "
-        "for this mechanism's honest limits -- it is an integrity check, not a non-repudiation "
-        "signature.",
+        description="Keyed HMAC-SHA256 digest over this package's own canonical JSON (every field "
+        "except this one), computed by EvidenceRepository (control_plane.platform.evidence_signing) "
+        "at generation time. See docs/TAMPER_EVIDENCE_LIMITATIONS.md for this mechanism's honest "
+        "limits -- it is a real tamper-DETECTION mechanism, not a non-repudiation signature immune "
+        "to someone holding both database access and the signing key.",
     )
 
     provenance_notes: list[str] = Field(

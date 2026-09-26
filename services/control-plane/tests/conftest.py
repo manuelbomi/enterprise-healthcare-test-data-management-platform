@@ -23,6 +23,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from fastapi.testclient import TestClient
 from healthcare_tdm_contracts import (
     CatalogEntry,
     CertificationGateResult,
@@ -38,6 +39,44 @@ from healthcare_tdm_contracts import (
     RetentionClassification,
     SensitivityCategory,
 )
+
+from control_plane.platform.auth import demo_credentials_for_role
+from control_plane.platform.rbac import Role
+
+#: Phase 18A (P0-1): every control-plane API test needs a real,
+#: verifiable JWT signing key to call `POST /api/v1/auth/login` and any
+#: RBAC-gated endpoint. Fixed and test-only -- never resolved from a
+#: developer's real shell environment, mirroring
+#: `services/data-plane/tests/certification/conftest.py`'s
+#: `masking_key`/`signing_key` fixture pattern (a hardcoded, throwaway
+#: key, never the same value used anywhere else).
+_TEST_JWT_SIGNING_KEY = "control-plane-test-jwt-signing-key-0123456789abcdef"
+
+#: Phase 18A (P1-7): every test that builds an `AuditEvidencePackage`
+#: needs a real, verifiable HMAC key to compute/verify its bundle
+#: checksum. Fixed and test-only, same convention as
+#: `_TEST_JWT_SIGNING_KEY` above.
+TEST_EVIDENCE_HMAC_KEY = "control-plane-test-evidence-hmac-key-0123456789abcdef"
+
+
+@pytest.fixture(autouse=True)
+def _jwt_signing_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("TDM_CONTROL_PLANE_JWT_SIGNING_KEY", _TEST_JWT_SIGNING_KEY)
+    monkeypatch.setenv("TDM_EVIDENCE_HMAC_KEY", TEST_EVIDENCE_HMAC_KEY)
+
+
+def auth_header(client: TestClient, role: Role) -> dict[str, str]:
+    """Log in as the seeded demo identity for `role` (see
+    `control_plane.platform.auth.SEEDED_DEMO_USERS`) and return the
+    `Authorization` header a test can pass to an RBAC-gated endpoint --
+    the real, end-to-end replacement for the pre-Phase-18A pattern of
+    setting `"actor_role": role.value` directly in a request body (see
+    `problems_final_review.md` P0-1, now resolved)."""
+
+    username, password = demo_credentials_for_role(role)
+    response = client.post("/api/v1/auth/login", json={"username": username, "password": password})
+    assert response.status_code == 200, response.text
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
 def _entry(

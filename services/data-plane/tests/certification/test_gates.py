@@ -13,6 +13,7 @@ from pathlib import Path
 
 from healthcare_tdm_contracts import (
     CatalogEntry,
+    CertificationGateType,
     ClassificationTier,
     ColumnClassification,
     IntegrityStatus,
@@ -401,3 +402,53 @@ def test_masking_version_recorded_fails_when_blank() -> None:
 def test_masking_version_recorded_passes_when_present() -> None:
     result = gates.check_masking_version_recorded("1.0.0")
     assert result.passed is True
+
+
+# ---------------------------------------------------------------------------
+# GATE: distribution shape (Phase 18A, resolves problems_final_review.md P1-9)
+# ---------------------------------------------------------------------------
+
+
+def test_distribution_shape_passes_when_masked_mean_stays_within_the_order_of_magnitude() -> None:
+    source = [100.0, 200.0, 150.0, 175.0, 125.0, 300.0]
+    masked = [110.0, 190.0, 160.0, 180.0, 130.0, 280.0]  # plausible, same order of magnitude
+    result = gates.check_distribution_shape(source, masked, column_label="claim.billed_amount")
+    assert result.passed is True
+    assert result.gate == CertificationGateType.DISTRIBUTION_SHAPE
+
+
+def test_distribution_shape_reproduces_the_bug_a_gross_order_of_magnitude_shift_was_never_caught_before(
+) -> None:
+    """Reproduction: before Phase 18A, nothing in the certification
+    pipeline would have flagged this -- a masked billed_amount column
+    averaging 1000x its source's mean would have certified cleanly. This
+    is exactly the gap `problems_final_review.md` P1-9 named."""
+
+    source = [100.0, 200.0, 150.0, 175.0, 125.0, 300.0]
+    masked = [v * 1000 for v in source]  # gross distortion, not plausible masking
+    result = gates.check_distribution_shape(source, masked, column_label="claim.billed_amount")
+    assert result.passed is False
+    assert "exceeds the allowed" in result.detail
+
+
+def test_distribution_shape_fails_when_masking_collapses_all_variation_to_zero() -> None:
+    source = [100.0, 200.0, 150.0, 175.0, 125.0, 300.0]
+    masked = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    result = gates.check_distribution_shape(source, masked, column_label="claim.billed_amount")
+    assert result.passed is False
+    assert "collapsed all variation" in result.detail
+
+
+def test_distribution_shape_passes_trivially_with_too_few_values_to_compare() -> None:
+    result = gates.check_distribution_shape([100.0, 200.0], [110.0], column_label="claim.billed_amount")
+    assert result.passed is True
+    assert "too few values" in result.detail
+
+
+def test_distribution_shape_respects_a_custom_max_mean_ratio() -> None:
+    source = [100.0] * 5
+    masked = [500.0] * 5  # 5x -- within a relaxed 10x threshold, outside a strict 2x one
+    lenient = gates.check_distribution_shape(source, masked, column_label="x", max_mean_ratio=10.0)
+    strict = gates.check_distribution_shape(source, masked, column_label="x", max_mean_ratio=2.0)
+    assert lenient.passed is True
+    assert strict.passed is False

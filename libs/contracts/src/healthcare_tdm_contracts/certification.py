@@ -113,7 +113,9 @@ CERTIFICATION_STATUS_TRANSITIONS: dict[CertificationStatus, frozenset[Certificat
 
 
 class CertificationGateType(str, Enum):
-    """The eleven required certification gates (`ROADMAP.md` Phase 6).
+    """The eleven required Phase 6 certification gates (`ROADMAP.md`
+    Phase 6), plus one added in Phase 18A (`DISTRIBUTION_SHAPE`, see its
+    own docstring below).
 
     Each maps to exactly one check function in
     `data_plane.certification.gates`. See that module's docstrings for
@@ -135,6 +137,15 @@ class CertificationGateType(str, Enum):
     MANIFEST_GENERATION = "manifest_generation"
     POLICY_VERSION_RECORDED = "policy_version_recorded"
     MASKING_VERSION_RECORDED = "masking_version_recorded"
+    #: Phase 18A (resolves `problems_final_review.md` P1-9): a twelfth
+    #: gate, added after the original eleven Phase 6 gates above. See
+    #: `data_plane.certification.gates.check_distribution_shape`'s
+    #: docstring for exactly what this does and does not check -- a
+    #: real, but deliberately lightweight, sanity check that a masked
+    #: numeric column's value distribution has not been grossly
+    #: distorted relative to its pre-masking source, NOT a full
+    #: statistical distribution-preservation test suite.
+    DISTRIBUTION_SHAPE = "distribution_shape"
 
 
 class CertificationGateResult(BaseModel):

@@ -20,8 +20,9 @@ from control_plane.api.v1.lifecycle import get_db_session
 from control_plane.db.models import create_sqlite_engine
 from control_plane.db.session import build_session_factory, session_scope
 from control_plane.main import create_app
+from control_plane.platform.rbac import Role
 
-from conftest import make_certified_report, make_sample_masking_policy
+from conftest import auth_header, make_certified_report, make_sample_masking_policy
 
 
 def _client(db_path: Path) -> TestClient:
@@ -66,8 +67,8 @@ def _draft_and_approve_policy(client: TestClient, *, version: int = 1) -> dict:
         json={
             "performed_by": "compliance-steward@example.org",
             "comments": "Approved.",
-            "actor_role": "compliance_approver",
         },
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
     )
     assert approved.status_code == 200, approved.text
     assert approved.json()["approval_status"] == "approved"
@@ -123,7 +124,8 @@ def test_cannot_approve_a_draft_policy_version(client: TestClient) -> None:
     ).json()
     response = client.post(
         f"/api/v1/governance/policy-versions/{draft['policy_version_id']}/approve",
-        json={"performed_by": "reviewer@example.org", "actor_role": "compliance_approver"},
+        json={"performed_by": "reviewer@example.org"},
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
     )
     assert response.status_code == 409
 

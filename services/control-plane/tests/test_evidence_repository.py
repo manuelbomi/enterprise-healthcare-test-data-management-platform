@@ -36,7 +36,9 @@ from control_plane.domain.governance import GovernanceRepository
 from control_plane.domain.lifecycle import DatasetVersionNotFoundError, LifecycleRepository
 from control_plane.platform.audit import AuditLogRepository
 
-from conftest import make_certified_report, make_sample_masking_policy
+from conftest import TEST_EVIDENCE_HMAC_KEY, make_certified_report, make_sample_masking_policy
+
+_KEY = TEST_EVIDENCE_HMAC_KEY.encode("utf-8")
 
 
 @pytest.fixture
@@ -390,8 +392,9 @@ def test_bundle_checksum_is_present_and_verifies(session: Session, evidence_repo
     package = evidence_repo.build_evidence_package(version_1.version_id, generated_by="auditor@example.org")
 
     assert package.bundle_checksum
-    assert package.bundle_checksum_algorithm == "sha256"
-    assert verify_bundle_checksum(package) is True
+    # Phase 18A (P1-7): upgraded from unkeyed "sha256" to keyed "hmac-sha256".
+    assert package.bundle_checksum_algorithm == "hmac-sha256"
+    assert verify_bundle_checksum(package, _KEY) is True
 
 
 def test_bundle_checksum_is_deterministic_for_identical_content(
@@ -403,8 +406,8 @@ def test_bundle_checksum_is_deterministic_for_identical_content(
 
     # Recomputing over the exact same content (excluding the checksum
     # field itself, which is what compute_bundle_checksum already
-    # excludes) reproduces the identical digest.
-    assert compute_bundle_checksum(package) == package.bundle_checksum
+    # excludes), under the SAME key, reproduces the identical digest.
+    assert compute_bundle_checksum(package, _KEY) == package.bundle_checksum
 
 
 def test_tampering_with_a_generated_package_is_detected(
@@ -416,7 +419,18 @@ def test_tampering_with_a_generated_package_is_detected(
 
     assert package.revocation["status"] == "active"  # sanity: not already revoked
     tampered = package.model_copy(update={"revocation": {**package.revocation, "status": "revoked"}})
-    assert verify_bundle_checksum(tampered) is False
+    assert verify_bundle_checksum(tampered, _KEY) is False
+
+    # Also detected under a DIFFERENT key -- forging a new, consistent
+    # checksum requires the same key the original was signed with, not
+    # just any key (the concrete difference a keyed HMAC makes over the
+    # old unkeyed sha256, which anyone could recompute with no key at
+    # all).
+    wrong_key = b"a-completely-different-evidence-signing-key-000"
+    assert verify_bundle_checksum(tampered, wrong_key) is False
+    forged_checksum = compute_bundle_checksum(tampered, wrong_key)
+    forged = tampered.model_copy(update={"bundle_checksum": forged_checksum})
+    assert verify_bundle_checksum(forged, _KEY) is False
 
 
 def test_unsigned_package_fails_verification() -> None:
@@ -440,4 +454,4 @@ def test_unsigned_package_fails_verification() -> None:
             created_by="pipeline@example.org",
         ),
     )
-    assert verify_bundle_checksum(unsigned) is False
+    assert verify_bundle_checksum(unsigned, _KEY) is False

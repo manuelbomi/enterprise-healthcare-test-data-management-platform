@@ -42,7 +42,8 @@ def test_pipeline_reaches_certified_for_a_healthy_tiny_scale_run(
     assert report.status is CertificationStatus.CERTIFIED
     assert report.gates, "certification report must record real gate results"
     assert all(gate.passed for gate in report.gates)
-    assert len(report.gates) == 11, "all eleven required certification gates must run"
+    # 11 required Phase 6 gates + Phase 18A's DISTRIBUTION_SHAPE addition (P1-9).
+    assert len(report.gates) == 12, "all twelve certification gates must run"
     assert report.certified_at is not None
     assert report.masking_policy_name and report.masking_policy_version >= 1
     assert report.masking_engine_version == "1.0.0"

@@ -35,10 +35,193 @@ repository going forward.
 | 14 | Scale and performance engineering (PySpark benchmarks) | **Complete** |
 | 15 | Complete junior-engineer tutorial (20 chapters) | **Complete** |
 | 16 | Interview / system design documentation | **Complete** |
-| 17 | Principal-engineer production readiness review (findings only, no fixes) | Not started |
-| 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | Not started |
+| 17 | Principal-engineer production readiness review (findings only, no fixes) | **Complete** |
+| 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | **Complete** |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 18A — what was actually delivered
+
+Fixed every P0/P1 finding `problems_final_review.md` (Phase 17) named --
+ten findings (P0-1, P1-1 through P1-9) -- following the phase's own
+fix/delete discipline: reproduce, fix the root cause, add a regression
+test, run the relevant tests, delete the finding only after
+demonstrating the fix with real, executed evidence. No P2/P3 finding was
+touched (that is Phase 18B's scope, per the phase prompt's own "Work
+ONLY on P0 and P1" instruction).
+
+- **P0-1 (RBAC had no real security boundary)** — added
+  `control_plane.platform.auth`, a real, deliberately minimal JWT
+  issuance/verification layer (`POST /api/v1/auth/login` against a
+  small, fixed set of seeded SYNTHETIC demo identities, one per
+  `control_plane.platform.rbac.Role`). Every RBAC call site
+  (`revoke_dataset_version`, `rollback_environment_request`,
+  `approve_policy_version`, `reject_policy_version`) now derives the
+  role it authorizes against from a verified bearer token
+  (`Depends(get_current_actor)`) instead of a caller-supplied,
+  unverified `actor_role` request field, which was removed from every
+  affected request body. Signing key follows the repository's
+  established `TDM_MASKING_HMAC_KEY`-style convention (env var +
+  gitignored `.env` fallback + `--generate-dev-key` CLI helper --
+  `TDM_CONTROL_PLANE_JWT_SIGNING_KEY`). See
+  [ADR-0018](docs/adr/0018-minimal-jwt-identity-layer-for-rbac.md) for
+  the deliberate, documented scope boundary (not a production identity
+  provider). Proven by `services/control-plane/tests/test_platform_auth.py`
+  (20 tests: login success/failure, token expiry/tamper/wrong-key
+  rejection, every RBAC-gated endpoint rejecting a missing token with
+  401 before RBAC is even evaluated) plus updated end-to-end RBAC tests
+  in `test_lifecycle_api.py`/`test_governance_api.py`/
+  `test_failure_injection.py`/`test_capacity_api.py`.
+- **P1-2 (`/scheduler/run-due` was the widest-blast-radius unauthenticated
+  endpoint)** — added `Permission.RUN_SCHEDULER` (`PLATFORM_ADMIN` only)
+  and gated the endpoint the same way as the other four; `triggered_by`
+  is now the verified actor's username, not a caller-supplied,
+  unverified query parameter defaulting to the literal string
+  `"scheduler"`. Proven by new 401/403/200 assertions in
+  `test_lifecycle_api.py` and `test_platform_auth.py`.
+- **P1-1 (`THREAT_MODEL.md` stale since Phase 0, now false)** — corrected
+  the Control plane Spoofing/Denial-of-service/Elevation-of-privilege
+  mitigations to describe the real Phase 18A mechanism (or its honest
+  absence, for the still-open DoS/quota gap) instead of the fictional
+  "token-based auth... on every request" and unwired capacity-planning
+  claims; fixed the "Phase 15" → Phase 8 citation; added a revisit-history
+  entry. `SECURITY.md` cross-references the same fix.
+- **P1-3 (no schema-migration framework)** — added a real Alembic setup
+  (`services/control-plane/alembic.ini`, `migrations/env.py`,
+  `migrations/versions/8387cacfabb1_phase18a_initial_schema.py`,
+  generated via `alembic revision --autogenerate` directly against
+  `control_plane.db.models.Base.metadata`, not hand-transcribed).
+  `init_schema`/`create_all` remains for the from-scratch (fresh
+  test/dev SQLite) path; every future model change gets a new migration
+  going forward (documented in `db/models.py` and the control-plane
+  README). Proven by `services/control-plane/tests/test_migrations.py`
+  (4 tests: `alembic upgrade head` produces exactly the same tables
+  `create_all` does, `alembic check` reports zero drift, `downgrade
+  base` cleanly reverses it, `upgrade head` run twice is a no-op).
+  Fixing this also surfaced and fixed a real, independent bug: Alembic's
+  `fileConfig` (default `disable_existing_loggers=True`) was permanently
+  disabling this same phase's new `control_plane.request`/
+  `control_plane.lifecycle.scheduler` loggers the first time any
+  migration ran in-process -- fixed with `disable_existing_loggers=False`
+  in `migrations/env.py`, caught by running the full suite, not assumed.
+- **P1-4 (frontend `AuditTrailPage` falsely claimed no backing API;
+  audit/evidence/governance had no frontend client at all)** — added
+  `frontend/src/api/audit.ts`, `evidence.ts`, `governance.ts` (following
+  the exact existing `apiGet`/`apiPost` typed-client pattern), added the
+  six missing TypeScript contract types (`MaskingPolicy`/`MaskingRule`,
+  `MaskingPolicyVersion`, `PolicyApproval`, `BusinessConsumer`,
+  `ConsumerDatasetRequest`, `AuditEvent`/`AuditEventType`,
+  `AuditEvidencePackage`) to `frontend/src/api/types.ts`, and rewrote
+  `AuditTrailPage.tsx` to actually call `GET /api/v1/audit/events` and
+  render a real, filterable table instead of the stale placeholder.
+  Proven by `AuditTrailPage.test.tsx` (real data rendered, honest empty
+  state, and explicit assertions the old false claim no longer renders)
+  plus a clean `npm run lint`/`npm run build`.
+- **P1-5 (`ARCHITECTURE.md`'s observability claim was 100% unimplemented;
+  `log_level` was dead code)** — added
+  `control_plane.platform.logging_config` (real JSON structured logging,
+  correlation-ID tagged, actually configured from `Settings.log_level`)
+  and wired a request-logging middleware plus a scheduler job-event log
+  line into `main.py`/`api/v1/lifecycle.py`. `ARCHITECTURE.md` section
+  3.3 now honestly states what is real (structured logs + correlation
+  IDs, control-plane only) versus what remains explicitly out of scope
+  (real metrics/distributed tracing infrastructure, and an equivalent
+  for data-plane/governance-service) rather than the prior blanket,
+  false claim. Proven by `test_platform_logging.py` (7 tests, including
+  a real HTTP request through `TestClient` producing a real JSON log
+  line with the expected fields).
+- **P1-6 (masking's per-source-system writers weren't atomic)** — every
+  writer in `data_plane.masking.dataset_masker` (`mask_postgres_enrollment`,
+  `mask_claims_parquet`, `mask_clinical_data_lake`, `mask_pbm_extract`,
+  `mask_partner_lab_feed`) now writes to a temporary path and atomically
+  renames it into place (`_atomic_write_via`/`_atomic_text_writer`) only
+  on clean completion. Proven by
+  `tests/masking/test_dataset_masker_atomic_writes.py` (7 tests): a real
+  crash injected mid-write (via monkeypatching) into
+  `mask_clinical_data_lake` -- the exact writer P1-6 named as its
+  concrete example -- leaves no truncated file at its final path, either
+  on a first write or (more operationally important) when overwriting a
+  previous good run.
+- **P1-7 (evidence-package checksum was unkeyed, weaker than the
+  certification signature it could be embedded alongside)** — added
+  `control_plane.platform.evidence_signing` (keyed HMAC-SHA256, same
+  algorithm/canonicalization `data_plane.certification.signing` already
+  used), upgraded `bundle_checksum_algorithm` from `"sha256"` to
+  `"hmac-sha256"`, and wrote `docs/TAMPER_EVIDENCE_LIMITATIONS.md` as the
+  one, canonical statement of the residual limitation neither mechanism
+  solves (both are detection-only, both only as strong as their key's
+  secrecy) -- referenced from both signing modules and
+  `docs/COMPLIANCE_EVIDENCE.md` instead of each restating it separately.
+  Proven by updated `test_evidence_repository.py` tests, including a new
+  assertion that a checksum forged under the WRONG key is rejected
+  (impossible to test meaningfully against the old unkeyed mechanism).
+- **P1-8 (no enforced link between a registered `DatasetVersion` and
+  Phase 10's governed, approved policy)** — added
+  `POST /api/v1/lifecycle/dataset-versions/governed`, which independently
+  re-derives (via `GovernanceRepository.get_approved_policy_version`,
+  never trusting the certification report's own claim) whether the
+  report's masking policy name/version match the currently-APPROVED
+  `MaskingPolicyVersion`, rejecting with 409 if not. The pre-existing
+  `POST /dataset-versions` is left unchanged but now explicitly
+  documented as the ungoverned/direct path, per
+  [ADR-0019](docs/adr/0019-governed-vs-ungoverned-dataset-version-registration.md)'s
+  reasoning for why a breaking change to every pre-Phase-10 caller was
+  rejected in favor of an additive, clearly-labeled second path. Proven
+  by `test_lifecycle_governed_registration.py` (4 tests: the reproduction
+  that the ungoverned path still allows an ungoverned registration by
+  design, the governed path rejecting both "no approved policy exists"
+  and "policy version mismatch," and the governed path succeeding and
+  audit-tagging itself `governed: "true"` when the policy really is
+  approved).
+- **P1-9 (no distribution-shape verification anywhere in the pipeline)**
+  — added a twelfth certification gate,
+  `data_plane.certification.gates.check_distribution_shape` (new
+  `CertificationGateType.DISTRIBUTION_SHAPE`), wired into
+  `run_certification_pipeline` comparing `claim.billed_amount`'s value
+  distribution between the real SUBSET-stage output and the real final
+  (post-mask/optional-synthetic) output -- a real, lightweight
+  gross-distortion sanity check (degenerate-collapse-to-zero, and an
+  order-of-magnitude mean-ratio threshold), deliberately not a full
+  statistical test suite, per its own docstring and
+  `docs/CERTIFICATION_VS_MASKING.md`. Proven by five new gate unit tests
+  (including a reproduction that a 1000x mean shift would have
+  certified cleanly before this phase) plus the real pipeline
+  integration test (`test_pipeline_against_real_estate.py`) now
+  asserting twelve passing gates against a real estate run.
+- **Documentation**: `THREAT_MODEL.md`, `SECURITY.md`, `ARCHITECTURE.md`
+  section 3.3, `docs/COMPLIANCE_EVIDENCE.md`,
+  `data_plane/certification/signing.py`'s docstring,
+  `control_plane/platform/rbac.py`'s docstring, and
+  `control_plane/db/models.py`'s docstring were all updated in place to
+  describe the real, current mechanism rather than either the false
+  pre-Phase-18A claim or a new claim overstating this phase's own,
+  deliberately proportionate scope. Two new ADRs
+  (`0018-minimal-jwt-identity-layer-for-rbac.md`,
+  `0019-governed-vs-ungoverned-dataset-version-registration.md`).
+- **Full test suite, run fresh (not assumed) at the end of this phase**:
+  `libs/contracts` 62 passed, `services/control-plane` 236 passed,
+  `services/data-plane` 451 passed, `services/governance-service` 2
+  passed — **751 total Python tests passed, 0 failed**. `frontend`
+  (Vitest) 40 passed across 11 files, `npm run lint` 0 errors, `npm run
+  build` succeeds. No test was weakened, skipped, or deleted to make
+  this phase's work "pass" — every count above is strictly additive over
+  Phase 17's own 698 + 39 baseline.
+- **All ten P0/P1 findings were deleted from `problems_final_review.md`**
+  only after the evidence above was actually produced, per the phase
+  prompt's explicit instruction. The thirteen P2 and ten P3 findings
+  (23 total) are unchanged, left for Phase 18B.
+- Left open, deliberately: every P2/P3 finding `problems_final_review.md`
+  still lists (out of this phase's scope by design), plus the honestly
+  narrower scope this phase's own fixes state explicitly -- P0-1's JWT
+  layer is a minimal mechanism for a fixed set of demo identities, not a
+  production IdP; P1-5's structured logging covers `services/control-plane`
+  only, with no equivalent yet in `services/data-plane`/
+  `services/governance-service` and no real metrics/tracing
+  infrastructure anywhere; P1-7's keyed HMAC closes the "unkeyed, weaker
+  than certification" inconsistency but not the inherent
+  detection-not-prevention/key-colocation limitation
+  `docs/TAMPER_EVIDENCE_LIMITATIONS.md` documents as out of scope without
+  a real KMS/HSM integration.
 
 ## Phase 16 — what was actually delivered
 

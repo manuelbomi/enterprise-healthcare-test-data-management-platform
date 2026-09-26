@@ -65,7 +65,8 @@ def test_end_to_end_cli_run_reaches_certified_and_publishes(
 
     report = json.loads((out_dir / "certification_report.json").read_text(encoding="utf-8"))
     assert report["status"] == "published"
-    assert len(report["gates"]) == 11
+    # 11 required Phase 6 gates + Phase 18A's DISTRIBUTION_SHAPE addition (P1-9).
+    assert len(report["gates"]) == 12
     assert report["integrity_signature"] is not None
 
 

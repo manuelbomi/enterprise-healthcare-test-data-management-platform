@@ -438,7 +438,9 @@ export type CertificationGateType =
   | "provenance"
   | "manifest_generation"
   | "policy_version_recorded"
-  | "masking_version_recorded";
+  | "masking_version_recorded"
+  // Phase 18A (problems_final_review.md P1-9): a twelfth gate.
+  | "distribution_shape";
 
 export interface CertificationGateResult {
   gate: CertificationGateType;
@@ -481,6 +483,179 @@ export interface CertificationReport {
 export interface CertificationReportRecord {
   source_path: string;
   report: CertificationReport;
+}
+
+// ---------------------------------------------------------------------
+// masking.py (full policy shape -- added Phase 18A, problems_final_review.md
+// P1-4, alongside governance.py's MaskingPolicyVersion below, which embeds
+// this in full)
+// ---------------------------------------------------------------------
+
+export type MaskingFieldType =
+  | "generic"
+  | "identifier"
+  | "ssn"
+  | "email"
+  | "phone"
+  | "first_name"
+  | "last_name"
+  | "full_name"
+  | "street_address"
+  | "city"
+  | "zip_code"
+  | "date"
+  | "numeric";
+
+export interface MaskingRule {
+  tier: ClassificationTier;
+  strategy: MaskingStrategy;
+  scope: string;
+  parameters: Record<string, string>;
+  field_pattern: string | null;
+  technique: MaskingTechnique | null;
+  field_type: MaskingFieldType;
+  preserve_format: boolean;
+  preserve_null: boolean;
+  preserve_linkage: boolean;
+}
+
+export interface MaskingPolicy {
+  name: string;
+  version: number;
+  rules: MaskingRule[];
+  approved_by: string | null;
+  created_at: string;
+}
+
+// ---------------------------------------------------------------------
+// governance.py (Phase 10 -- added to types.ts in Phase 18A,
+// problems_final_review.md P1-4: these six contract shapes had no
+// TypeScript equivalent at all before this phase)
+// ---------------------------------------------------------------------
+
+export type PolicyApprovalStatus = "draft" | "pending_approval" | "approved" | "rejected" | "superseded";
+
+export interface MaskingPolicyVersion {
+  policy_version_id: string;
+  policy_name: string;
+  policy_version: number;
+  masking_policy: MaskingPolicy;
+  masking_engine_version: string;
+  approval_status: PolicyApprovalStatus;
+  created_at: string;
+  created_by: string;
+  notes: string;
+  superseded_by_version_id: string | null;
+}
+
+export interface PolicyApproval {
+  approval_id: string;
+  policy_version_id: string;
+  status: PolicyApprovalStatus;
+  performed_by: string;
+  performed_at: string;
+  comments: string;
+}
+
+export interface BusinessConsumer {
+  business_consumer_id: string;
+  code: string;
+  display_name: string;
+  description: string;
+  contact: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export type ConsumerRequestStatus = "submitted" | "fulfilled";
+
+export interface ConsumerDatasetRequest {
+  consumer_request_id: string;
+  business_consumer_id: string;
+  business_consumer_code: string;
+  dataset_name: string;
+  environment: Environment;
+  policy_version_id: string;
+  masking_policy_name: string;
+  masking_policy_version: number;
+  subset_size_hint: string;
+  refresh_cadence_type: RefreshCadenceType;
+  performance_requirements: string;
+  requested_by: string;
+  requested_at: string;
+  status: ConsumerRequestStatus;
+  environment_request_id: string | null;
+  notes: string;
+}
+
+// ---------------------------------------------------------------------
+// audit.py (Phase 11 -- added to types.ts in Phase 18A, P1-4)
+// ---------------------------------------------------------------------
+
+export type AuditEventType =
+  | "access_requested"
+  | "access_granted"
+  | "access_denied"
+  | "classification_confirmed"
+  | "classification_changed"
+  | "policy_approved"
+  | "policy_rejected"
+  | "policy_changed"
+  | "job_requested"
+  | "job_published"
+  | "certification_passed"
+  | "certification_failed"
+  | "snapshot_accessed"
+  | "dataset_version_registered"
+  | "dataset_version_revoked"
+  | "dataset_version_rolled_back"
+  | "environment_request_created"
+  | "refresh_executed"
+  | "consumer_request_submitted"
+  | "consumer_request_fulfilled"
+  | "dataset_version_accessed"
+  | "evidence_package_generated";
+
+export interface AuditEvent {
+  event_id: string;
+  event_type: AuditEventType;
+  actor: string;
+  subject: string;
+  outcome: string;
+  detail: Record<string, string>;
+  occurred_at: string;
+}
+
+// ---------------------------------------------------------------------
+// evidence.py (Phase 13 -- added to types.ts in Phase 18A, P1-4)
+// ---------------------------------------------------------------------
+
+export interface AuditEvidencePackage {
+  package_id: string;
+  generated_at: string;
+  generated_by: string;
+  dataset_version_id: string;
+  dataset_name: string;
+  version_number: number;
+  dataset_manifest: DatasetVersion;
+  environment_requests: EnvironmentDatasetRequest[];
+  consumer_requests: ConsumerDatasetRequest[];
+  classification_summary: Record<string, unknown>;
+  masking_policy_version: MaskingPolicyVersion | null;
+  masking_policy_approvals: PolicyApproval[];
+  certification_report: CertificationReport | null;
+  subset_manifest: SubsetManifest | null;
+  integrity_report: Record<string, unknown>;
+  quality_report: Record<string, unknown>;
+  refresh_history: RefreshRunRecord[];
+  rollback_history: RollbackRecord[];
+  revocation: Record<string, string>;
+  audit_trail: AuditEvent[];
+  lineage: Record<string, string>;
+  bundle_checksum_algorithm: string;
+  bundle_checksum: string;
+  provenance_notes: string[];
+  compliance_disclaimer: string;
 }
 
 // ---------------------------------------------------------------------

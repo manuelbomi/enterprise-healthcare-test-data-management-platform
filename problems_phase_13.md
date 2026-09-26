@@ -50,8 +50,25 @@ Concrete gaps identified by inspection before writing any code:
   When omitted, `integrity_report`/`quality_report`/`lineage` fields
   that would come from them are left empty with an explicit
   `provenance_notes` entry explaining why, never silently faked.
-- **P13-2 (open, by design)** — The evidence package's
-  `bundle_checksum` is a plain SHA-256 digest over the package's own
+- **P13-2 (partially resolved in Phase 18A)** — The evidence package's
+  `bundle_checksum` is now a **keyed HMAC-SHA256** digest
+  (`control_plane.platform.evidence_signing`, `bundle_checksum_algorithm`
+  now `"hmac-sha256"`), the same keyed treatment
+  `data_plane.certification.signing` already gave
+  `CertificationReport.integrity_signature` -- closing the specific
+  "unkeyed, weaker than the certification signature" inconsistency this
+  entry originally described. **What remains open, inherent, and NOT
+  solved by keying alone** (see `docs/TAMPER_EVIDENCE_LIMITATIONS.md`,
+  the single canonical statement of this, added in Phase 18A): anyone
+  with **both** database write access **and** the signing key can still
+  forge a new, internally-consistent checksum -- a real KMS/HSM
+  integration with key isolation from the database-holding party would
+  be needed to close that, and remains out of scope for this
+  repository, same as everywhere else no real cloud credentials exist
+  in it. The original description below is left for the historical
+  record of what Phase 13 shipped and did not.
+- **P13-2 description (original, Phase 13):** The evidence package's
+  `bundle_checksum` was a plain SHA-256 digest over the package's own
   canonical JSON, computed and stored by the same process that also
   wrote every row the package reads. This detects accidental
   corruption/truncation after export (e.g. in transit, or a copy/paste

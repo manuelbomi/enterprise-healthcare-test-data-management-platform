@@ -57,9 +57,10 @@ package, not simulated:
   has produced: registration, refreshes, rollbacks, policy
   approvals/rejections, access-denials, and the Phase 13
   `DATASET_VERSION_ACCESSED`/`EVIDENCE_PACKAGE_GENERATED` events.
-- **Bundle checksum** (`bundle_checksum`) -- a real SHA-256 digest over
-  the package's own canonical JSON, computed at generation time (see
-  "The checksum is an integrity check, not a signature" below).
+- **Bundle checksum** (`bundle_checksum`) -- a real, keyed HMAC-SHA256
+  digest over the package's own canonical JSON, computed at generation
+  time (see "The checksum is a keyed integrity check, not a
+  non-repudiation signature" below).
 
 ## What is only as real as what the caller supplies
 
@@ -86,26 +87,31 @@ are not supplied, those fields are left genuinely empty (`{}`), and
 `provenance_notes` says exactly why -- this package never fabricates a
 gate result it does not actually have.
 
-## The checksum is an integrity check, not a signature
+## The checksum is a keyed integrity check, not a non-repudiation signature
 
-`bundle_checksum` is a plain SHA-256 digest over the package's own
-canonical JSON (every field except itself), computed by
-`control_plane.domain.evidence.compute_bundle_checksum` and verifiable
-with `verify_bundle_checksum`. This catches accidental corruption or
-truncation after export -- in transit, in a copy/paste into a ticket,
-in a file that got saved twice.
+**Phase 18A update** (`problems_final_review.md` P1-7, resolved):
+`bundle_checksum` is now a **keyed HMAC-SHA256** digest over the
+package's own canonical JSON (every field except itself), computed by
+`control_plane.platform.evidence_signing.compute_bundle_checksum` and
+verifiable with `verify_bundle_checksum` -- the same guarantee
+`data_plane.certification.signing` gives
+`CertificationReport.integrity_signature`. Before Phase 18A, this was a
+plain, *unkeyed* `hashlib.sha256` digest: forging a self-consistent
+checksum required only database write access, no key at all, a real
+inconsistency with the certification signature's stronger guarantee.
+That inconsistency is now closed.
 
-It is **not** the same guarantee `data_plane.certification.signing`
-gives `CertificationReport.integrity_signature`: that mechanism is a
-*keyed* HMAC-SHA256, so forging a new, internally-consistent signature
-requires the signing key, not just write access to the report. This
-package's checksum uses no secret key at all -- anyone with write
-access to the control-plane database can edit the underlying rows and
-regenerate a self-consistent checksum for a freshly-generated package.
-A production deployment wanting non-repudiation for the *bundle itself*
-(not just the `CertificationReport` it may embed) would want the same
-keyed-signature treatment, ideally backed by a real secrets provider --
-not implemented here. See `problems_phase_13.md` P13-2.
+**The residual limitation neither mechanism solves** (read
+`docs/TAMPER_EVIDENCE_LIMITATIONS.md` for the single, canonical
+statement of this, rather than this section restating it): both
+mechanisms are *detection*, not *prevention*, and both are only as
+strong as the secrecy of their signing key -- anyone with **both**
+database/file write access **and** the key can still forge a new,
+internally-consistent signature/checksum. Closing that fully would need
+a real external KMS/HSM integration with key isolation this repository
+does not implement (see `SECURITY.md`). See `problems_phase_13.md`
+P13-2 for the longer-standing, still-open non-repudiation gap
+(asymmetric signatures) this keying does not attempt to solve either.
 
 ## What this package does not do
 

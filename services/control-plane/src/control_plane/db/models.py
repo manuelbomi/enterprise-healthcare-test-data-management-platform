@@ -335,7 +335,24 @@ def create_postgres_engine(database_url: str) -> Engine:
 
 def init_schema(engine: Engine) -> None:
     """Create every table in this module if it does not already exist.
-    Idempotent -- safe to call on every process start."""
+    Idempotent -- safe to call on every process start.
+
+    **This is the from-scratch path only** (a fresh test/dev SQLite file
+    with nothing in it yet, or a brand-new deployment's first-ever
+    start). It cannot alter an existing table once a database already
+    has rows in it -- no add/rename/drop column, no type change, no new
+    index on an existing table. For a real deployment carrying real
+    data across an upgrade, use the Phase 18A Alembic setup instead
+    (`services/control-plane/alembic.ini` + `migrations/`, resolves
+    `problems_final_review.md` P1-3): `alembic upgrade head` from
+    `services/control-plane/`. Every future change to the models in
+    this module should ship together with a new Alembic migration
+    (`alembic revision --autogenerate -m "..."`, reviewed before
+    committing), not a hand edit assuming `create_all` will handle it --
+    see `migrations/versions/*_phase18a_initial_schema.py`'s own
+    docstring and `services/control-plane/tests/test_migrations.py` for
+    the real, executed proof this baseline migration matches this exact
+    schema."""
 
     Base.metadata.create_all(engine)
 

@@ -12,13 +12,18 @@ signature over the report's substantive fields, computed at CERTIFY time
 `state_machine.transition` accepts a report as its current, trustworthy
 state.
 
-**Honest limitation** (documented here, not hidden -- see
-`docs/CERTIFICATION_VS_MASKING.md`): this is a *detection* mechanism, not
-a *prevention* mechanism, and it is only as strong as the secrecy of the
-signing key. Anyone who has both write access to the report file **and**
-the signing key can forge a new, internally-consistent signature for a
+**Honest limitation** (documented in full, once, at
+`docs/TAMPER_EVIDENCE_LIMITATIONS.md` -- read it rather than relying on
+this summary): this is a *detection* mechanism, not a *prevention*
+mechanism, and it is only as strong as the secrecy of the signing key.
+Anyone who has both write access to the report file **and** the
+signing key can forge a new, internally-consistent signature for a
 hand-edited report and this module cannot tell the difference -- exactly
-the same tradeoff ADR-0006 documents for the masking HMAC key. A
+the same tradeoff ADR-0006 documents for the masking HMAC key, and the
+exact same limitation `control_plane.platform.evidence_signing`
+documents for the Phase 13 `AuditEvidencePackage.bundle_checksum` (Phase
+18A made that mechanism a keyed HMAC too, matching this one, closing the
+inconsistency `problems_final_review.md` P1-7 found between them). A
 production deployment would keep this key in the security/governance
 plane's secrets provider (not implemented yet -- `problems_phase_03.md`
 P3-2 tracks the same gap for the masking vault) and would likely also

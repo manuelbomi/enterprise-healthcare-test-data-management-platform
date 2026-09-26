@@ -34,7 +34,7 @@ def test_certification_status_has_all_six_required_states() -> None:
     }
 
 
-def test_certification_gate_type_has_all_eleven_required_gates() -> None:
+def test_certification_gate_type_has_all_eleven_required_gates_plus_the_phase18a_addition() -> None:
     assert {g.value for g in CertificationGateType} == {
         "phi_pii_policy_coverage",
         "masking_completion",
@@ -47,6 +47,9 @@ def test_certification_gate_type_has_all_eleven_required_gates() -> None:
         "manifest_generation",
         "policy_version_recorded",
         "masking_version_recorded",
+        # Phase 18A (problems_final_review.md P1-9): a twelfth gate,
+        # added after the original eleven Phase 6 gates above.
+        "distribution_shape",
     }
 
 
