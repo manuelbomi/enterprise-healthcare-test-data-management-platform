@@ -38,7 +38,97 @@ repository going forward.
 | 17 | Principal-engineer production readiness review (findings only, no fixes) | **Complete** |
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | **Complete** |
 | 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | **Complete** |
-| Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+| Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | **Complete** |
+
+## Final Phase — what was actually delivered
+
+Documentation/release-prep only, per this phase's own scope — no
+application code was changed. Audited before writing anything: the existing
+`README.md` (Phase 0's, incrementally touched but never rewritten),
+`ARCHITECTURE.md`, this file, `CHANGELOG.md`, `problems_final_review.md`
+(the current 11 open findings), all four `docs/interview/*.md`,
+`docs/SCALE_AND_PERFORMANCE.md`, `docs/COMPLIANCE_EVIDENCE.md`,
+`docs/TAMPER_EVIDENCE_LIMITATIONS.md`, `docs/tutorial/guide/README.md`,
+`SECURITY.md`, `THREAT_MODEL.md`,
+[ADR-0018](docs/adr/0018-minimal-jwt-identity-layer-for-rbac.md), and
+`frontend/src/pages/README.md`.
+
+- **`README.md` rewritten in full** (not incrementally patched) to the
+  21-section structure this phase's own prompt specifies, reusing and
+  citing real repository artifacts throughout rather than inventing new
+  claims — the six-plane architecture diagram is `ARCHITECTURE.md` §2's
+  own Mermaid diagram, condensed for a 3-minute read, not a new,
+  potentially-inconsistent one; the security-limitations section (§19)
+  is a summary of `problems_final_review.md`'s current 11 findings,
+  explicitly deferring to that file as the authoritative source rather
+  than re-deriving a competing list. The required synthetic-data
+  statement ("All healthcare records in this repository are synthetic.
+  The repository contains no real PHI or PII.") appears verbatim, in a
+  blockquote, immediately under the title. No HIPAA certification or
+  regulatory-approval claim is made anywhere (§20 states the negative
+  explicitly).
+- **Screenshots (§16) — a deliberate, documented decision, not an
+  oversight**: a repository-wide search (`docs/`, `frontend/`) confirmed
+  no screenshot images exist anywhere in this repository. Rather than
+  fabricate a claim that they do, or spend this phase's scope building a
+  screenshot-capture pipeline (disproportionate for a documentation
+  phase), `README.md` §16 says so explicitly and instead reproduces
+  `frontend/src/pages/README.md`'s real, per-page, API-backed inventory
+  in detail — a concrete substitute for an image, sourced from the one
+  file in this repository that already tracks per-page reality.
+- **`DEMO.md` (new)** — the exact, tested command sequence for a live
+  technical-interview walkthrough. Every command was actually run in this
+  environment while writing it, in order, on a clean checkout: bootstrap,
+  `uvicorn control_plane.main:app` (SQLite, no Postgres required),
+  `POST /api/v1/auth/login` as `demo.platform_admin`, a real, full,
+  12-gate `data_plane.certification.cli --publish` run (captured output
+  is the literal output that run produced, not a hand-typed
+  approximation), registering that certification report as a real
+  dataset version against the live server, and a live
+  401 → 403 → 200 RBAC demonstration (no token / wrong role / right role)
+  against `POST /api/v1/lifecycle/dataset-versions/{id}/revoke`, each
+  outcome confirmed against the real, live `GET /api/v1/audit/events`
+  trail. `npm run dev`'s Vite proxy was confirmed forwarding `/api/*` to
+  that same live server, returning the same dataset version just
+  registered.
+- **`RELEASE_CHECKLIST.md` (new)** — every check actually executed, not
+  assumed: `libs/contracts` 62, `services/control-plane` 265,
+  `services/data-plane` 459, `services/governance-service` 2 passed
+  (**788 backend total, 0 failed** — exactly matching the Phase 18B
+  baseline, no regression); `frontend` 40 passed (11 files), lint 0
+  errors, build passes (286.28 kB / 89.48 kB gzip, matching Phase 18B);
+  `scripts/security/detect_secrets.py` clean;
+  `scripts/check_doc_code_citations.py` clean (194 module-path + 26
+  route citations, all resolve); `npm audit` 0 vulnerabilities; a
+  repository-wide grep for real healthcare-org names, 0 matches.
+  `python scripts/security/dependency_scan.py` reported 52 advisories
+  across 9 packages, but this ran against a shared, non-isolated Python
+  environment (confirmed by the presence of `forgezen-sdk`, an installed
+  package no `pyproject.toml` in this repository declares) — cross-
+  checked against every real `pyproject.toml`, only one flagged package
+  (`pytest`, a dev-only dependency, `PYSEC-2026-1845`) is actually
+  declared here, and it is left open rather than bumped (a dependency-
+  version change would be an application-config change, out of this
+  documentation-only phase's scope) — see `RELEASE_CHECKLIST.md` §3 for
+  the full, honest accounting.
+- **One real regression check, zero regressions found**: the full,
+  fresh test run above matches the Phase 18B baseline exactly in every
+  package. **One pre-existing documentation staleness issue found
+  incidentally, not fixed** (out of this phase's explicit deliverable
+  list): `frontend/src/pages/README.md`'s `AuditTrailPage` row still
+  reads "Honest placeholder (Phase 13 not built yet)," unchanged since
+  Phase 9, even though Phase 18A (`problems_final_review.md` P1-4)
+  rewrote that page to call the real audit-events API — `README.md`
+  §16 in this release describes the page correctly; the stale line in
+  `frontend/src/pages/README.md` itself is flagged for a future
+  documentation-accuracy pass, not corrected here, since it is not one
+  of this phase's named deliverables.
+- **This phase adds no application code and no new pytest test file** —
+  consistent with Phase 16's precedent for a documentation-only phase,
+  no new `problems_phase_final.md` was created and `problems_master.md`
+  is unchanged; `problems_final_review.md`'s 11 open findings (6 P2, 5
+  P3) are unchanged by this phase and remain the authoritative,
+  current list.
 
 ## Phase 18B — what was actually delivered
 
