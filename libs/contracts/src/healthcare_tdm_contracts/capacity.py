@@ -432,6 +432,22 @@ class IllustrativeCapacityPlan(BaseModel):
     savings_pct: float = Field(...)
 
 
+class SavedIllustrativeCapacityPlan(BaseModel):
+    """One historical, persisted `IllustrativeCapacityPlan` snapshot --
+    Phase 18B (`problems_final_review.md` P3-3, resolved: "illustrative
+    capacity scenarios are stateless; nothing can be saved/compared over
+    time"). Written by
+    `control_plane.domain.capacity.scenario_history.CapacityScenarioHistoryRepository`.
+    `saved_plan_id` is distinct from `plan.scenario.scenario_id` -- the
+    same scenario could in principle be saved more than once, and each
+    save is its own historical point, never updated in place."""
+
+    saved_plan_id: UUID = Field(default_factory=uuid4)
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    plan: IllustrativeCapacityPlan
+
+
 __all__ = [
     "DEFAULT_ENVIRONMENT_CAPACITY_REQUIREMENTS",
     "DEFAULT_PRODUCTION_BASELINE_BYTES",
@@ -446,5 +462,6 @@ __all__ = [
     "IllustrativeCapacityScenario",
     "IncrementalRefreshEstimate",
     "PartitionSummary",
+    "SavedIllustrativeCapacityPlan",
     "VacuumCandidate",
 ]

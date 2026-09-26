@@ -25,6 +25,14 @@ class InvalidPolicyApprovalTransitionError(RuntimeError):
     `healthcare_tdm_contracts.POLICY_APPROVAL_STATUS_TRANSITIONS`."""
 
 
+class InvalidConsumerRequestTransitionError(RuntimeError):
+    """Phase 18B (`problems_final_review.md` P3-4): an attempted
+    `ConsumerRequestStatus` transition is not listed in
+    `healthcare_tdm_contracts.CONSUMER_REQUEST_STATUS_TRANSITIONS` -- e.g.
+    trying to fulfill/reject/cancel a request that is already in one of
+    the three terminal states."""
+
+
 class PolicyVersionNotApprovedError(RuntimeError):
     """A `ConsumerDatasetRequest` tried to reference a `MaskingPolicyVersion`
     whose `approval_status` is not APPROVED.
@@ -49,6 +57,7 @@ __all__ = [
     "BusinessConsumerNotFoundError",
     "ConsumerDatasetRequestNotFoundError",
     "DuplicateBusinessConsumerCodeError",
+    "InvalidConsumerRequestTransitionError",
     "InvalidPolicyApprovalTransitionError",
     "MaskingPolicyVersionNotFoundError",
     "PolicyVersionNotApprovedError",

@@ -30,7 +30,7 @@ and no semantic understanding of what a column means in context.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from healthcare_tdm_contracts import SensitivityCategory
 
@@ -193,22 +193,78 @@ PATTERN_DETECTORS: list[PatternDetector] = [
 ]
 
 
-def match_all(column: str, sample_values: list[str] | None = None) -> list[PatternDetector]:
+#: Phase 18B (`problems_final_review.md` P3-10, narrowed -- see
+#: `match_all`'s own docstring for exactly what this does and does not
+#: fix): entity names this repository's own schema
+#: (`data_plane.reference_data.domain`) already treats as
+#: business/organizational, not personal -- `Provider` (a specific
+#: provider or practice, `_R_PROVIDER_PII` in `schema_rules.py`) and
+#: `Pharmacy` (a dispensing business, not a patient). Matched
+#: case-insensitively against `ColumnToClassify.entity`.
+BUSINESS_ENTITY_NAMES = frozenset({"provider", "pharmacy"})
+
+
+def match_all(
+    column: str, sample_values: list[str] | None = None, entity: str | None = None
+) -> list[PatternDetector]:
     """Return every detector that matches this column (by name and/or
     sample value), unsorted. `engine.py` picks the highest-confidence
-    match."""
+    match.
+
+    ``entity``, if given, is `ColumnToClassify.entity` -- the owning
+    entity name, when the caller knows one, for a column that reached
+    this fallback layer because it is *not* a literal field of that
+    entity as `schema_rules.py` knows it (a schema-drift/renamed
+    variant, e.g. `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md`'s exact
+    "novel source system with no schema entry" example, but for an
+    entity name this repository *does* still recognize).
+
+    Phase 18B (`problems_final_review.md` P3-10, narrowed, not closed):
+    when ``entity`` is one of `BUSINESS_ENTITY_NAMES` and `pattern:npi`
+    matches, this now returns a confidence-boosted, reason-clarified
+    variant of that hit instead of the generic one -- schema-level
+    entity context (which the pattern layer previously ignored entirely)
+    resolves exactly the ambiguity `pattern:npi`'s own reason names
+    ("cannot confirm [provider vs. some other role] from the name
+    alone"), for this one case where a recognized business entity name
+    is available. This does **not** close the underlying structural gap:
+    a truly novel source system with an entity name this repository has
+    never seen at all still gets the unmodified, lower-confidence guess
+    -- entity-name recognition is itself necessarily a fixed, finite
+    list, the same limitation every other schema-based mechanism in this
+    engine already has."""
 
     hits: list[PatternDetector] = []
     values = sample_values or []
+    entity_key = entity.strip().lower() if entity else None
     for detector in PATTERN_DETECTORS:
         name_hit = bool(detector.column_pattern and detector.column_pattern.search(column))
         value_hit = bool(
             detector.value_pattern
             and any(detector.value_pattern.match(v) for v in values if isinstance(v, str) and v)
         )
-        if name_hit or value_hit:
+        if not (name_hit or value_hit):
+            continue
+        if detector.detector_id == "pattern:npi" and entity_key in BUSINESS_ENTITY_NAMES:
+            hits.append(
+                replace(
+                    detector,
+                    detector_id="pattern:npi+entity_context",
+                    confidence=0.95,
+                    reason=(
+                        f"Column name matches an NPI naming pattern, and the owning entity "
+                        f"({entity!r}) is one this repository's own schema "
+                        f"(data_plane.reference_data.domain) already treats as a business/"
+                        f"provider entity, not a patient one -- unlike the generic 'pattern:npi' "
+                        f"guess, this is not a name-only inference (see "
+                        f"docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md section 1's 'no semantic/"
+                        f"contextual understanding' discussion of exactly this case)."
+                    ),
+                )
+            )
+        else:
             hits.append(detector)
     return hits
 
 
-__all__ = ["PATTERN_DETECTORS", "PatternDetector", "match_all"]
+__all__ = ["BUSINESS_ENTITY_NAMES", "PATTERN_DETECTORS", "PatternDetector", "match_all"]

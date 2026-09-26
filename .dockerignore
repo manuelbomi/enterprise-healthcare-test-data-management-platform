@@ -1,0 +1,43 @@
+# Root .dockerignore -- resolves `problems_final_review.md` P2-12.
+#
+# `services/control-plane/Dockerfile` and
+# `services/governance-service/Dockerfile` both build with the
+# repository root as their context (see each Dockerfile's own header
+# comment) and only `COPY` explicit subpaths (`libs/contracts`,
+# `services/control-plane`, etc.) -- never `COPY . .` -- so they were
+# never at risk of accidentally baking an unwanted file into an image
+# layer. But without a root `.dockerignore`, Docker still walks and
+# sends this entire repository (including `.git/`, every service's
+# `__pycache__`/`.venv`, `frontend/node_modules`, `data/tmp/` generator
+# output, and the `.mypy_cache`/`.ruff_cache`/`.spark-runtime`
+# directories this repo accumulates locally) to the Docker daemon as
+# the build context before any `COPY` filtering happens. This trims
+# that transfer to what these Dockerfiles could ever actually need.
+.git/
+.github/
+.mypy_cache/
+.ruff_cache/
+.spark-runtime/
+.pytest_cache/
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/venv/
+frontend/node_modules/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+data/tmp/
+# Anchored to the repository root (a leading `/` in a .dockerignore
+# pattern, same syntax as .gitignore) -- deliberately NOT a bare
+# `docs/`/`*.md`, which would also match `libs/contracts/README.md`,
+# `services/control-plane/README.md`, and
+# `services/governance-service/README.md`: each is required at build
+# time (`pyproject.toml`'s `readme = "README.md"`) for `pip wheel` to
+# build that package's wheel inside the Docker build stage -- excluding
+# them would break the build, not just trim it.
+/docs/
+/*.md
+.env
+.env.*
+!.env.example

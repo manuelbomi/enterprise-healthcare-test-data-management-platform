@@ -43,6 +43,30 @@ def test_rule_based_fallback_used_when_column_not_in_schema() -> None:
     assert result.detector == "pattern:financial_amount"
 
 
+def test_rule_based_fallback_uses_entity_context_for_a_drifted_npi_column() -> None:
+    """Phase 18B (`problems_final_review.md` P3-10, narrowed): a column
+    that is not a literal `Provider` schema field (so schema-based
+    classification does not fire) but whose owning entity is still the
+    recognized `Provider` business entity gets the confidence-boosted,
+    entity-context-aware `pattern:npi+entity_context` hit, not the
+    generic name-only guess -- proven end-to-end through
+    `ClassificationEngine`, not just `pattern_rules.match_all` directly."""
+
+    engine = ClassificationEngine(overrides={})
+    result = engine.classify_column(
+        ColumnToClassify(
+            source_system="postgres_enrollment",
+            dataset="provider",
+            entity="Provider",
+            column="referring-npi",  # schema-drifted variant; not a literal Provider field
+        )
+    )
+    assert result.method == ClassificationMethod.RULE_BASED
+    assert result.detector == "pattern:npi+entity_context"
+    assert result.category == SensitivityCategory.PII
+    assert result.confidence == 0.95
+
+
 def test_conservative_default_when_nothing_matches() -> None:
     engine = ClassificationEngine(overrides={})
     result = engine.classify_column(

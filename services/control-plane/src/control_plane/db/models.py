@@ -279,6 +279,15 @@ class ConsumerDatasetRequestRow(Base):
         String(36), ForeignKey("environment_dataset_request.request_id"), nullable=True
     )
     notes: Mapped[str] = mapped_column(Text, default="")
+    resolution_notes: Mapped[str] = mapped_column(
+        Text,
+        default="",
+        server_default="",
+    )
+    """Phase 18B (`problems_final_review.md` P3-4): who/why for a
+    REJECTED or CANCELLED terminal transition. `server_default=""`
+    so this column is safely nullable-in-practice against any row that
+    predates this migration."""
 
 
 class AuditEventRow(Base):
@@ -312,6 +321,59 @@ class DeadLetterEventRow(Base):
     occurred_at: Mapped[datetime] = mapped_column(DateTime, index=True)
 
 
+class SchedulerLockRow(Base):
+    """A row-per-lock mutual-exclusion table, written by
+    `control_plane.platform.scheduler_lock`
+    (`problems_final_review.md` P2-2). ``lock_name`` is the primary key,
+    so two concurrent transactions racing to `INSERT` the same lock name
+    can never both succeed -- the database's own primary-key constraint
+    is the actual mutual-exclusion mechanism (this is the classic
+    "poor man's advisory lock" pattern), not an application-level
+    check-then-act race. Deliberately implemented this way rather than
+    Postgres's native `pg_advisory_lock` so the exact same code path
+    works against both this repository's supported backends (SQLite and
+    Postgres) -- see the module docstring on
+    `control_plane.platform.scheduler_lock` for the full reasoning and
+    the honestly-documented remaining gap (a real multi-instance
+    deployment should still prefer its external scheduler's own
+    concurrency control, per ADR-0012; this closes the *application-level*
+    gap `problems_final_review.md` P2-2/`problems_phase_07.md` P7-2
+    named, not every conceivable multi-process race)."""
+
+    __tablename__ = "scheduler_lock"
+
+    lock_name: Mapped[str] = mapped_column(String(128), primary_key=True)
+    acquired_by: Mapped[str] = mapped_column(String(255))
+    acquired_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+
+
+class IllustrativeCapacityPlanRow(Base):
+    """A saved, point-in-time `IllustrativeCapacityPlan` (Phase 8's
+    percentage-of-production capacity model), append-only, written by
+    `control_plane.domain.capacity.scenario_history.CapacityScenarioHistoryRepository`
+    -- resolves `problems_final_review.md` P3-3 ("illustrative capacity
+    scenarios are stateless; nothing can be saved/compared over time").
+
+    Deliberately minimal: `IllustrativeCapacityPlan` (`libs/contracts`)
+    is already a fully self-contained, serializable snapshot (it carries
+    the `IllustrativeCapacityScenario` it was computed from plus every
+    computed number), so this table's only real job is to give one of
+    those snapshots a stable id and a `created_at` a caller can list/sort
+    by -- not to re-model any of Phase 8's own capacity math, which stays
+    exactly where it already lived (`control_plane.domain.capacity.planner.illustrative_capacity_plan`).
+    No `UPDATE`/`DELETE` path exists (mirrors `AuditEventRow`'s
+    append-only discipline) -- a "saved scenario" is a historical record
+    of what a plan looked like when it was saved, not a mutable draft."""
+
+    __tablename__ = "illustrative_capacity_plan"
+
+    saved_plan_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    label: Mapped[str] = mapped_column(String(255), default="")
+    plan_json: Mapped[str] = mapped_column(Text)
+    created_by: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+
+
 def create_sqlite_engine(db_path: str) -> Engine:
     """Create a local SQLite engine at ``db_path`` (or ``:memory:``) --
     the default, zero-infrastructure path used by tests and local dev.
@@ -328,9 +390,31 @@ def create_postgres_engine(database_url: str) -> Engine:
     models as :func:`create_sqlite_engine` -- see the module docstring
     for why that portability is deliberate. Not yet exercised against a
     real Postgres instance in this environment; see the module docstring.
+
+    Pool resilience (`problems_final_review.md` P2-1): a bare
+    ``create_engine(database_url)`` never detects a connection that has
+    gone stale server-side (a Postgres restart, a load-balancer idle
+    timeout, a cloud-managed failover) until a query using it fails.
+    ``pool_pre_ping=True`` issues a cheap ``SELECT 1`` before handing out
+    a pooled connection and transparently reconnects if it is dead;
+    `pool_recycle` bounds how long a connection may live before being
+    proactively replaced (useful behind load balancers/proxies that
+    silently drop idle connections older than their own timeout);
+    `pool_size`/`max_overflow` are sane, explicit defaults rather than
+    SQLAlchemy's implicit ones, so capacity is a deliberate choice, not
+    an accident. These options are Postgres-only (SQLite's own
+    single-file, no-network connections have no equivalent staleness
+    failure mode and use a different pool class entirely -- see
+    :func:`create_sqlite_engine`).
     """
 
-    return create_engine(database_url)
+    return create_engine(
+        database_url,
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10,
+        pool_recycle=1800,
+    )
 
 
 def init_schema(engine: Engine) -> None:
@@ -365,11 +449,13 @@ __all__ = [
     "DatasetVersionRow",
     "DeadLetterEventRow",
     "EnvironmentDatasetRequestRow",
+    "IllustrativeCapacityPlanRow",
     "MaskingPolicyVersionRow",
     "PolicyApprovalRow",
     "RefreshPolicyRow",
     "RefreshRunRow",
     "RollbackEventRow",
+    "SchedulerLockRow",
     "create_postgres_engine",
     "create_sqlite_engine",
     "init_schema",

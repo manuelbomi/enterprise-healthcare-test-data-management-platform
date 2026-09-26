@@ -18,6 +18,27 @@ What *is* real here: the row counts and cadence data this module
 consumes (`DatasetVersion.row_counts`, `RefreshPolicy.cadence_type`/
 `interval_days`), and the arithmetic applied to them. Only the
 throughput assumption itself is illustrative.
+
+Phase 18B benchmark cross-check (`problems_final_review.md` P3-2, still
+not "benchmarked" -- see below for why the constant itself is
+deliberately left unchanged): `docs/SCALE_AND_PERFORMANCE.md` section 3
+records a real, measured `pandas_masking[full_estate]` throughput of
+2,681 rows/sec at `performance` scale (766,252-row estate) -- the real
+number closest in kind to what `ROWS_PER_COMPUTE_UNIT_HOUR` models
+(single-process, row-level, every-table/every-technique masking work,
+the same category this constant's docstring already names). Converted
+to the same units, that is ~9.65M rows/hour, roughly **1.9x** this
+module's assumed 5,000,000 -- i.e. the illustrative assumption is
+*conservative* relative to the closest real measurement available, not
+wildly off in either direction. This is still not a benchmark of this
+constant (real "subset+mask+certify pipeline" throughput would also
+include Phase 4 subsetting and Phase 6 certification-gate overhead this
+comparison excludes, and the real number is single-machine
+`local[*]`/plain-Python, not whatever "one compute unit" means in a real
+deployment) -- exactly the gap `problems_phase_08.md` P8-1 already
+named and this cross-check does not close. What it adds: a real,
+cited order-of-magnitude sanity check that did not exist before, in
+place of an assumption with zero real-world anchor at all.
 """
 
 from __future__ import annotations

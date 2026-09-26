@@ -189,3 +189,58 @@ def test_illustrative_plan_post_rejects_invalid_percentage(client: TestClient) -
         },
     )
     assert resp.status_code == 422
+
+
+# ----------------------------------------------------------------------
+# Phase 18B (`problems_final_review.md` P3-3): saved illustrative plan
+# history -- real, endpoint-level "compare over time"
+# ----------------------------------------------------------------------
+
+
+def test_save_and_list_illustrative_plan_history(client: TestClient) -> None:
+    first = client.post(
+        "/api/v1/capacity/illustrative-plan/history",
+        json={
+            "scenario": {
+                "label": "q1-forecast",
+                "production_baseline_bytes": 50_000,
+                "requirements": [{"environment": "dev", "target_pct_of_production": 0.2, "share_tier": "only"}],
+            },
+            "created_by": "planner@example.org",
+        },
+    )
+    assert first.status_code == 201, first.text
+    first_body = first.json()
+    assert first_body["created_by"] == "planner@example.org"
+    assert first_body["plan"]["naive_total_bytes"] == 10_000
+
+    second = client.post(
+        "/api/v1/capacity/illustrative-plan/history",
+        json={
+            "scenario": {
+                "label": "q2-forecast",
+                "production_baseline_bytes": 80_000,
+                "requirements": [{"environment": "dev", "target_pct_of_production": 0.2, "share_tier": "only"}],
+            },
+            "created_by": "planner@example.org",
+        },
+    )
+    assert second.status_code == 201, second.text
+
+    history = client.get("/api/v1/capacity/illustrative-plan/history").json()
+    assert len(history) == 2
+    assert history[0]["saved_plan_id"] == first_body["saved_plan_id"]
+    # The real "compare over time" this finding named as missing: two
+    # real, persisted, distinctly-labeled plans, listed oldest first.
+    assert history[0]["plan"]["scenario"]["label"] == "q1-forecast"
+    assert history[1]["plan"]["scenario"]["label"] == "q2-forecast"
+    assert history[1]["plan"]["naive_total_bytes"] > history[0]["plan"]["naive_total_bytes"]
+
+    fetched = client.get(f"/api/v1/capacity/illustrative-plan/history/{first_body['saved_plan_id']}")
+    assert fetched.status_code == 200, fetched.text
+    assert fetched.json()["plan"]["scenario"]["label"] == "q1-forecast"
+
+
+def test_get_illustrative_plan_history_entry_404s_for_an_unknown_id(client: TestClient) -> None:
+    resp = client.get("/api/v1/capacity/illustrative-plan/history/00000000-0000-0000-0000-000000000000")
+    assert resp.status_code == 404

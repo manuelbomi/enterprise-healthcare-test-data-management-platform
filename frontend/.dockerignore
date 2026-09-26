@@ -1,0 +1,26 @@
+# .dockerignore for `frontend/`'s build context -- resolves
+# `problems_final_review.md` P2-12: `frontend/Dockerfile`'s builder
+# stage does `COPY package.json package-lock.json ./` then `COPY . .`
+# with build context `frontend/` (see that Dockerfile's own header
+# comment: `docker build -t tdm-console:local frontend`). Without this
+# file, a developer's local `node_modules/`, `dist/`, `test-results/`,
+# coverage output, or `.env*` sitting in their `frontend/` checkout
+# would be sent into the Docker build context -- not a secret-exposure
+# risk here (nothing sensitive lives in any of these), but wasteful
+# (`npm ci` inside the container reinstalls regardless) and not best
+# practice.
+node_modules/
+dist/
+build/
+coverage/
+test-results/
+playwright-report/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.git/
+.gitignore
+.vscode/
+.idea/

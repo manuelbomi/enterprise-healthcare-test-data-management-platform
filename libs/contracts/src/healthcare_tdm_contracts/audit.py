@@ -50,6 +50,14 @@ class AuditEventType(str, Enum):
     REFRESH_EXECUTED = "refresh_executed"
     CONSUMER_REQUEST_SUBMITTED = "consumer_request_submitted"
     CONSUMER_REQUEST_FULFILLED = "consumer_request_fulfilled"
+    # Phase 18B (`problems_final_review.md` P3-4): the two new terminal
+    # outcomes for a `ConsumerDatasetRequest` besides FULFILLED --
+    # REJECTED (a platform administrator declined it) and CANCELLED (the
+    # requesting consumer withdrew it) -- each need their own auditable
+    # record, the same reasoning `CONSUMER_REQUEST_FULFILLED` already
+    # established for the third possible outcome.
+    CONSUMER_REQUEST_REJECTED = "consumer_request_rejected"
+    CONSUMER_REQUEST_CANCELLED = "consumer_request_cancelled"
     # Phase 13 additions -- `problems_phase_13.md` found that
     # `ACCESS_GRANTED`/`ACCESS_REQUESTED` above (defined since Phase 0)
     # had never actually been wired to any real mutation, and that

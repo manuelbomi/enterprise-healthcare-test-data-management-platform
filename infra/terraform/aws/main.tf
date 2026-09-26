@@ -2,8 +2,18 @@
 # management platform's cloud dependencies.
 #
 # Phase 0 scope: structural placeholder only. No resources are defined
-# yet — this file exists to fix the provider/backend shape so Phase 20
-# (Kubernetes/Helm + Terraform examples) starts from an agreed structure.
+# yet — this file exists to fix the provider/backend shape so a later
+# phase starts from an agreed structure. That later phase turned out to
+# be Phase 12 (Kubernetes/Helm + Terraform examples), which deliberately
+# built out ../azure/main.tf in full (a real, terraform validate/fmt
+# clean example) while leaving this AWS example unchanged, still
+# passing, as an intentional asymmetry — see `problems_phase_12.md` and
+# `ROADMAP.md`'s Phase 12 section for that decision. This file remains
+# the Phase 0 structural placeholder it always was; a future phase that
+# wants an equally real AWS example should follow azure/main.tf's
+# pattern (real resources per ADR-0004/0005, `terraform validate`/`fmt`
+# both clean, still never applied against a real account by any CI
+# workflow).
 # Never apply this against a real AWS account without replacing every
 # placeholder and reviewing it as you would any production change.
 

@@ -40,7 +40,20 @@ def get_engine_for_url(database_url: str) -> Engine:
         db_path = database_url.removeprefix("sqlite:///")
         if db_path:
             Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    return create_engine(database_url)
+    if database_url.startswith("sqlite"):
+        return create_engine(database_url)
+    # Real (non-SQLite, i.e. Postgres) DSN: apply the same pool
+    # resilience configuration as `control_plane.db.models.create_postgres_engine`
+    # (`problems_final_review.md` P2-1) -- `pool_pre_ping` detects a
+    # connection that has gone stale server-side before it is handed to
+    # a caller, rather than surfacing that failure inside a request.
+    return create_engine(
+        database_url,
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10,
+        pool_recycle=1800,
+    )
 
 
 def build_session_factory(engine: Engine) -> sessionmaker[Session]:

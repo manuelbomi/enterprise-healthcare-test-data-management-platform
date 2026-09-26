@@ -54,3 +54,50 @@ def test_name_detector_does_not_false_positive_on_business_name_fields() -> None
     for column in ("plan_name", "drug_name", "pharmacy_name", "facility_name", "chain_name"):
         ids = {m.detector_id for m in match_all(column)}
         assert "pattern:person_name" not in ids, column
+
+
+# ----------------------------------------------------------------------
+# Phase 18B (`problems_final_review.md` P3-10, narrowed): entity context
+# for the `pattern:npi` fallback, when the caller knows a recognized
+# business entity name
+# ----------------------------------------------------------------------
+
+
+def test_npi_detector_boosts_confidence_and_clarifies_reason_with_known_business_entity_context() -> None:
+    """Without entity context, `pattern:npi` can only guess -- its own
+    reason honestly says so. With `entity="Provider"` (a business entity
+    this repository's own schema already recognizes), the fallback
+    pattern layer now has real schema-level context to resolve that
+    ambiguity, and returns a confidence-boosted, differently-reasoned
+    hit instead of the generic guess."""
+
+    plain = match_all("referring-npi")
+    plain_npi = next(m for m in plain if m.detector_id == "pattern:npi")
+    assert plain_npi.confidence == 0.7
+    assert "cannot confirm" in plain_npi.reason
+
+    with_context = match_all("referring-npi", entity="Provider")
+    contextual_npi = next(m for m in with_context if m.detector_id == "pattern:npi+entity_context")
+    assert contextual_npi.confidence == 0.95
+    assert contextual_npi.category == plain_npi.category  # still PII -- context clarifies, doesn't invent safety
+    assert "Provider" in contextual_npi.reason
+    assert "business/provider entity" in contextual_npi.reason
+
+
+def test_npi_detector_entity_context_is_case_insensitive_and_covers_both_known_business_entities() -> None:
+    for entity in ("provider", "PROVIDER", "Pharmacy", "pharmacy"):
+        ids = {m.detector_id for m in match_all("referring-npi", entity=entity)}
+        assert "pattern:npi+entity_context" in ids, entity
+
+
+def test_npi_detector_falls_back_to_the_generic_guess_for_an_unrecognized_or_missing_entity() -> None:
+    """The honest, still-open half of P3-10: an entity this repository's
+    schema has never heard of (or no entity at all -- a truly novel
+    source system) gets the unmodified, lower-confidence guess, exactly
+    as before. Entity-name recognition is itself necessarily a fixed,
+    finite list, not a general fix."""
+
+    for entity in (None, "Member", "SomeEntirelyNovelSourceSystemEntity"):
+        ids = {m.detector_id for m in match_all("referring-npi", entity=entity)}
+        assert "pattern:npi" in ids
+        assert "pattern:npi+entity_context" not in ids

@@ -201,9 +201,23 @@ def create_postgres_engine(database_url: str) -> Engine:
     Uses the same models/writer as :func:`create_sqlite_engine` -- see the
     module docstring for why that portability was a deliberate design
     goal.
+
+    Pool resilience (`problems_final_review.md` P2-1, mirrors
+    `control_plane.db.models.create_postgres_engine`): `pool_pre_ping`
+    detects a connection that went stale server-side before handing it
+    to a caller instead of surfacing that failure mid-query;
+    `pool_recycle` bounds connection lifetime against load-balancer/proxy
+    idle timeouts; `pool_size`/`max_overflow` are explicit, sane defaults.
+    Postgres-only -- SQLite has no equivalent staleness failure mode.
     """
 
-    return create_engine(database_url)
+    return create_engine(
+        database_url,
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10,
+        pool_recycle=1800,
+    )
 
 
 def write_postgres_entities(

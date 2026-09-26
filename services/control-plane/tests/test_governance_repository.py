@@ -44,6 +44,7 @@ from control_plane.domain.capacity import CapacityPlanner
 from control_plane.domain.governance import (
     DuplicateBusinessConsumerCodeError,
     GovernanceRepository,
+    InvalidConsumerRequestTransitionError,
     InvalidPolicyApprovalTransitionError,
     PolicyVersionNotApprovedError,
 )
@@ -371,6 +372,108 @@ def test_fulfill_consumer_request_creates_real_environment_dataset_request(
     assert env_request.dataset_name == "left-arm-member-claims-subset"
     assert env_request.environment is Environment.DEV
     assert env_request.consumer == "LEFT_ARM"
+
+
+# ----------------------------------------------------------------------
+# Phase 18B (`problems_final_review.md` P3-4): REJECTED/CANCELLED
+# terminal states
+# ----------------------------------------------------------------------
+
+
+def test_reject_consumer_request_is_a_real_terminal_state(repo: GovernanceRepository) -> None:
+    approved = _approved_policy_version(repo)
+    consumer = repo.register_business_consumer(code="LEFT_ARM", display_name="Left Arm")
+
+    submitted = repo.submit_consumer_request(
+        business_consumer_id=consumer.business_consumer_id,
+        dataset_name="left-arm-member-claims-subset",
+        environment=Environment.DEV,
+        policy_version_id=approved.policy_version_id,
+        subset_size_hint="1% of members",
+        refresh_cadence_type=RefreshCadenceType.WEEKLY,
+        requested_by="left-arm-lead@example.org",
+    )
+
+    rejected = repo.reject_consumer_request(
+        submitted.consumer_request_id,
+        performed_by="platform-admin@example.org",
+        reason="dataset not appropriate for this consumer",
+    )
+    assert rejected.status is ConsumerRequestStatus.REJECTED
+    assert rejected.environment_request_id is None
+    assert "platform-admin@example.org" in rejected.resolution_notes
+    assert "dataset not appropriate for this consumer" in rejected.resolution_notes
+
+    # Terminal: a second resolution attempt of any kind is rejected, not
+    # silently allowed to flip the status again.
+    with pytest.raises(InvalidConsumerRequestTransitionError):
+        repo.reject_consumer_request(submitted.consumer_request_id, performed_by="someone-else")
+    with pytest.raises(InvalidConsumerRequestTransitionError):
+        repo.cancel_consumer_request(submitted.consumer_request_id, performed_by="someone-else")
+    with pytest.raises(InvalidConsumerRequestTransitionError):
+        repo.fulfill_consumer_request(submitted.consumer_request_id, triggered_by="scheduler")
+
+
+def test_cancel_consumer_request_is_a_real_terminal_state(repo: GovernanceRepository) -> None:
+    approved = _approved_policy_version(repo)
+    consumer = repo.register_business_consumer(code="RIGHT_ARM", display_name="Right Arm")
+
+    submitted = repo.submit_consumer_request(
+        business_consumer_id=consumer.business_consumer_id,
+        dataset_name="right-arm-member-claims-subset",
+        environment=Environment.QA,
+        policy_version_id=approved.policy_version_id,
+        subset_size_hint="1% of members",
+        refresh_cadence_type=RefreshCadenceType.WEEKLY,
+        requested_by="right-arm-lead@example.org",
+    )
+
+    cancelled = repo.cancel_consumer_request(
+        submitted.consumer_request_id,
+        performed_by="right-arm-lead@example.org",
+        reason="business need went away",
+    )
+    assert cancelled.status is ConsumerRequestStatus.CANCELLED
+    assert "business need went away" in cancelled.resolution_notes
+
+    with pytest.raises(InvalidConsumerRequestTransitionError):
+        repo.fulfill_consumer_request(submitted.consumer_request_id, triggered_by="scheduler")
+
+
+def test_a_fulfilled_consumer_request_cannot_later_be_rejected_or_cancelled(
+    repo: GovernanceRepository,
+) -> None:
+    """The other direction of terminal-state enforcement: once
+    FULFILLED, a request must not be able to retroactively become
+    REJECTED/CANCELLED -- a real environment provisioning, once done, is
+    not silently undone by a status flip."""
+
+    approved = _approved_policy_version(repo)
+    consumer = repo.register_business_consumer(code="LEFT_ARM", display_name="Left Arm")
+    repo.lifecycle.register_dataset_version(
+        dataset_name="left-arm-member-claims-subset",
+        certification_report=make_certified_report(dataset_name="left-arm-member-claims-subset"),
+        storage_uri="data/tmp/left-arm-run",
+        size_bytes=10_000,
+        row_counts={"member": 10, "claim": 40},
+        created_by="left-arm-lead@example.org",
+    )
+    submitted = repo.submit_consumer_request(
+        business_consumer_id=consumer.business_consumer_id,
+        dataset_name="left-arm-member-claims-subset",
+        environment=Environment.DEV,
+        policy_version_id=approved.policy_version_id,
+        subset_size_hint="1% of members",
+        refresh_cadence_type=RefreshCadenceType.WEEKLY,
+        requested_by="left-arm-lead@example.org",
+    )
+    fulfilled = repo.fulfill_consumer_request(submitted.consumer_request_id, triggered_by="governance-service")
+    assert fulfilled.status is ConsumerRequestStatus.FULFILLED
+
+    with pytest.raises(InvalidConsumerRequestTransitionError):
+        repo.reject_consumer_request(submitted.consumer_request_id, performed_by="platform-admin@example.org")
+    with pytest.raises(InvalidConsumerRequestTransitionError):
+        repo.cancel_consumer_request(submitted.consumer_request_id, performed_by="left-arm-lead@example.org")
 
 
 def test_right_arm_additional_qa_capacity_uses_existing_lifecycle_machinery(

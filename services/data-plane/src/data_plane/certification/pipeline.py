@@ -39,6 +39,7 @@ from pathlib import Path
 from healthcare_tdm_contracts import (
     CertificationReport,
     MaskingPolicy,
+    MaskingRunSummary,
     ScenarioType,
     SubsettingStrategy,
     SyntheticGenerationManifest,
@@ -300,29 +301,28 @@ def _write_masking_summary(
     version metadata) -- `mask_estate` itself does not write this file
     (only the CLI does), and this pipeline needs it on disk for
     `gates.check_manifest_generation` to find, so it writes the same
-    artifact the CLI would have."""
+    artifact the CLI would have.
 
-    import json
+    Phase 18B (`problems_final_review.md` P3-7): constructs the shared
+    `healthcare_tdm_contracts.MaskingRunSummary` contract, the same one
+    `data_plane.masking.cli.main` now builds -- one typed shape for both
+    real writers of this artifact, not two independently-maintained
+    dicts that happened to agree."""
 
-    path.write_text(
-        json.dumps(
-            {
-                "rows_processed": masking_report.rows_processed,
-                "columns_masked": masking_report.columns_masked,
-                "technique_counts": masking_report.technique_counts,
-                "files_written": [str(p) for p in masking_report.files_written],
-                "warning_count": len(masking_report.warnings),
-                "masking_engine_version": masking_report.masking_engine_version,
-                "policy_name": policy.name,
-                "policy_version": policy.version,
-                "validation_passed": masking_validation.passed,
-                "validation_checks": masking_validation.checks_run,
-                "validation_failures": masking_validation.failures,
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
+    summary_model = MaskingRunSummary(
+        rows_processed=masking_report.rows_processed,
+        columns_masked=masking_report.columns_masked,
+        technique_counts=masking_report.technique_counts,
+        files_written=[str(p) for p in masking_report.files_written],
+        warning_count=len(masking_report.warnings),
+        masking_engine_version=masking_report.masking_engine_version,
+        policy_name=policy.name,
+        policy_version=policy.version,
+        validation_passed=masking_validation.passed,
+        validation_checks=masking_validation.checks_run,
+        validation_failures=masking_validation.failures,
     )
+    path.write_text(summary_model.model_dump_json(indent=2), encoding="utf-8")
 
 
 __all__ = ["CertificationPipelineResult", "run_certification_pipeline"]

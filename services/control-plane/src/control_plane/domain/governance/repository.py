@@ -53,6 +53,7 @@ from control_plane.db.models import (
     PolicyApprovalRow,
 )
 from control_plane.domain.governance import state_machine as approval_state_machine
+from control_plane.domain.governance.state_machine import transition_consumer_request
 from control_plane.domain.governance.errors import (
     BusinessConsumerNotFoundError,
     ConsumerDatasetRequestNotFoundError,
@@ -385,6 +386,7 @@ class GovernanceRepository:
         """
 
         row = self._get_request_row(consumer_request_id)
+        transition_consumer_request(ConsumerRequestStatus(row.status), ConsumerRequestStatus.FULFILLED)
         environment = Environment(row.environment)
         cadence_type = RefreshCadenceType(row.refresh_cadence_type)
 
@@ -409,6 +411,41 @@ class GovernanceRepository:
 
         row.status = ConsumerRequestStatus.FULFILLED.value
         row.environment_request_id = str(env_request.request_id)
+        self._session.flush()
+        return self._request_to_contract(row)
+
+    def reject_consumer_request(
+        self, consumer_request_id: UUID | str, *, performed_by: str, reason: str = ""
+    ) -> ConsumerDatasetRequest:
+        """Phase 18B (`problems_final_review.md` P3-4): SUBMITTED ->
+        REJECTED. Terminal -- a platform administrator declined to
+        fulfill this request; see `ConsumerRequestStatus.REJECTED`'s
+        docstring. Raises `InvalidConsumerRequestTransitionError` if the
+        request is not currently SUBMITTED (e.g. already FULFILLED,
+        already REJECTED, or CANCELLED) -- exactly the terminal-state
+        enforcement this finding was about the *absence* of."""
+
+        row = self._get_request_row(consumer_request_id)
+        transition_consumer_request(ConsumerRequestStatus(row.status), ConsumerRequestStatus.REJECTED)
+        row.status = ConsumerRequestStatus.REJECTED.value
+        row.resolution_notes = f"rejected by {performed_by}: {reason}" if reason else f"rejected by {performed_by}"
+        self._session.flush()
+        return self._request_to_contract(row)
+
+    def cancel_consumer_request(
+        self, consumer_request_id: UUID | str, *, performed_by: str, reason: str = ""
+    ) -> ConsumerDatasetRequest:
+        """Phase 18B (`problems_final_review.md` P3-4): SUBMITTED ->
+        CANCELLED. Terminal -- the requesting consumer withdrew the
+        request before it was fulfilled; see
+        `ConsumerRequestStatus.CANCELLED`'s docstring. Same transition
+        enforcement as `reject_consumer_request` (same source status,
+        different terminal outcome, same table entry)."""
+
+        row = self._get_request_row(consumer_request_id)
+        transition_consumer_request(ConsumerRequestStatus(row.status), ConsumerRequestStatus.CANCELLED)
+        row.status = ConsumerRequestStatus.CANCELLED.value
+        row.resolution_notes = f"cancelled by {performed_by}: {reason}" if reason else f"cancelled by {performed_by}"
         self._session.flush()
         return self._request_to_contract(row)
 
@@ -542,6 +579,7 @@ class GovernanceRepository:
                 UUID(row.environment_request_id) if row.environment_request_id else None
             ),
             notes=row.notes,
+            resolution_notes=row.resolution_notes,
         )
 
 

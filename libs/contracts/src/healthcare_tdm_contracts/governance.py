@@ -196,6 +196,15 @@ class BusinessConsumer(BaseModel):
 class ConsumerRequestStatus(str, Enum):
     """Lifecycle of one `ConsumerDatasetRequest`.
 
+    Enforced as a real state machine (not just documentation) by
+    `control_plane.domain.governance.state_machine.transition_consumer_request`
+    -- the same split `data_plane.certification.state_machine` (Phase 6),
+    `control_plane.domain.lifecycle.state_machine` (Phase 7), and this
+    module's own `PolicyApprovalStatus`/`POLICY_APPROVAL_STATUS_TRANSITIONS`
+    (Phase 11) already establish: the transition table is data (this
+    module, `CONSUMER_REQUEST_STATUS_TRANSITIONS`), the enforcement is
+    code (the `governance` domain package).
+
     SUBMITTED
         Recorded, but not yet resolved into a Phase 7
         `EnvironmentDatasetRequest`.
@@ -203,11 +212,52 @@ class ConsumerRequestStatus(str, Enum):
         `GovernanceRepository.fulfill_consumer_request` has called into
         `LifecycleRepository.request_environment` (real Phase 7
         machinery) and recorded the resulting
-        `environment_request_id` here.
+        `environment_request_id` here. Terminal.
+    REJECTED
+        Phase 18B (`problems_final_review.md` P3-4, "no REJECTED/
+        CANCELLED terminal state"): a platform administrator declined to
+        fulfill this request (e.g. the requested dataset/environment
+        combination is not appropriate for this consumer).
+        `GovernanceRepository.reject_consumer_request` records who and
+        why in `resolution_notes`. Terminal -- a rejected request is
+        never retried in place; the consumer submits a new
+        `ConsumerDatasetRequest` instead, exactly like a `REJECTED`
+        `MaskingPolicyVersion` is never retried in place.
+    CANCELLED
+        Phase 18B (P3-4): the requesting consumer withdrew the request
+        before it was fulfilled (e.g. the underlying business need went
+        away). `GovernanceRepository.cancel_consumer_request` records
+        who and why in `resolution_notes`. Terminal, for the same reason
+        REJECTED is.
     """
 
     SUBMITTED = "submitted"
     FULFILLED = "fulfilled"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
+#: Phase 18B (`problems_final_review.md` P3-4): the enforced transition
+#: table for `ConsumerRequestStatus`, mirroring
+#: `POLICY_APPROVAL_STATUS_TRANSITIONS` immediately above. SUBMITTED is
+#: the only non-terminal status -- it may resolve to any of the three
+#: terminal outcomes, but never move between them (a FULFILLED request
+#: cannot later be REJECTED/CANCELLED, matching how a real environment
+#: provisioning, once done, is not silently undone by a status flip).
+CONSUMER_REQUEST_STATUS_TRANSITIONS: dict[
+    "ConsumerRequestStatus", frozenset["ConsumerRequestStatus"]
+] = {
+    ConsumerRequestStatus.SUBMITTED: frozenset(
+        {
+            ConsumerRequestStatus.FULFILLED,
+            ConsumerRequestStatus.REJECTED,
+            ConsumerRequestStatus.CANCELLED,
+        }
+    ),
+    ConsumerRequestStatus.FULFILLED: frozenset(),
+    ConsumerRequestStatus.REJECTED: frozenset(),
+    ConsumerRequestStatus.CANCELLED: frozenset(),
+}
 
 
 class ConsumerDatasetRequest(BaseModel):
@@ -254,9 +304,16 @@ class ConsumerDatasetRequest(BaseModel):
         "calendar/capacity plan rather than a parallel implementation.",
     )
     notes: str = Field(default="")
+    resolution_notes: str = Field(
+        default="",
+        description="Phase 18B (P3-4): who/why for a REJECTED or CANCELLED terminal "
+        "transition, recorded by GovernanceRepository.reject_consumer_request/"
+        "cancel_consumer_request. Empty for SUBMITTED/FULFILLED requests.",
+    )
 
 
 __all__ = [
+    "CONSUMER_REQUEST_STATUS_TRANSITIONS",
     "POLICY_APPROVAL_STATUS_TRANSITIONS",
     "BusinessConsumer",
     "ConsumerDatasetRequest",

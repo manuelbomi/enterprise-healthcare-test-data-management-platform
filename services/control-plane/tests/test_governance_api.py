@@ -112,6 +112,78 @@ def test_policy_version_approval_workflow(client: TestClient) -> None:
     assert fetched.json()["policy_version_id"] == approved["policy_version_id"]
 
 
+def test_approve_and_reject_policy_version_audit_events_record_the_verified_identity_not_free_text(
+    client: TestClient,
+) -> None:
+    """Phase 18B (`problems_final_review.md` P2-13): `approve_policy_version`/
+    `reject_policy_version` already require a verified bearer-token
+    identity (`Depends(get_current_actor)`) for RBAC -- this proves the
+    audit trail's own `actor` field now uses that verified identity
+    (`demo.compliance_approver`, the seeded login username) rather than
+    the unverified `performed_by` free text (`compliance-steward@example.org`)
+    the request body separately carries."""
+
+    from conftest import auth_header
+    from control_plane.platform.rbac import Role
+
+    policy = make_sample_masking_policy(version=1)
+    draft = client.post(
+        "/api/v1/governance/policy-versions",
+        json={
+            "masking_policy": json.loads(policy.model_dump_json()),
+            "masking_engine_version": "1.0.0",
+            "created_by": "governance-admin@example.org",
+        },
+    ).json()
+    client.post(
+        f"/api/v1/governance/policy-versions/{draft['policy_version_id']}/submit",
+        json={"performed_by": "governance-admin@example.org"},
+    )
+
+    approved = client.post(
+        f"/api/v1/governance/policy-versions/{draft['policy_version_id']}/approve",
+        json={"performed_by": "compliance-steward@example.org"},
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
+    )
+    assert approved.status_code == 200, approved.text
+
+    events = client.get(
+        "/api/v1/audit/events",
+        params={"event_type": "policy_approved", "subject": draft["policy_version_id"]},
+    ).json()
+    assert len(events) == 1
+    assert events[0]["actor"] == "demo.compliance_approver"
+    assert events[0]["detail"]["performed_by"] == "compliance-steward@example.org"
+
+    # Same proof for reject_policy_version, against a second draft.
+    draft2 = client.post(
+        "/api/v1/governance/policy-versions",
+        json={
+            "masking_policy": json.loads(make_sample_masking_policy(version=2).model_dump_json()),
+            "masking_engine_version": "1.0.0",
+            "created_by": "governance-admin@example.org",
+        },
+    ).json()
+    client.post(
+        f"/api/v1/governance/policy-versions/{draft2['policy_version_id']}/submit",
+        json={"performed_by": "governance-admin@example.org"},
+    )
+    rejected = client.post(
+        f"/api/v1/governance/policy-versions/{draft2['policy_version_id']}/reject",
+        json={"performed_by": "another-steward@example.org", "comments": "does not meet B.2 requirements"},
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
+    )
+    assert rejected.status_code == 200, rejected.text
+
+    reject_events = client.get(
+        "/api/v1/audit/events",
+        params={"event_type": "policy_rejected", "subject": draft2["policy_version_id"]},
+    ).json()
+    assert len(reject_events) == 1
+    assert reject_events[0]["actor"] == "demo.compliance_approver"
+    assert reject_events[0]["detail"]["performed_by"] == "another-steward@example.org"
+
+
 def test_cannot_approve_a_draft_policy_version(client: TestClient) -> None:
     policy = make_sample_masking_policy()
     draft = client.post(
@@ -237,3 +309,92 @@ def test_both_arms_use_the_same_approved_policy_version_end_to_end(client: TestC
     # governance-specific capacity endpoint of its own.
     plan = client.get("/api/v1/capacity/plan").json()
     assert plan["environment_count"] == 2
+
+
+# ----------------------------------------------------------------------
+# Phase 18B (`problems_final_review.md` P3-4): REJECTED/CANCELLED
+# terminal states, exercised through the real API
+# ----------------------------------------------------------------------
+
+
+def _submit_request(client: TestClient, *, consumer: dict, policy_version_id: str, dataset_name: str) -> dict:
+    response = client.post(
+        "/api/v1/governance/consumer-requests",
+        json={
+            "business_consumer_id": consumer["business_consumer_id"],
+            "dataset_name": dataset_name,
+            "environment": "dev",
+            "policy_version_id": policy_version_id,
+            "subset_size_hint": "1% of members",
+            "refresh_cadence_type": "weekly",
+            "requested_by": "left-arm-lead@example.org",
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def test_reject_consumer_request_returns_terminal_status_and_reason(client: TestClient) -> None:
+    approved = _draft_and_approve_policy(client)
+    consumer = _register_consumer(client, "LEFT_ARM", "Left Arm Business Unit")
+    _register_dataset_version(client, "left-arm-member-claims-subset")
+    submitted = _submit_request(
+        client,
+        consumer=consumer,
+        policy_version_id=approved["policy_version_id"],
+        dataset_name="left-arm-member-claims-subset",
+    )
+
+    rejected = client.post(
+        f"/api/v1/governance/consumer-requests/{submitted['consumer_request_id']}/reject",
+        json={"performed_by": "platform-admin@example.org", "reason": "not appropriate for this consumer"},
+    )
+    assert rejected.status_code == 200, rejected.text
+    body = rejected.json()
+    assert body["status"] == "rejected"
+    assert "platform-admin@example.org" in body["resolution_notes"]
+    assert "not appropriate for this consumer" in body["resolution_notes"]
+
+    # Terminal: a second reject, a cancel, or a fulfill against the same
+    # already-resolved request is refused with 409, not silently allowed.
+    second_reject = client.post(
+        f"/api/v1/governance/consumer-requests/{submitted['consumer_request_id']}/reject",
+        json={"performed_by": "someone-else@example.org"},
+    )
+    assert second_reject.status_code == 409
+    cancel_after_reject = client.post(
+        f"/api/v1/governance/consumer-requests/{submitted['consumer_request_id']}/cancel",
+        json={"performed_by": "someone-else@example.org"},
+    )
+    assert cancel_after_reject.status_code == 409
+    fulfill_after_reject = client.post(
+        f"/api/v1/governance/consumer-requests/{submitted['consumer_request_id']}/fulfill",
+        json={"triggered_by": "governance-service"},
+    )
+    assert fulfill_after_reject.status_code == 409
+
+
+def test_cancel_consumer_request_returns_terminal_status_and_reason(client: TestClient) -> None:
+    approved = _draft_and_approve_policy(client)
+    consumer = _register_consumer(client, "RIGHT_ARM", "Right Arm Business Unit")
+    _register_dataset_version(client, "right-arm-member-claims-subset")
+    submitted = _submit_request(
+        client,
+        consumer=consumer,
+        policy_version_id=approved["policy_version_id"],
+        dataset_name="right-arm-member-claims-subset",
+    )
+
+    cancelled = client.post(
+        f"/api/v1/governance/consumer-requests/{submitted['consumer_request_id']}/cancel",
+        json={"performed_by": "right-arm-lead@example.org", "reason": "business need went away"},
+    )
+    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.json()["status"] == "cancelled"
+    assert "business need went away" in cancelled.json()["resolution_notes"]
+
+    fulfill_after_cancel = client.post(
+        f"/api/v1/governance/consumer-requests/{submitted['consumer_request_id']}/fulfill",
+        json={"triggered_by": "governance-service"},
+    )
+    assert fulfill_after_cancel.status_code == 409

@@ -29,9 +29,10 @@ reproduces the same masked output -- see ADR-0006).
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
+
+from healthcare_tdm_contracts import MaskingRunSummary
 
 from data_plane.discovery.catalog_builder import load_catalog
 from data_plane.masking import secrets as masking_secrets
@@ -132,26 +133,28 @@ def main(argv: list[str] | None = None) -> int:
         for failure in validation.failures:
             print(f"  FAILED: {failure}", file=sys.stderr)
 
-    summary_path = out_dir / "masking_run_summary.json"
-    summary_path.write_text(
-        json.dumps(
-            {
-                "rows_processed": report.rows_processed,
-                "columns_masked": report.columns_masked,
-                "technique_counts": report.technique_counts,
-                "files_written": [str(p) for p in report.files_written],
-                "warning_count": len(report.warnings),
-                "masking_engine_version": report.masking_engine_version,
-                "policy_name": (policy_used.name if policy_used else None),
-                "policy_version": (policy_used.version if policy_used else None),
-                "validation_passed": validation.passed,
-                "validation_checks": validation.checks_run,
-                "validation_failures": validation.failures,
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
+    # Phase 18B (`problems_final_review.md` P3-7): constructs the shared
+    # `healthcare_tdm_contracts.MaskingRunSummary` contract rather than a
+    # raw dict -- the same shape
+    # `data_plane.certification.pipeline._write_masking_summary` builds,
+    # and the one `control_plane.artifacts.masking` now imports directly
+    # to parse this same file back, instead of each of the three
+    # maintaining its own copy of this field list.
+    summary_model = MaskingRunSummary(
+        rows_processed=report.rows_processed,
+        columns_masked=report.columns_masked,
+        technique_counts=report.technique_counts,
+        files_written=[str(p) for p in report.files_written],
+        warning_count=len(report.warnings),
+        masking_engine_version=report.masking_engine_version,
+        policy_name=(policy_used.name if policy_used else None),
+        policy_version=(policy_used.version if policy_used else None),
+        validation_passed=validation.passed,
+        validation_checks=validation.checks_run,
+        validation_failures=validation.failures,
     )
+    summary_path = out_dir / "masking_run_summary.json"
+    summary_path.write_text(summary_model.model_dump_json(indent=2), encoding="utf-8")
     print(f"Run summary: {summary_path}")
 
     return 0 if validation.passed else 2

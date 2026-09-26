@@ -15,6 +15,7 @@ exceptions to HTTP status codes. No business logic lives here -- see
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Iterator
 from datetime import datetime
 from typing import Annotated
@@ -53,6 +54,7 @@ from control_plane.domain.lifecycle import (
 from control_plane.platform.audit import AuditLogRepository
 from control_plane.platform.auth import AuthenticatedActor, get_current_actor
 from control_plane.platform.rbac import AuthorizationError, Permission, authorize
+from control_plane.platform.scheduler_lock import SchedulerLockHeldError, scheduler_sweep_lock
 
 router = APIRouter(prefix="/lifecycle", tags=["lifecycle"])
 
@@ -244,6 +246,36 @@ def register_dataset_version(
     return version
 
 
+_FINAL_ROW_COUNT_RE = re.compile(r"final=(\d+)")
+
+
+def _independently_derived_row_counts(row_count_reconciliation: dict[str, str]) -> dict[str, int]:
+    """Phase 18B (`problems_final_review.md` P2-4): parse the "final=<N>"
+    component out of each entity's entry in
+    `CertificationReport.row_count_reconciliation` -- a human-readable
+    trail built by `data_plane.certification.pipeline` from a real read
+    of the final estate on disk (`final_estate.row_counts()`), not
+    caller-supplied. This is what lets `register_dataset_version_governed`
+    below independently cross-check the caller-supplied `row_counts`
+    parameter against a number the certification pipeline itself already
+    measured, for exactly the entities the report's own trail covers --
+    mirroring ADR-0019's "never trust the caller's claim, re-derive it
+    from an already-governed source" pattern, applied here to row counts
+    instead of policy approval.
+
+    Entities with no parseable "final=" entry (e.g. a hand-built report
+    with no `row_count_reconciliation` at all) are simply absent from the
+    returned dict -- this function never invents a count it cannot
+    actually read back out of the report."""
+
+    derived: dict[str, int] = {}
+    for entity, trail in row_count_reconciliation.items():
+        match = _FINAL_ROW_COUNT_RE.search(trail)
+        if match is not None:
+            derived[entity] = int(match.group(1))
+    return derived
+
+
 @router.post("/dataset-versions/governed", response_model=DatasetVersion, status_code=201)
 def register_dataset_version_governed(
     body: RegisterDatasetVersionRequest,
@@ -298,6 +330,37 @@ def register_dataset_version_governed(
                 f"governance is intentional for this registration. ({exc})"
             ),
         ) from exc
+
+    # Phase 18B (`problems_final_review.md` P2-4, now partially resolved
+    # for the GOVERNED path -- see `_independently_derived_row_counts`'s
+    # own docstring): cross-check `body.row_counts` against whatever the
+    # certification pipeline's own `row_count_reconciliation` trail
+    # already measured, for the entities it covers. `size_bytes` has no
+    # equivalent already-measured source anywhere in `CertificationReport`
+    # -- re-deriving it would need a real control-plane-side storage
+    # adapter (`problems_final_review.md` P2-5), which remains out of
+    # scope; this closes the smaller, genuinely-already-available half
+    # of the gap, not the whole thing.
+    derived_row_counts = _independently_derived_row_counts(
+        body.certification_report.row_count_reconciliation
+    )
+    mismatches = {
+        entity: (body.row_counts.get(entity), derived_count)
+        for entity, derived_count in derived_row_counts.items()
+        if entity in body.row_counts and body.row_counts[entity] != derived_count
+    }
+    if mismatches:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "row_counts does not match the certification report's own "
+                f"row_count_reconciliation trail: {mismatches} (entity -> "
+                "(caller-supplied, independently-derived from the report)). Governed "
+                "registration refuses a row_counts claim that contradicts what the "
+                "certification pipeline itself already measured for the entities its "
+                "own trail covers."
+            ),
+        )
 
     if approved.policy_version != body.certification_report.masking_policy_version:
         raise HTTPException(
@@ -419,11 +482,20 @@ def revoke_dataset_version(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     audit.record(
+        # Phase 18B (`problems_final_review.md` P2-13): the audit
+        # trail's `actor` field now records the verified bearer-token
+        # identity (`actor.username`), not the unverified
+        # `body.revoked_by` free-text field -- `body.revoked_by` itself
+        # is unchanged (still recorded on the domain-level
+        # `DatasetVersionRow`, still free text). Closes the
+        # *audit-trail* half of this gap for this RBAC-gated endpoint
+        # specifically, not every caller-supplied attribution field
+        # platform-wide.
         event_type=AuditEventType.DATASET_VERSION_REVOKED,
-        actor=body.revoked_by,
+        actor=actor.username,
         subject=str(version_id),
         outcome="allowed",
-        detail={"reason": body.reason, "actor_role": actor.role.value, "authenticated_as": actor.username},
+        detail={"reason": body.reason, "actor_role": actor.role.value, "revoked_by": body.revoked_by},
     )
     return version
 
@@ -653,15 +725,17 @@ def rollback_environment_request(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     audit.record(
+        # Phase 18B (`problems_final_review.md` P2-13): see
+        # `revoke_dataset_version`'s identical comment above.
         event_type=AuditEventType.DATASET_VERSION_ROLLED_BACK,
-        actor=body.performed_by,
+        actor=actor.username,
         subject=str(request_id),
         outcome="allowed",
         detail={
             "to_version_number": str(body.to_version_number),
             "reason": body.reason,
             "actor_role": actor.role.value,
-            "authenticated_as": actor.username,
+            "performed_by": body.performed_by,
         },
     )
     return result
@@ -743,7 +817,16 @@ def run_due_refreshes(
     still additionally restrict this endpoint at the network level to a
     trusted internal scheduler (see the module docstring on
     `control_plane.domain.lifecycle.scheduler`); RBAC is defense in
-    depth, not a substitute for that."""
+    depth, not a substitute for that.
+
+    Phase 18B (`problems_final_review.md` P2-2, now resolved): two
+    concurrent calls to this endpoint used to have no application-level
+    mutual exclusion at all -- both would independently compute "what's
+    due" and could both attempt to refresh the same request. It now
+    acquires `control_plane.platform.scheduler_lock`'s real,
+    database-enforced sweep lock before calling the orchestrator; a
+    second, overlapping call is refused with 409 rather than allowed to
+    race the first."""
 
     try:
         authorize(actor.role, Permission.RUN_SCHEDULER)
@@ -759,7 +842,19 @@ def run_due_refreshes(
         raise HTTPException(status_code=403, detail=str(exc)) from exc
 
     orchestrator = LocalRefreshOrchestrator(repository)
-    result = orchestrator.run_due_refreshes(as_of, triggered_by=actor.username)
+    try:
+        with scheduler_sweep_lock(session, acquired_by=actor.username):
+            result = orchestrator.run_due_refreshes(as_of, triggered_by=actor.username)
+    except SchedulerLockHeldError as exc:
+        audit.record(
+            event_type=AuditEventType.ACCESS_DENIED,
+            actor=actor.username,
+            subject="lifecycle/scheduler/run-due",
+            outcome="denied",
+            detail={"reason": "scheduler_lock_held", "held_by": exc.held_by},
+        )
+        session.commit()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     # Phase 18A (P1-5): a real job-event log line -- the request-level
     # middleware in main.py already logs "this endpoint was called";
     # this is the additional, job-specific event (how many requests

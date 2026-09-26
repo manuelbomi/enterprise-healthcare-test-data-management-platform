@@ -37,8 +37,229 @@ repository going forward.
 | 16 | Interview / system design documentation | **Complete** |
 | 17 | Principal-engineer production readiness review (findings only, no fixes) | **Complete** |
 | 18A | Fix/delete cycle for P0/P1 findings from Phase 17 | **Complete** |
-| 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | Not started |
+| 18B | Fix/delete cycle for P2/P3 findings from Phase 17 | **Complete** |
 | Final | Recruiter/interviewer-ready release (README rewrite, demo, checklist) | Not started |
+
+## Phase 18B — what was actually delivered
+
+Resolved 12 of the 23 remaining P2/P3 findings `problems_final_review.md`
+(Phase 17) named after Phase 18A closed all P0/P1s, narrowed 4 more with
+a real (if partial) fix, re-verified 1 as already-adequately-documented,
+and left the remaining 6 explicitly open with updated reasoning citing
+this repository's own precedent for each disproportionately large,
+previously-deferred build it names -- per the phase's own instruction to
+leave a genuinely unresolved issue documented rather than fabricate a
+toy fix. Same fix/delete discipline as Phase 18A throughout: reproduce,
+fix the root cause, add a real regression test, run it, delete the
+finding only after demonstrating the fix with real, executed evidence
+-- never speculatively.
+
+**This run resumed a crashed prior Phase 18B agent.** Its uncommitted
+work covered six findings (P2-1, P2-2, P2-3, P2-10, P2-11, P2-12) with
+real, complete, tested code, but it crashed before deleting any of them
+from `problems_final_review.md`. Every one of those six fixes was
+independently re-verified before being trusted: the full control-plane
+(247 passed) and data-plane (453 passed) suites were re-run from a
+clean state, and every diff was read in full (not just trusted from the
+crashed run's own commentary) before its finding was deleted. P2-9 was
+a fresh fix built in this run, not part of the crashed work.
+
+### Fixed and deleted (12)
+
+- **P2-1** (Postgres engines had zero connection-pool resilience
+  configuration) -- `pool_pre_ping=True`, `pool_recycle=1800`,
+  explicit `pool_size`/`max_overflow` added to every real `create_engine`
+  call for Postgres: `control_plane.db.models.create_postgres_engine`,
+  `control_plane.db.session.get_engine_for_url`,
+  `data_plane.reference_data.postgres_models.create_postgres_engine`.
+  Proven by `test_db_engine_pooling.py` (control-plane) and
+  `test_postgres_engine_pooling.py` (data-plane). *(Verified from the
+  crashed prior run.)*
+- **P2-2** (no distributed lock on concurrent scheduler sweeps) -- a
+  real, database-enforced mutual-exclusion lock,
+  `control_plane.platform.scheduler_lock.scheduler_sweep_lock`, backed
+  by `SchedulerLockRow`'s primary-key constraint (works identically on
+  SQLite and Postgres, unlike `pg_advisory_lock`). Wired into
+  `POST /api/v1/lifecycle/scheduler/run-due`, which now refuses an
+  overlapping sweep with HTTP 409. Migration:
+  `edadf596e1ed_add_scheduler_lock_table.py`. Proven by
+  `test_scheduler_lock.py` and a new test in `test_lifecycle_api.py`.
+  *(Verified from the crashed prior run.)*
+- **P2-3** (retention sweep / vacuum-candidate identification had no
+  automatic trigger) -- `scripts/run_scheduled_maintenance.py`, a real,
+  runnable, idempotent entry point (cron/CronJob-shaped: plain exit
+  code, JSON stdout) that runs the due-refresh sweep, the retention
+  sweep, and vacuum-candidate identification in one call, acquiring
+  P2-2's sweep lock first. Proven by `test_run_scheduled_maintenance.py`.
+  *(Verified from the crashed prior run.)*
+- **P2-9** (`ROADMAP.md`/`docs/interview/`/`docs/tutorial/guide/` code
+  citations had no automated cross-check) --
+  `scripts/check_doc_code_citations.py`, a real, executed cross-check
+  extracting every module-path and route citation from those doc files
+  and verifying each against the live source tree by actual import/
+  `getattr` resolution (module paths) and real `@router` decorators
+  (routes), with a fallback for real `logging.getLogger(...)` namespace
+  citations. Running it found and fixed **two genuinely stale
+  citations** in `docs/interview/scaling.md`: `RefreshPolicy` and
+  `BusinessConsumer` were wrongly attributed to the `control_plane`
+  domain packages that merely *use* them, when both are actually
+  defined in `healthcare_tdm_contracts` -- a real finding, not a
+  hypothetical one. Proven by
+  `test_check_doc_code_citations.py` (3 tests, including negative cases
+  proving the check actually rejects a broken citation).
+- **P2-10** (`infra/terraform/aws/main.tf`'s header cited a phantom
+  "Phase 20") -- corrected to cite the real Phase 12 decision and
+  `azure/main.tf`'s asymmetry. *(Verified from the crashed prior run.)*
+- **P2-11** (`services/governance-service`'s `audit/__init__.py`
+  docstring claimed "Implemented in Phase 3," never true) -- corrected
+  to cite the real Phase 11 implementation in
+  `control_plane.platform.audit` and ADR-0015/0016. *(Verified from the
+  crashed prior run.)*
+- **P2-12** (no `.dockerignore` anywhere) -- added at the repo root and
+  in `frontend/`. *(Verified from the crashed prior run.)*
+- **P3-3** (illustrative capacity scenarios were stateless; nothing
+  could be saved/compared over time) -- `IllustrativeCapacityPlanRow`
+  (migration `9f5e5af6718f`), `control_plane.domain.capacity.scenario_history.CapacityScenarioHistoryRepository`
+  (real, append-only persistence for an already-fully-computed
+  `IllustrativeCapacityPlan` snapshot), and three new endpoints
+  (`POST`/`GET /api/v1/capacity/illustrative-plan/history`,
+  `GET .../history/{id}`). Proven by new tests in
+  `test_capacity_planner.py` and `test_capacity_api.py`.
+- **P3-4** (`ConsumerDatasetRequest` had no REJECTED/CANCELLED terminal
+  state) -- `healthcare_tdm_contracts.CONSUMER_REQUEST_STATUS_TRANSITIONS`,
+  a real, enforced transition table (mirroring
+  `data_plane.certification.state_machine`/`control_plane.domain.lifecycle.state_machine`'s
+  exact pattern), `transition_consumer_request` enforcement in
+  `control_plane.domain.governance.state_machine`, and two new endpoints
+  (`POST /api/v1/governance/consumer-requests/{id}/reject`, `.../cancel`).
+  A `resolution_notes` field (migration `0c097b0a72f8`) records who/why.
+  Proven by 3 new repository tests and 2 new API tests (terminal-state
+  enforcement checked in both directions).
+- **P3-7** (masking run summary had no shared `libs/contracts` shape)
+  -- `healthcare_tdm_contracts.MaskingRunSummary`, now constructed by
+  both real writers (`data_plane.masking.cli.main`,
+  `data_plane.certification.pipeline._write_masking_summary`) and
+  imported directly by the one real reader
+  (`control_plane.artifacts.masking`) instead of three independently-
+  maintained copies of the same shape. Proven by round-trip assertions
+  added to `test_masking_cli.py` and `test_pipeline_against_real_estate.py`.
+- **P3-8** (no `CHANGELOG`, every package pinned at `0.1.0`) --
+  `CHANGELOG.md` added with real Phase 0-18B entries; every workspace
+  package (`libs/contracts`, `services/control-plane`,
+  `services/data-plane`, `services/governance-service`, `frontend`)
+  bumped to `0.2.0`, with the shared cross-package versioning
+  convention documented going forward.
+- **P3-9** (three data-dependent `pytest.skip(...)` calls could
+  silently start skipping) -- `services/data-plane/tests/conftest.py`'s
+  new `record_skip_guard_fired` fixture raises a real `UserWarning` and
+  tallies a per-run terminal-summary line ("N/3 known data-dependent
+  guards fired this run") at all three call sites. Proven by
+  `test_skip_guard_recording.py` (which also caught and fixed a real
+  `conftest.py`-module-name collision bug across sibling test
+  directories while building this).
+
+### Narrowed with a real, proportionate fix; left open with updated reasoning (4)
+
+- **P2-4** (`size_bytes`/`row_counts` trusted as caller-supplied,
+  never independently re-derived) -- `POST /api/v1/lifecycle/dataset-versions/governed`
+  now cross-checks caller-supplied `row_counts` against the "final=<N>"
+  values already recorded in the certification report's own
+  `row_count_reconciliation` trail (real, pipeline-measured, not
+  caller-supplied), refusing registration with 409 on a contradiction,
+  for the entities that trail covers. `size_bytes` has no equivalent
+  already-measured field anywhere in `CertificationReport` and remains
+  fully open (would need either a real storage adapter, P2-5, or a new
+  report field wired through the whole pipeline). The pre-existing
+  ungoverned registration path is deliberately unchanged.
+- **P2-13** (every actor-attribution field is unverified free text) --
+  the four RBAC-gated mutation endpoints that already resolve a
+  verified bearer-token identity (`approve_policy_version`,
+  `reject_policy_version`, `revoke_dataset_version`,
+  `rollback_environment_request`) now record that verified identity
+  (`actor.username`) as the audit event's own `actor` field, instead of
+  the unverified `performed_by`/`revoked_by` free text those same
+  endpoints previously used there (an inconsistency: their RBAC-denial
+  audit events already used the verified identity; their RBAC-allowed
+  ones did not). Every endpoint with no RBAC gate at all -- most of
+  them -- has no verified identity to substitute in and remains
+  unchanged; a real identity provider (ADR-0018's own stated remaining
+  gap) is still the only fix that closes every field at once.
+- **P3-2** (compute-unit-hour estimate is a hardcoded, unbenchmarked
+  constant) -- added a real, cited, now-executable order-of-magnitude
+  sanity check comparing the assumed `ROWS_PER_COMPUTE_UNIT_HOUR` against
+  Phase 14's real, measured `pandas_masking[full_estate]` throughput
+  (~1.9x conservative) -- a sanity check, not a benchmark of this exact
+  constant, which would need real subset+mask+certify pipeline
+  throughput data that does not exist.
+- **P3-10** (`pattern:npi`/name detectors can't distinguish business vs.
+  personal identifiers without schema context) -- `ColumnToClassify.entity`
+  is now threaded into the pattern-based fallback layer
+  (`data_plane.discovery.pattern_rules.match_all`'s new `entity`
+  parameter); when the owning entity is a recognized business entity
+  (`Provider`, `Pharmacy`), a schema-drifted NPI-like column now gets a
+  confidence-boosted, reason-clarified hit instead of the generic
+  name-only guess. A genuinely novel entity name this repository's
+  schema has never seen still gets the unmodified, weaker guess --
+  entity-name recognition is necessarily a fixed, finite list, not
+  semantic understanding.
+
+### Re-verified as already accurate; left open (1)
+
+- **P3-1** (data skew/Delta optimization/autoscaling remain conceptual)
+  -- re-read `docs/SCALE_AND_PERFORMANCE.md` section 6 specifically to
+  check the labeling is still accurate: it is, with a real, specific
+  reason cited for each of the three concepts. No new measurement
+  attempted (would need infrastructure this repository has correctly
+  declined to build); the finding's entry now cites this evidence
+  directly instead of restating Phase 17's original text unchanged.
+
+### Deliberately not built; left open with reasoning citing precedent (6)
+
+Each of these names a disproportionately large, previously-deferred
+build that this phase's own scope-discipline instruction said not to
+fabricate a toy version of. Each entry in `problems_final_review.md` was
+updated (not left as Phase 17's stale original text) to re-confirm the
+gap is still real via a fresh grep/read and to cite the existing
+precedent that already, correctly, deferred it:
+
+- **P2-5** -- no storage adapter (MinIO/S3/ADLS) exists anywhere;
+  `problems_master.md` P0-3, open since Phase 0.
+- **P2-6** -- free-text/NLP-based PHI detection is entirely unbuilt;
+  `problems_phase_02.md` P2-2, `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md`.
+- **P2-7** -- neither Spark job is wired into a job orchestrator, and
+  the pandas-vs-Spark masking comparison is not apples-to-apples;
+  `problems_phase_14.md` P14-4/P14-5.
+- **P2-8** -- no real Delta Lake write exists; `problems_phase_14.md`
+  P14-1, ADR-0017.
+- **P3-5** -- no frontend UI exists for Phase 10 governance;
+  `problems_phase_10.md` P10-4.
+- **P3-6** -- console remains read-only, no in-UI write workflows;
+  `problems_phase_09.md` P9-2.
+
+### Test suite (run fresh, this phase)
+
+| Package | Result |
+|---|---|
+| `libs/contracts` | **62 passed** |
+| `services/control-plane` | **265 passed** |
+| `services/data-plane` | **459 passed** |
+| `services/governance-service` | **2 passed** |
+| **Backend total** | **788 passed, 0 failed** |
+| `frontend` (Vitest) | **40 passed** (11 files) |
+| `frontend` lint | 0 errors |
+| `frontend` build | passes, 286KB bundle (89KB gzip) |
+
+### What remains open, and why (11 findings)
+
+`problems_final_review.md` now carries 11 findings (6 P2, 5 P3), every
+one left open with this phase's own fresh investigation and reasoning
+rather than Phase 17's stale original text: P2-4, P2-5, P2-6, P2-7,
+P2-8, P2-13 (P2); P3-1, P3-2, P3-5, P3-6, P3-10 (P3). None represents
+silently-dropped work -- each is either a genuine residual slice of a
+partially-fixed finding (P2-4, P2-13, P3-2, P3-10), an already-accurate
+existing disclosure (P3-1), or a disproportionately large build this and
+every prior phase that touched it has correctly declined to fabricate a
+toy version of (P2-5, P2-6, P2-7, P2-8, P3-5, P3-6).
 
 ## Phase 18A — what was actually delivered
 

@@ -168,7 +168,7 @@ def test_member_id_masks_consistently_across_postgres_parquet_ndjson_csv(
 
 
 def test_partner_feed_pat_id_alias_shares_scope_with_member_id(
-    real_estate: Path, masked_estate: MaskedEstate
+    real_estate: Path, masked_estate: MaskedEstate, record_skip_guard_fired
 ) -> None:
     """The partner v1 legacy feed calls the member identifier `pat_id`,
     not `member_id`. Verify a member present in both Postgres and the
@@ -184,6 +184,9 @@ def test_partner_feed_pat_id_alias_shares_scope_with_member_id(
     v2_raw_paths = list((real_estate / "partner_lab_feed" / "inbound" / "v2_api_json").glob("*.json"))
     v2_masked_paths = list((masked_root / "partner_lab_feed" / "inbound" / "v2_api_json").glob("*.json"))
     if not v2_raw_paths:
+        # Phase 18B (`problems_final_review.md` P3-9): make this loud,
+        # not silent -- see `conftest.record_skip_guard_fired`.
+        record_skip_guard_fired("no partner v2 records generated at this seed/scale")
         pytest.skip("no partner v2 records generated at this seed/scale")
 
     raw_rows = json.loads(v2_raw_paths[0].read_text())
@@ -195,6 +198,9 @@ def test_partner_feed_pat_id_alias_shares_scope_with_member_id(
 
     match = raw_members.index[raw_members["member_id"] == raw_pat_id]
     if len(match) == 0:
+        # Phase 18B (`problems_final_review.md` P3-9): make this loud,
+        # not silent -- see `conftest.record_skip_guard_fired`.
+        record_skip_guard_fired("partner sample member is not also enrolled in postgres at this seed")
         pytest.skip("partner sample member is not also enrolled in postgres at this seed")
     token_pg = masked_members.loc[match[0], "member_id"]
     assert token_pg == masked_pat_id

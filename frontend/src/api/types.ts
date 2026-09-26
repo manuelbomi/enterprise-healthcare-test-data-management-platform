@@ -567,7 +567,11 @@ export interface BusinessConsumer {
   created_at: string;
 }
 
-export type ConsumerRequestStatus = "submitted" | "fulfilled";
+// Phase 18B (`problems_final_review.md` P3-4): REJECTED/CANCELLED added
+// as real terminal states alongside FULFILLED -- see
+// `healthcare_tdm_contracts.governance.ConsumerRequestStatus`'s own
+// docstring for what each means.
+export type ConsumerRequestStatus = "submitted" | "fulfilled" | "rejected" | "cancelled";
 
 export interface ConsumerDatasetRequest {
   consumer_request_id: string;
@@ -586,6 +590,9 @@ export interface ConsumerDatasetRequest {
   status: ConsumerRequestStatus;
   environment_request_id: string | null;
   notes: string;
+  // Phase 18B (P3-4): who/why for a REJECTED/CANCELLED resolution; empty
+  // for SUBMITTED/FULFILLED requests.
+  resolution_notes: string;
 }
 
 // ---------------------------------------------------------------------

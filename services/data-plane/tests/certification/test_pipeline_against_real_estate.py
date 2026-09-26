@@ -52,6 +52,20 @@ def test_pipeline_reaches_certified_for_a_healthy_tiny_scale_run(
     assert signing.verify_report_signature(report, signing_key) is True
     assert result.report_path.exists()
 
+    # Phase 18B (`problems_final_review.md` P3-7): the pipeline's own
+    # `masking_run_summary.json` writer now constructs the shared
+    # `healthcare_tdm_contracts.MaskingRunSummary` contract -- the exact
+    # same class `data_plane.masking.cli.main`'s writer and
+    # `control_plane.artifacts.masking`'s reader use. Real proof this
+    # pipeline's artifact validates cleanly against that one shared shape.
+    from healthcare_tdm_contracts import MaskingRunSummary
+
+    summary_path = result.masked_dir / "masking_run_summary.json"
+    assert summary_path.exists()
+    summary = MaskingRunSummary.model_validate_json(summary_path.read_text(encoding="utf-8"))
+    assert summary.validation_passed is True
+    assert summary.masking_engine_version == "1.0.0"
+
 
 def test_pipeline_with_auto_publish_reaches_published(
     real_estate: Path, tmp_path: Path, masking_key: bytes, signing_key: bytes

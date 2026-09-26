@@ -38,6 +38,7 @@ from control_plane.domain.governance import (
     BusinessConsumerNotFoundError,
     ConsumerDatasetRequestNotFoundError,
     GovernanceRepository,
+    InvalidConsumerRequestTransitionError,
     InvalidPolicyApprovalTransitionError,
     MaskingPolicyVersionNotFoundError,
     PolicyVersionNotApprovedError,
@@ -109,6 +110,16 @@ class SubmitConsumerRequestBody(BaseModel):
 
 class FulfillConsumerRequestBody(BaseModel):
     triggered_by: str = Field(default="governance-service")
+
+
+class ResolveConsumerRequestBody(BaseModel):
+    """Phase 18B (`problems_final_review.md` P3-4): shared request body
+    for both `reject_consumer_request`/`cancel_consumer_request` -- same
+    shape (who + an optional free-text reason), same as
+    `FulfillConsumerRequestBody`'s own "who triggered this" convention."""
+
+    performed_by: str = Field(default="governance-service")
+    reason: str = Field(default="")
 
 
 # ----------------------------------------------------------------------
@@ -252,11 +263,21 @@ def approve_policy_version(
     except InvalidPolicyApprovalTransitionError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     audit.record(
+        # Phase 18B (`problems_final_review.md` P2-13): the audit
+        # trail's own `actor` field -- what `docs/COMPLIANCE_EVIDENCE.md`
+        # says an auditor would rely on -- now records the verified
+        # bearer-token identity (`actor.username`), not the unverified
+        # `body.performed_by` free-text field. `body.performed_by`
+        # itself is unchanged (still recorded on the domain-level
+        # `PolicyApproval` row, still free text -- this closes the
+        # *audit-trail* half of the gap, not every occurrence of
+        # caller-supplied attribution platform-wide; see the module
+        # docstring cross-reference this finding's entry now carries).
         event_type=AuditEventType.POLICY_APPROVED,
-        actor=body.performed_by,
+        actor=actor.username,
         subject=str(policy_version_id),
         outcome="allowed",
-        detail={"comments": body.comments, "actor_role": actor.role.value, "authenticated_as": actor.username},
+        detail={"comments": body.comments, "actor_role": actor.role.value, "performed_by": body.performed_by},
     )
     return result
 
@@ -293,11 +314,15 @@ def reject_policy_version(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     audit.record(
+        # Phase 18B (`problems_final_review.md` P2-13): see
+        # `approve_policy_version`'s identical comment above -- the
+        # audit trail's `actor` field is now the verified bearer-token
+        # identity, not the unverified `body.performed_by`.
         event_type=AuditEventType.POLICY_REJECTED,
-        actor=body.performed_by,
+        actor=actor.username,
         subject=str(policy_version_id),
         outcome="allowed",
-        detail={"comments": body.comments, "actor_role": actor.role.value, "authenticated_as": actor.username},
+        detail={"comments": body.comments, "actor_role": actor.role.value, "performed_by": body.performed_by},
     )
     return result
 
@@ -413,12 +438,77 @@ def fulfill_consumer_request(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except NoActiveDatasetVersionError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except InvalidConsumerRequestTransitionError as exc:
+        # Phase 18B (P3-4): the request is not currently SUBMITTED (e.g.
+        # already FULFILLED, REJECTED, or CANCELLED) -- refused, not a
+        # 500, exactly like the other two `Invalid*TransitionError`
+        # cases this router already translates.
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     audit.record(
         event_type=AuditEventType.CONSUMER_REQUEST_FULFILLED,
         actor=body.triggered_by,
         subject=str(consumer_request_id),
         outcome="allowed",
         detail={"environment_request_id": str(result.environment_request_id)},
+    )
+    return result
+
+
+@router.post("/consumer-requests/{consumer_request_id}/reject", response_model=ConsumerDatasetRequest)
+def reject_consumer_request(
+    consumer_request_id: UUID,
+    body: ResolveConsumerRequestBody,
+    repository: GovernanceRepository = Depends(get_governance_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
+) -> ConsumerDatasetRequest:
+    """Phase 18B (`problems_final_review.md` P3-4): SUBMITTED -> REJECTED.
+    Terminal. Rejected with 409 if the request is not currently
+    SUBMITTED (e.g. already FULFILLED/REJECTED/CANCELLED) -- see
+    `GovernanceRepository.reject_consumer_request`."""
+
+    try:
+        result = repository.reject_consumer_request(
+            consumer_request_id, performed_by=body.performed_by, reason=body.reason
+        )
+    except ConsumerDatasetRequestNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except InvalidConsumerRequestTransitionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    audit.record(
+        event_type=AuditEventType.CONSUMER_REQUEST_REJECTED,
+        actor=body.performed_by,
+        subject=str(consumer_request_id),
+        outcome="allowed",
+        detail={"reason": body.reason},
+    )
+    return result
+
+
+@router.post("/consumer-requests/{consumer_request_id}/cancel", response_model=ConsumerDatasetRequest)
+def cancel_consumer_request(
+    consumer_request_id: UUID,
+    body: ResolveConsumerRequestBody,
+    repository: GovernanceRepository = Depends(get_governance_repository),
+    audit: AuditLogRepository = Depends(get_audit_log),
+) -> ConsumerDatasetRequest:
+    """Phase 18B (`problems_final_review.md` P3-4): SUBMITTED -> CANCELLED.
+    Terminal. Rejected with 409 if the request is not currently
+    SUBMITTED -- see `GovernanceRepository.cancel_consumer_request`."""
+
+    try:
+        result = repository.cancel_consumer_request(
+            consumer_request_id, performed_by=body.performed_by, reason=body.reason
+        )
+    except ConsumerDatasetRequestNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except InvalidConsumerRequestTransitionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    audit.record(
+        event_type=AuditEventType.CONSUMER_REQUEST_CANCELLED,
+        actor=body.performed_by,
+        subject=str(consumer_request_id),
+        outcome="allowed",
+        detail={"reason": body.reason},
     )
     return result
 

@@ -133,3 +133,66 @@ def test_governed_registration_succeeds_when_the_report_matches_the_approved_pol
     assert registered
     assert registered[0]["detail"]["governed"] == "true"
     assert registered[0]["detail"]["approved_policy_version_id"] == approved["policy_version_id"]
+
+
+# ----------------------------------------------------------------------
+# Phase 18B (`problems_final_review.md` P2-4): independently re-derived
+# row_counts, for the entities the certification report's own
+# row_count_reconciliation trail covers
+# ----------------------------------------------------------------------
+
+
+def test_governed_registration_rejects_a_row_counts_claim_that_contradicts_the_reports_own_trail(
+    client: TestClient,
+) -> None:
+    """`make_certified_report`'s `row_count_reconciliation` says
+    `"member": "source=26 selected=10 final=10"` -- a caller claiming
+    `row_counts={"member": 999}` (contradicting the certification
+    pipeline's own measured final count) must be refused, not silently
+    trusted."""
+
+    _draft_and_approve_policy(client, version=1)
+    body = _register_body("governed-ds-row-count-mismatch", policy_version=1)
+    body["row_counts"] = {"member": 999}
+
+    response = client.post("/api/v1/lifecycle/dataset-versions/governed", json=body)
+    assert response.status_code == 409
+    assert "row_counts does not match the certification report's own" in response.json()["detail"]
+    assert "'member': (999, 10)" in response.json()["detail"]
+
+
+def test_governed_registration_succeeds_when_row_counts_matches_the_reports_own_trail(
+    client: TestClient,
+) -> None:
+    """The positive case: `row_counts={"member": 10}` agrees with the
+    report's own `final=10` for `member`, so registration is not
+    refused -- this is the same `_register_body` default every other
+    passing test in this file already relies on, made explicit here as
+    its own dedicated proof of the new re-derivation check."""
+
+    _draft_and_approve_policy(client, version=1)
+    response = client.post(
+        "/api/v1/lifecycle/dataset-versions/governed",
+        json=_register_body("governed-ds-row-count-match", policy_version=1),
+    )
+    assert response.status_code == 201, response.text
+
+
+def test_governed_registration_does_not_check_entities_absent_from_the_reports_own_trail(
+    client: TestClient,
+) -> None:
+    """`row_count_reconciliation` only covers `member` in this fixture
+    -- a caller-supplied `row_counts["claim"]` has nothing to be
+    cross-checked against, so it is accepted as-is (this function never
+    invents a count it cannot actually read back out of the report; see
+    `_independently_derived_row_counts`'s own docstring). Not a full fix
+    for P2-4 (this is exactly the documented remaining gap for entities/
+    fields the report's own trail does not cover, e.g. `size_bytes`
+    entirely), but a real, proportionate narrowing of it."""
+
+    _draft_and_approve_policy(client, version=1)
+    body = _register_body("governed-ds-untracked-entity", policy_version=1)
+    body["row_counts"]["claim"] = 999_999  # not present in row_count_reconciliation at all
+
+    response = client.post("/api/v1/lifecycle/dataset-versions/governed", json=body)
+    assert response.status_code == 201, response.text

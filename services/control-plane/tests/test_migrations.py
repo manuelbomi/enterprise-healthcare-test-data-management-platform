@@ -56,11 +56,13 @@ EXPECTED_TABLES = {
     "dataset_version",
     "dead_letter_event",
     "environment_dataset_request",
+    "illustrative_capacity_plan",
     "masking_policy_version",
     "policy_approval",
     "refresh_policy",
     "refresh_run",
     "rollback_event",
+    "scheduler_lock",
 }
 
 

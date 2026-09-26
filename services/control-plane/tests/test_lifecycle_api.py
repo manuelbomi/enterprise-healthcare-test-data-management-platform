@@ -298,6 +298,58 @@ def test_revoke_dataset_version_endpoint(client: TestClient) -> None:
     assert blocked.status_code == 409
 
 
+def test_revoke_and_rollback_audit_events_record_the_verified_identity_not_free_text(
+    client: TestClient,
+) -> None:
+    """Phase 18B (`problems_final_review.md` P2-13): `revoke_dataset_version`/
+    `rollback_environment_request` already require a verified
+    bearer-token identity for RBAC -- this proves the audit trail's own
+    `actor` field now uses that verified identity (the seeded login
+    username), not the unverified `revoked_by`/`performed_by` free text
+    the request body separately carries."""
+
+    v1 = _register_version(client, dataset_name="ds")
+    request = client.post(
+        "/api/v1/lifecycle/environment-requests",
+        json={"environment": "dev", "dataset_name": "ds", "requested_by": "a"},
+    ).json()
+    _register_version(client, dataset_name="ds")  # v2
+    client.post(
+        f"/api/v1/lifecycle/environment-requests/{request['request_id']}/refresh",
+        json={"triggered_by": "a", "trigger": "on_demand"},
+    )
+
+    rollback = client.post(
+        f"/api/v1/lifecycle/environment-requests/{request['request_id']}/rollback",
+        json={"to_version_number": 1, "performed_by": "oncall@example.org", "reason": "v2 broke the build"},
+        headers=auth_header(client, Role.DATA_STEWARD),
+    )
+    assert rollback.status_code == 200, rollback.text
+
+    rollback_events = client.get(
+        "/api/v1/audit/events",
+        params={"event_type": "dataset_version_rolled_back", "subject": request["request_id"]},
+    ).json()
+    assert len(rollback_events) == 1
+    assert rollback_events[0]["actor"] == "demo.data_steward"
+    assert rollback_events[0]["detail"]["performed_by"] == "oncall@example.org"
+
+    revoke = client.post(
+        f"/api/v1/lifecycle/dataset-versions/{v1['version_id']}/revoke",
+        json={"reason": "policy defect discovered", "revoked_by": "security@example.org"},
+        headers=auth_header(client, Role.COMPLIANCE_APPROVER),
+    )
+    assert revoke.status_code == 200, revoke.text
+
+    revoke_events = client.get(
+        "/api/v1/audit/events",
+        params={"event_type": "dataset_version_revoked", "subject": v1["version_id"]},
+    ).json()
+    assert len(revoke_events) == 1
+    assert revoke_events[0]["actor"] == "demo.compliance_approver"
+    assert revoke_events[0]["detail"]["revoked_by"] == "security@example.org"
+
+
 def test_scheduler_due_endpoint_lists_and_runs_due_refreshes(client: TestClient) -> None:
     _register_version(client, dataset_name="ds")
     request = client.post(
@@ -336,6 +388,66 @@ def test_scheduler_due_endpoint_lists_and_runs_due_refreshes(client: TestClient)
     body = swept.json()
     assert body["succeeded_count"] == 1
     assert body["failed_count"] == 0
+
+
+def test_run_due_refreshes_is_refused_while_another_sweep_holds_the_lock(
+    client: TestClient, tmp_path: Path
+) -> None:
+    """`problems_final_review.md` P2-2, now resolved: a second,
+    overlapping `POST /scheduler/run-due` call must not be allowed to
+    race the first -- it is refused with 409, not silently duplicated
+    or silently allowed to interleave."""
+
+    from datetime import datetime, timedelta, timezone
+
+    from control_plane.db.models import SchedulerLockRow, create_sqlite_engine
+    from control_plane.db.session import build_session_factory
+    from control_plane.platform.scheduler_lock import LIFECYCLE_SCHEDULER_SWEEP_LOCK
+
+    _register_version(client, dataset_name="ds")
+    client.post(
+        "/api/v1/lifecycle/environment-requests",
+        json={"environment": "dev", "dataset_name": "ds", "requested_by": "a"},
+    )
+    far_future = (datetime.now(timezone.utc) + timedelta(days=400)).isoformat()
+
+    # Simulate an already-in-progress sweep by taking the lock directly
+    # against the same on-disk database `client` points at, exactly the
+    # way a real overlapping second `run-due` caller would find it held.
+    engine = create_sqlite_engine(str(tmp_path / "lifecycle.db"))
+    factory = build_session_factory(engine)
+    holder_session = factory()
+    holder_session.add(
+        SchedulerLockRow(
+            lock_name=LIFECYCLE_SCHEDULER_SWEEP_LOCK,
+            acquired_by="another-sweep-in-progress",
+            acquired_at=datetime.now(timezone.utc),
+        )
+    )
+    holder_session.commit()
+
+    refused = client.post(
+        "/api/v1/lifecycle/scheduler/run-due",
+        params={"as_of": far_future},
+        headers=auth_header(client, Role.PLATFORM_ADMIN),
+    )
+    assert refused.status_code == 409
+    assert "another-sweep-in-progress" in refused.text
+
+    # Release the lock (simulating the first sweep finishing) -- the
+    # next call succeeds normally.
+    holder_session.query(SchedulerLockRow).filter(
+        SchedulerLockRow.lock_name == LIFECYCLE_SCHEDULER_SWEEP_LOCK
+    ).delete()
+    holder_session.commit()
+    holder_session.close()
+
+    swept = client.post(
+        "/api/v1/lifecycle/scheduler/run-due",
+        params={"as_of": far_future},
+        headers=auth_header(client, Role.PLATFORM_ADMIN),
+    )
+    assert swept.status_code == 200
 
 
 # ----------------------------------------------------------------------

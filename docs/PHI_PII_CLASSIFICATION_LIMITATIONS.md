@@ -65,11 +65,23 @@ A regex matching a column name has no idea what the column actually
 
 - `pattern:npi` cannot tell whether a given NPI column belongs to a
   provider (business identifier, often public) or, in some other source
-  system, a person in a different role. It gets this right for the real
-  Phase 1 estate only because the schema layer (which does know the
-  owning entity) takes precedence for every column that's a literal field
-  of a known entity. A novel source system with no schema entry gets the
-  pattern layer's weaker guess. See `problems_phase_02.md` P2-1.
+  system, a person in a different role, from the column name alone. It
+  gets this right for the real Phase 1 estate whenever the schema layer
+  (which does know the owning entity) takes precedence for every column
+  that's a literal field of a known entity. Phase 18B
+  (`problems_final_review.md` P3-10) narrowed, but did not eliminate,
+  the *next* weakest case: a column that is **not** a literal schema
+  field (a renamed/drifted variant) but whose owning entity name the
+  caller still supplies and this repository's schema still recognizes as
+  a business entity (`Provider`, `Pharmacy`) now gets a
+  confidence-boosted, entity-context-aware `pattern:npi+entity_context`
+  hit instead of the generic name-only guess (`data_plane.discovery.pattern_rules.match_all`'s
+  `entity` parameter, threaded through from `ClassificationEngine`). A
+  genuinely novel source system whose entity name this repository's
+  schema has never seen at all still gets the unmodified, weaker,
+  name-only guess -- entity-name recognition is itself necessarily a
+  fixed, finite list, the same limitation every schema-based mechanism in
+  this engine already has. See `problems_phase_02.md` P2-1.
 - The engine has no idea what a `specialty` value like "Behavioral
   Health" *means* until a human tells it (`manual_overrides.yaml`'s first
   worked example) — it cannot infer sensitivity from cell *values* in

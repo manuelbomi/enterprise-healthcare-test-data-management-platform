@@ -2,18 +2,22 @@
 (Phase 3's `data_plane.masking.cli` / `data_plane.certification.pipeline`
 output).
 
-`MaskingRunReport` (`data_plane.masking.dataset_masker`) is a data-plane-
-local `@dataclass`, not a `libs/contracts` Pydantic model -- unlike
-`SubsetManifest`/`SyntheticGenerationManifest`/`CertificationReport`,
-there is no shared typed contract for a masking run summary yet (tracked
-as a follow-up in `problems_phase_09.md`). `MaskingRunSummary` below is a
-control-plane-local Pydantic model that mirrors the exact JSON shape both
-`data_plane.masking.cli.main` and
-`data_plane.certification.pipeline._write_masking_summary` write --
-duplicated, typed parsing of a JSON shape, exactly the same deliberate
-cost ADR-0009 already accepts for the catalog artifact ("a small amount
-of duplicated logic... the deliberate cost of not sharing an in-process
-function across the plane boundary").
+`MaskingRunReport` (`data_plane.masking.dataset_masker`) is still a
+data-plane-local `@dataclass`, not a `libs/contracts` Pydantic model --
+that stays as-is (it is the in-process return value of `mask_estate`,
+never itself serialized to disk). What *is* serialized to disk,
+`masking_run_summary.json`, now has a real shared contract: Phase 18B
+(`problems_final_review.md` P3-7, tracked since `problems_phase_09.md`)
+promoted the Pydantic model that used to be defined here, duplicating
+the exact JSON shape both `data_plane.masking.cli.main` and
+`data_plane.certification.pipeline._write_masking_summary` wrote by
+hand, into `healthcare_tdm_contracts.MaskingRunSummary` -- both real
+writers now construct that shared class directly (see either module's
+own docstring), and this reader now imports the same class rather than
+maintaining its own mirror of it. `MaskingRunRecord` below (this
+artifact's on-disk location plus its parsed summary) remains
+control-plane-local, since "where on disk this repository found it" is
+not part of the shared shape any writer produces.
 """
 
 from __future__ import annotations
@@ -21,27 +25,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from healthcare_tdm_contracts import MaskingRunSummary
+from pydantic import BaseModel
 
 
 class MaskingArtifactNotAvailableError(RuntimeError):
     """Raised when the configured root contains no masking run artifacts."""
-
-
-class MaskingRunSummary(BaseModel):
-    """Mirrors the JSON object `masking_run_summary.json` contains."""
-
-    rows_processed: int = 0
-    columns_masked: int = 0
-    technique_counts: dict[str, int] = Field(default_factory=dict)
-    files_written: list[str] = Field(default_factory=list)
-    warning_count: int = 0
-    masking_engine_version: str = ""
-    policy_name: str | None = None
-    policy_version: int | None = None
-    validation_passed: bool = False
-    validation_checks: list[str] = Field(default_factory=list)
-    validation_failures: list[str] = Field(default_factory=list)
 
 
 class MaskingRunRecord(BaseModel):

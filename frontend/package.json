@@ -1,6 +1,6 @@
 {
   "name": "tdm-console",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "UI console for the enterprise healthcare test data management platform: request, inspect, and certify test data. Talks only to the control-plane REST API.",
   "type": "module",

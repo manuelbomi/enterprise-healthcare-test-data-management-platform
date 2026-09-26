@@ -81,3 +81,15 @@ def test_end_to_end_cli_run_against_a_real_tiny_estate(
     assert summary["validation_passed"] is True
     assert summary["columns_masked"] > 0
     assert "tokenization" in summary["technique_counts"]
+
+    # Phase 18B (`problems_final_review.md` P3-7): this artifact is now
+    # constructed from -- and therefore must validate cleanly against --
+    # the shared `healthcare_tdm_contracts.MaskingRunSummary` contract,
+    # the same class `control_plane.artifacts.masking` imports to read
+    # this exact file back. Real proof the writer and reader agree on
+    # one shape, not two independently-maintained ones.
+    from healthcare_tdm_contracts import MaskingRunSummary
+
+    parsed = MaskingRunSummary.model_validate(summary)
+    assert parsed.validation_passed is True
+    assert parsed.columns_masked == summary["columns_masked"]

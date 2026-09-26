@@ -26,12 +26,19 @@ from healthcare_tdm_contracts import (
     EnvironmentCapacityDemand,
     IllustrativeCapacityPlan,
     IllustrativeCapacityScenario,
+    SavedIllustrativeCapacityPlan,
     VacuumCandidate,
 )
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from control_plane.api.v1.lifecycle import get_db_session
-from control_plane.domain.capacity import CapacityPlanner, illustrative_capacity_plan
+from control_plane.domain.capacity import (
+    CapacityPlanner,
+    CapacityScenarioHistoryRepository,
+    SavedIllustrativeCapacityPlanNotFoundError,
+    illustrative_capacity_plan,
+)
 from control_plane.domain.lifecycle import (
     DatasetVersionNotFoundError,
     EnvironmentRequestNotFoundError,
@@ -43,6 +50,20 @@ router = APIRouter(prefix="/capacity", tags=["capacity"])
 
 def get_capacity_planner(session: Session = Depends(get_db_session)) -> CapacityPlanner:
     return CapacityPlanner(LifecycleRepository(session))
+
+
+def get_capacity_scenario_history(
+    session: Session = Depends(get_db_session),
+) -> CapacityScenarioHistoryRepository:
+    return CapacityScenarioHistoryRepository(session)
+
+
+class SaveIllustrativeCapacityPlanRequest(BaseModel):
+    """Phase 18B (`problems_final_review.md` P3-3): the scenario to
+    compute and persist in one call, plus who saved it."""
+
+    scenario: IllustrativeCapacityScenario
+    created_by: str = Field(default="platform-admin")
 
 
 @router.get("/dataset-versions/{version_id}/footprint", response_model=DatasetVersionFootprint)
@@ -131,4 +152,52 @@ def post_illustrative_plan(scenario: IllustrativeCapacityScenario) -> Illustrati
     return illustrative_capacity_plan(scenario)
 
 
-__all__ = ["get_capacity_planner", "router"]
+@router.post("/illustrative-plan/history", response_model=SavedIllustrativeCapacityPlan, status_code=201)
+def save_illustrative_plan(
+    body: SaveIllustrativeCapacityPlanRequest,
+    history: CapacityScenarioHistoryRepository = Depends(get_capacity_scenario_history),
+) -> SavedIllustrativeCapacityPlan:
+    """Phase 18B (`problems_final_review.md` P3-3, now resolved):
+    compute `body.scenario` (the same pure calculation
+    `POST /illustrative-plan` does) and persist the resulting
+    `IllustrativeCapacityPlan` as a new, immutable historical record --
+    the real, minimal fix for "nothing can be saved/compared over time."
+    See `GET /illustrative-plan/history` to list every saved plan."""
+
+    plan = illustrative_capacity_plan(body.scenario)
+    saved_plan_id = history.save_plan(plan, created_by=body.created_by)
+    return SavedIllustrativeCapacityPlan(
+        saved_plan_id=saved_plan_id, created_by=body.created_by, created_at=plan.generated_at, plan=plan
+    )
+
+
+@router.get("/illustrative-plan/history", response_model=list[SavedIllustrativeCapacityPlan])
+def list_illustrative_plan_history(
+    history: CapacityScenarioHistoryRepository = Depends(get_capacity_scenario_history),
+) -> list[SavedIllustrativeCapacityPlan]:
+    """Every saved plan, oldest first -- enough to list, label, and diff
+    two saved plans client-side to answer "how did this scenario change
+    since last time," the real "compare over time" this finding named as
+    missing."""
+
+    return [
+        SavedIllustrativeCapacityPlan(saved_plan_id=saved_id, created_by=created_by, created_at=created_at, plan=plan)
+        for saved_id, created_by, created_at, plan in history.list_plans()
+    ]
+
+
+@router.get("/illustrative-plan/history/{saved_plan_id}", response_model=SavedIllustrativeCapacityPlan)
+def get_illustrative_plan_history_entry(
+    saved_plan_id: UUID,
+    history: CapacityScenarioHistoryRepository = Depends(get_capacity_scenario_history),
+) -> SavedIllustrativeCapacityPlan:
+    try:
+        saved_id, created_by, created_at, plan = history.get_plan(saved_plan_id)
+    except SavedIllustrativeCapacityPlanNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return SavedIllustrativeCapacityPlan(
+        saved_plan_id=saved_id, created_by=created_by, created_at=created_at, plan=plan
+    )
+
+
+__all__ = ["get_capacity_planner", "get_capacity_scenario_history", "router"]

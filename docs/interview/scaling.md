@@ -87,14 +87,16 @@ universal rule.
 ## Q: How do you manage weekly refreshes across 50 teams?
 
 **The real mechanism, demonstrated with two consumers, designed to
-generalize to fifty:** Phase 7's `control_plane.domain.lifecycle.RefreshPolicy`
+generalize to fifty:** Phase 7's `healthcare_tdm_contracts.RefreshPolicy`
+(the contract type `control_plane.domain.lifecycle` reads/writes)
 + `cadence.py` gives every environment a runtime-configurable refresh
 cadence (`PUT /api/v1/lifecycle/refresh-policies`, never hardcoded) — this
 repository's own five example environments run DEV/QA weekly, SIT biweekly,
 UAT release-driven, PERFORMANCE monthly/on-demand, each with correctly
 computed `next_refresh_at` demonstrated in a real run
 (`scripts/demo_phase7_lifecycle.py`). Phase 10's
-`control_plane.domain.governance.BusinessConsumer`/`ConsumerDatasetRequest`
+`healthcare_tdm_contracts.BusinessConsumer`/`ConsumerDatasetRequest`
+(likewise contract types `control_plane.domain.governance` operates on)
 is the layer that scales this from "five environments" to "N organizational
 consumers": a `ConsumerDatasetRequest` carries its own subset-size hint and
 refresh cadence, and `GovernanceRepository.fulfill_consumer_request` calls

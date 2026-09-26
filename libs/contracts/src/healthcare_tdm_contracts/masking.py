@@ -251,3 +251,35 @@ class MaskingPolicy(BaseModel):
         default=None, description="Identity that approved this policy version, if approved."
     )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class MaskingRunSummary(BaseModel):
+    """The shared, typed shape of one `masking_run_summary.json` artifact.
+
+    Phase 18B (`problems_final_review.md` P3-7, tracked since
+    `problems_phase_09.md`): before this class existed, both real
+    writers of this artifact --
+    `data_plane.masking.cli.main` and
+    `data_plane.certification.pipeline._write_masking_summary` -- built
+    the identical JSON shape by hand with a raw `dict`/`json.dumps`, and
+    the one real *reader*,
+    `control_plane.artifacts.masking.MaskingRunSummary`, duplicated that
+    same shape again as a control-plane-local Pydantic model (explicitly
+    documented there as "no shared typed contract... yet"). This class
+    is that shared contract: both writers now construct it and call
+    `.model_dump_json()`, and the control-plane reader now imports this
+    class directly instead of maintaining its own mirror -- one typed
+    shape, not three copies of the same field list.
+    """
+
+    rows_processed: int = 0
+    columns_masked: int = 0
+    technique_counts: dict[str, int] = Field(default_factory=dict)
+    files_written: list[str] = Field(default_factory=list)
+    warning_count: int = 0
+    masking_engine_version: str = ""
+    policy_name: str | None = None
+    policy_version: int | None = None
+    validation_passed: bool = False
+    validation_checks: list[str] = Field(default_factory=list)
+    validation_failures: list[str] = Field(default_factory=list)

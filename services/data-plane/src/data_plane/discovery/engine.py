@@ -116,7 +116,7 @@ class ClassificationEngine:
                     schema_rule.reason,
                 )
 
-        matches = pattern_rules.match_all(item.column, item.sample_values)
+        matches = pattern_rules.match_all(item.column, item.sample_values, entity=item.entity)
         if matches:
             best = max(matches, key=lambda d: d.confidence)
             return (best.category, best.confidence, best.detector_id, ClassificationMethod.RULE_BASED, best.reason)

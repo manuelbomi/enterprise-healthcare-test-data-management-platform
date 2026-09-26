@@ -24,6 +24,7 @@ from healthcare_tdm_contracts.capacity import (
     IllustrativeCapacityScenario,
     IncrementalRefreshEstimate,
     PartitionSummary,
+    SavedIllustrativeCapacityPlan,
     VacuumCandidate,
 )
 from healthcare_tdm_contracts.catalog import CatalogEntry, RetentionClassification
@@ -44,6 +45,7 @@ from healthcare_tdm_contracts.classification import (
 )
 from healthcare_tdm_contracts.evidence import COMPLIANCE_DISCLAIMER, AuditEvidencePackage
 from healthcare_tdm_contracts.governance import (
+    CONSUMER_REQUEST_STATUS_TRANSITIONS,
     POLICY_APPROVAL_STATUS_TRANSITIONS,
     BusinessConsumer,
     ConsumerDatasetRequest,
@@ -72,6 +74,7 @@ from healthcare_tdm_contracts.masking import (
     MaskingFieldType,
     MaskingPolicy,
     MaskingRule,
+    MaskingRunSummary,
     MaskingStrategy,
     MaskingTechnique,
 )
@@ -99,6 +102,7 @@ from healthcare_tdm_contracts.synthetic import (
 __all__ = [
     "TIER_BY_CATEGORY",
     "CERTIFICATION_STATUS_TRANSITIONS",
+    "CONSUMER_REQUEST_STATUS_TRANSITIONS",
     "COMPLIANCE_DISCLAIMER",
     "DATASET_VERSION_STATUS_TRANSITIONS",
     "DEFAULT_CADENCE_BY_ENVIRONMENT",
@@ -146,6 +150,7 @@ __all__ = [
     "MaskingPolicy",
     "MaskingPolicyVersion",
     "MaskingRule",
+    "MaskingRunSummary",
     "MaskingStrategy",
     "MaskingTechnique",
     "ObjectRef",
@@ -159,6 +164,7 @@ __all__ = [
     "RelationshipEdge",
     "RetentionClassification",
     "RollbackRecord",
+    "SavedIllustrativeCapacityPlan",
     "ScaleProfileName",
     "ScenarioGenerationRecord",
     "ScenarioType",

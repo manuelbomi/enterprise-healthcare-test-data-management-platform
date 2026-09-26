@@ -59,11 +59,42 @@ the full per-finding root-cause/fix/regression-test summary, and:
 - P1-8 → `POST /api/v1/lifecycle/dataset-versions/governed`, `docs/adr/0019-governed-vs-ungoverned-dataset-version-registration.md`
 - P1-9 → `data_plane.certification.gates.check_distribution_shape`
 
-The P2/P3 findings below are **unchanged** from the original Phase 17
-review -- Phase 18A's scope was P0/P1 only, per its own phase prompt
-("Work ONLY on P0 and P1 issues... When all P0/P1 issues are resolved,
-STOP"). They remain open, tracked here exactly as Phase 17 left them,
-for a future Phase 18B.
+## Phase 18B resolution note
+
+**Phase 18B ("Fix/Delete Cycle for P2/P3") resolved 12 of the 23
+remaining P2/P3 findings and narrowed/re-verified 8 more, leaving 11
+open with updated, current reasoning** (11, not 8, because a "narrowed"
+finding is left open with new text, not deleted). See `ROADMAP.md`'s
+"Phase 18B — what was actually delivered" section for the full
+per-finding accounting. Six of the twelve deletions (P2-1, P2-2, P2-3,
+P2-10, P2-11, P2-12) were fixes completed by a prior Phase 18B agent run
+that crashed before this bookkeeping step; each was independently
+re-verified (tests re-run, diffs re-read) before being deleted here, not
+trusted on the crashed run's say-so:
+
+- P2-1 → `control_plane.db.session.get_engine_for_url`, `control_plane.db.models.create_postgres_engine`, `data_plane.reference_data.postgres_models.create_postgres_engine`
+- P2-2 → `control_plane.platform.scheduler_lock`, `control_plane.db.models.SchedulerLockRow`
+- P2-3 → `scripts/run_scheduled_maintenance.py`
+- P2-9 → `scripts/check_doc_code_citations.py`
+- P2-10 → `infra/terraform/aws/main.tf`
+- P2-11 → `services/governance-service/src/governance_service/audit/__init__.py`
+- P2-12 → `.dockerignore`, `frontend/.dockerignore`
+- P3-3 → `control_plane.domain.capacity.scenario_history.CapacityScenarioHistoryRepository`, `POST/GET /api/v1/capacity/illustrative-plan/history`
+- P3-4 → `healthcare_tdm_contracts.CONSUMER_REQUEST_STATUS_TRANSITIONS`, `POST /api/v1/governance/consumer-requests/{id}/reject`/`.../cancel`
+- P3-7 → `healthcare_tdm_contracts.MaskingRunSummary`
+- P3-8 → `CHANGELOG.md`, every workspace package bumped to `0.2.0`
+- P3-9 → `services/data-plane/tests/conftest.py`'s `record_skip_guard_fired` fixture
+
+Narrowed-but-left-open (real work delivered; genuine residual gap
+honestly restated, not hidden): P2-4, P2-13, P3-2, P3-10. Re-verified
+accurate, left open with fresh evidence: P3-1. Deliberately not built,
+left open with reasoning citing precedent (P2-5, P2-6, P2-7, P2-8, P3-5,
+P3-6): each names a disproportionately large, previously-deferred build
+(a real storage adapter, real NLP-based PHI detection, Spark job
+orchestration/real Delta writes, a full frontend CRUD workflow) that
+`problems_master.md` P0-3, `problems_phase_08.md` P8-3, and
+`problems_phase_14.md` P14-1/P14-4/P14-5 already correctly declined to
+build for the same reasons.
 
 ## Severity summary
 
@@ -71,9 +102,9 @@ for a future Phase 18B.
 |---|---|
 | P0 | 0 (resolved in Phase 18A) |
 | P1 | 0 (resolved in Phase 18A) |
-| P2 | 13 |
-| P3 | 10 |
-| **Total** | **23** |
+| P2 | 6 (was 13; 7 fixed-and-deleted this phase: P2-1, P2-2, P2-3, P2-9, P2-10, P2-11, P2-12) |
+| P3 | 5 (was 10; 5 fixed-and-deleted this phase: P3-3, P3-4, P3-7, P3-8, P3-9) |
+| **Total remaining** | **11** (was 23; 12 fixed-and-deleted this phase) |
 
 ---
 
@@ -82,11 +113,14 @@ for a future Phase 18B.
 **This table is Phase 17's own snapshot, kept as-is for historical
 accuracy of what Phase 17 actually ran and verified.** Phase 18A added
 substantial new test coverage on top of it (new auth/migration/logging/
-atomic-write/distribution-shape/frontend tests) — see `ROADMAP.md`'s
-"Phase 18A — what was actually delivered" section for the current,
-post-Phase-18A pass counts across all four Python packages and the
-frontend, run and reported fresh rather than assumed to still match
-this table.
+atomic-write/distribution-shape/frontend tests), and Phase 18B added
+further coverage on top of that (scheduler-lock/pooling/citation-check/
+governance-terminal-state/masking-contract/capacity-history/skip-guard/
+entity-context tests) — see `ROADMAP.md`'s "Phase 18A — what was
+actually delivered" and "Phase 18B — what was actually delivered"
+sections for the current, post-Phase-18B pass counts across all four
+Python packages and the frontend, run and reported fresh rather than
+assumed to still match this table.
 
 | Package | Command | Result |
 |---|---|---|
@@ -115,92 +149,81 @@ that required no correction.
 
 ## P2 findings
 
-### P2-1 — Control-plane's Postgres engine has no connection-pool resilience configuration (new finding)
+### P2-4 — `size_bytes`/`row_counts` are trusted as caller-supplied at dataset-version registration, never independently re-derived (PARTIALLY RESOLVED, Phase 18B)
 
-- **Problem:** `create_postgres_engine`/`create_engine` calls throughout
-  `control_plane/db/models.py:333`, `control_plane/db/session.py:43`, and
-  `data_plane/reference_data/postgres_models.py:206` all call
-  `create_engine(database_url)` with zero pool arguments — no
-  `pool_pre_ping=True`, no explicit `pool_size`/`max_overflow`/`pool_recycle`.
-  Without `pool_pre_ping`, a connection that has gone stale (e.g. after a
-  Postgres restart, a load balancer idle-timeout, or a cloud-managed
-  Postgres failover) is not detected until a query using it fails, rather
-  than being transparently recycled.
-- **Risk:** For this portfolio system: none (SQLite is the default and only
-  exercised backend in this environment; connections are short-lived
-  per-test). For a real deployment: a real, if minor and easily fixed, class
-  of transient-error exposure.
-- **Reproduction/evidence:** `grep -rn "create_engine(" services/` → all six
-  call sites pass only the URL, no keyword arguments.
-- **Recommended fix:** Add `pool_pre_ping=True` (and, for a real deployment,
-  sensible `pool_size`/`max_overflow` defaults) to `create_postgres_engine`.
-- **Affected files:** `services/control-plane/src/control_plane/db/models.py`,
-  `services/control-plane/src/control_plane/db/session.py`.
+- **Problem (original, `row_counts` half now closed for the GOVERNED
+  path):** Already tracked as `problems_phase_07.md` P7-8 and
+  `problems_phase_08.md` P8-2. Both `size_bytes` and `row_counts` were
+  pure caller-supplied claims at dataset-version registration, with no
+  cross-check against anything the certification pipeline itself had
+  measured.
+- **What Phase 18B actually closed:** `CertificationReport.row_count_reconciliation`
+  (built by `data_plane.certification.pipeline._build_row_count_trail`
+  from a real `final_estate.row_counts()` read of the final estate on
+  disk, per entity, as `"source=X selected=Y final=Z"`) was already an
+  *available*, already-governed, non-caller-supplied source of exactly
+  the numbers `row_counts` claims. `POST /api/v1/lifecycle/dataset-versions/governed`
+  (the GOVERNED registration path, ADR-0019) now parses each entity's
+  `"final=<N>"` component
+  (`control_plane.api.v1.lifecycle._independently_derived_row_counts`)
+  and refuses registration with HTTP 409 if the caller-supplied
+  `row_counts[entity]` disagrees with it, for every entity the trail
+  covers -- mirroring ADR-0019's own "never trust the caller's claim,
+  re-derive it from an already-governed source" pattern, applied here to
+  row counts instead of policy approval. Proven by
+  `test_governed_registration_rejects_a_row_counts_claim_that_contradicts_the_reports_own_trail`
+  and two adjacent tests in `test_lifecycle_governed_registration.py`.
+- **What remains genuinely open (not closed, not fabricated shut):**
+  (1) the pre-existing UNGOVERNED `POST /api/v1/lifecycle/dataset-versions`
+  endpoint is deliberately unchanged (per ADR-0019's own blast-radius
+  reasoning -- every pre-Phase-10 demo script/tutorial/test calls it and
+  none populates `row_count_reconciliation` in a way this check could
+  universally rely on); (2) an entity absent from
+  `row_count_reconciliation` (e.g. a hand-built report, or an entity the
+  trail simply does not mention) has nothing to cross-check against and
+  is still accepted as pure caller-supplied claim, by design -- this
+  function never invents a count it cannot actually read back out of the
+  report; (3) `size_bytes` has **no** equivalent already-measured field
+  anywhere in `CertificationReport` at all -- `data_plane.capacity.footprint.measure_directory_footprint`
+  computes a real byte size, but only the demo script calls it, and
+  nothing threads that measurement into the certification report or any
+  artifact the control plane can read back. Re-deriving `size_bytes`
+  would need either a real control-plane-side storage adapter (P2-5,
+  deliberately not built this phase either) or a new report field wired
+  through the whole certification pipeline -- both disproportionate for
+  this fix cycle.
+- **Affected files:** `services/control-plane/src/control_plane/api/v1/lifecycle.py`,
+  `services/control-plane/tests/test_lifecycle_governed_registration.py`.
 
-### P2-2 — No distributed lock on concurrent scheduler sweeps
-
-- **Problem:** Already tracked as `problems_phase_07.md` P7-2, restated in
-  `docs/runbooks/duplicate-requests-and-revoked-datasets.md`'s "the one gap
-  this does NOT close" section and `docs/interview/scaling.md`. Confirmed
-  unchanged: two concurrent calls to `POST /api/v1/lifecycle/scheduler/run-due`
-  have no application-level lock preventing an overlapping sweep.
-- **Risk:** Low for this portfolio system (SQLite serializes writes at the
-  file level; no concurrent caller exists in any test/demo). Real for a
-  production deployment with more than one scheduler instance or an
-  overlapping retry.
-- **Reproduction/evidence:** as documented in P7-2: call `run-due` twice in
-  rapid succession against a request whose `next_refresh_at` is in the past.
-- **Recommended fix:** as P7-2 already names: rely on the external
-  scheduler's own concurrency control (Airflow single-active-DAG-run,
-  Kubernetes CronJob `concurrencyPolicy: Forbid`) — combine with P1-2's
-  recommendation to also gate this endpoint by RBAC.
-- **Affected files:** `services/control-plane/src/control_plane/domain/lifecycle/scheduler.py`.
-
-### P2-3 — Retention sweep and vacuum-candidate identification have no automatic trigger
-
-- **Problem:** Already tracked as `problems_phase_07.md` P7-3 and
-  `problems_phase_08.md` P8-3. Confirmed unchanged: `apply_retention` and
-  `vacuum_candidates` are both real, correct, callable methods with no
-  cron/daemon/scheduled-task caller anywhere in the repository.
-- **Risk:** Low (both are read/state-transition-only against already-real
-  data; nothing is silently lost by not running them — expired data simply
-  isn't flagged as expired until someone calls the method).
-- **Reproduction/evidence:** as documented in P7-3/P8-3.
-- **Recommended fix:** as already named — a future scheduler-deployment
-  phase.
-- **Affected files:** `services/control-plane/src/control_plane/domain/lifecycle/repository.py`,
-  `services/control-plane/src/control_plane/domain/capacity/planner.py`.
-
-### P2-4 — `size_bytes`/`row_counts` are trusted as caller-supplied at dataset-version registration, never independently re-derived
-
-- **Problem:** Already tracked as `problems_phase_07.md` P7-8 and
-  `problems_phase_08.md` P8-2. Confirmed unchanged.
-- **Risk:** Low (no adversarial caller exists; real measurement tooling
-  exists in `data_plane.capacity.footprint` and is used by the demo script,
-  just not enforced).
-- **Reproduction/evidence:** as documented in P7-8/P8-2.
-- **Recommended fix:** as already named — would need a control-plane-side
-  storage adapter or a job-orchestration step that runs the measurement and
-  passes verified output to registration.
-- **Affected files:** `services/control-plane/src/control_plane/domain/lifecycle/repository.py`.
-
-### P2-5 — No storage adapter exists anywhere; `vacuum_candidates` and object-storage deletion are both purely conceptual
+### P2-5 — No storage adapter exists anywhere; `vacuum_candidates` and object-storage deletion are both purely conceptual (left open, deliberate Phase 18B scope decision)
 
 - **Problem:** Already tracked as `problems_master.md` P0-3 (open since
   Phase 0) and `problems_phase_08.md` P8-3. Confirmed unchanged through
-  Phase 16 — `libs/contracts` documents the intended storage adapter
+  Phase 18B — `libs/contracts` documents the intended storage adapter
   contract, but no MinIO/S3/ADLS adapter has ever been implemented; every
   data-plane job still reads/writes a local filesystem path directly.
 - **Risk:** Low for this portfolio system (local filesystem is a legitimate
   substitute at demo scale). Real for anything claiming cloud-portability —
   `ARCHITECTURE.md` section 2.6's "same job code runs unmodified in any
   environment" claim for storage is aspirational, not exercised.
+- **Phase 18B decision:** Deliberately not built. A real storage adapter is
+  the same disproportionately large, previously-deferred build the Phase
+  18B prompt itself named as out of scope for this fix cycle (a genuine
+  MinIO/S3/ADLS client abstraction, wired through every data-plane job and
+  the control plane's artifact repositories, is multi-phase-sized work, not
+  a fix-and-delete item). Building a toy/fake version just to close this
+  line item would misrepresent the platform's real capability, which
+  `CONTRIBUTING.md`'s honesty rule and this project's own precedent (P0-3
+  has stayed open, honestly, since Phase 0) both forbid. Re-confirmed this
+  phase: still zero MinIO/S3/ADLS client code anywhere in `services/data-plane`
+  or `services/control-plane` (`grep -rn "boto3\|azure.storage\|minio"` across
+  both packages' `src/` returns nothing).
 - **Reproduction/evidence:** as documented in P0-3.
 - **Recommended fix:** as already named — not currently scheduled by name;
   the natural prerequisite for closing P2-4/P1-3-adjacent gaps.
 - **Affected files:** `libs/contracts/src/healthcare_tdm_contracts/`.
 
-### P2-6 — Free-text/NLP-based PHI detection is entirely unbuilt and untested
+### P2-6 — Free-text/NLP-based PHI detection is entirely unbuilt and untested (left open, deliberate Phase 18B scope decision)
 
 - **Problem:** Already tracked as `problems_phase_02.md` P2-2 and explained
   at length in `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md` section 2 (named
@@ -212,6 +235,18 @@ that required no correction.
 - **Risk:** Documented everywhere this repository discusses classification
   limits; not a new risk, but worth restating as one of the highest-value
   P2s precisely because it is the platform's own stated single biggest gap.
+- **Phase 18B decision:** Deliberately not built. A real NLP/NER-based PHI
+  detector (plus a genuinely representative free-text clinical-note field
+  added to the reference estate to exercise it against) is exactly the
+  disproportionately large, previously-deferred build the Phase 18B prompt
+  named as out of scope -- fabricating a toy regex-dressed-up-as-NLP
+  detector just to close this line item would misrepresent the platform's
+  real classification capability, contradicting the very honesty rule
+  `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md` exists to uphold. Re-confirmed
+  this phase: still zero NLP/NER dependencies or code anywhere in
+  `services/data-plane` (`grep -rn "spacy\|nltk\|transformers\|scispacy"` across
+  `services/data-plane/src` returns nothing), and the 14 Phase 1 entities
+  still have no free-text field.
 - **Reproduction/evidence:** as documented in P2-2/`PHI_PII_CLASSIFICATION_LIMITATIONS.md`.
 - **Recommended fix:** as already named — add a free-text field to the
   reference estate and an NLP/NER-based detector, explicitly out of scope
@@ -219,7 +254,7 @@ that required no correction.
 - **Affected files:** `services/data-plane/src/data_plane/reference_data/domain.py`,
   `services/data-plane/src/data_plane/discovery/`.
 
-### P2-7 — Neither Spark job is wired into any job orchestrator, and the pandas-vs-Spark masking comparison is not apples-to-apples
+### P2-7 — Neither Spark job is wired into any job orchestrator, and the pandas-vs-Spark masking comparison is not apples-to-apples (left open, deliberate Phase 18B scope decision)
 
 - **Problem:** Already tracked as `problems_phase_14.md` P14-4/P14-5.
   Confirmed unchanged: `data_plane.spark.masking_job`/`subsetting_job` are
@@ -228,119 +263,44 @@ that required no correction.
 - **Risk:** Low (both limitations are honestly and prominently documented in
   `docs/SCALE_AND_PERFORMANCE.md` and `docs/interview/scaling.md`, and
   neither invalidates the real, measured throughput-curve finding).
+- **Phase 18B decision:** Deliberately not built. Wiring either Spark job
+  into a real job orchestrator (Airflow/Databricks Jobs/a Kubernetes
+  CronJob) would need real orchestrator infrastructure this repository has
+  no cluster to run against (the same ADR-0012/ADR-0017 boundary
+  `scripts/run_scheduled_maintenance.py`'s own docstring restates for the
+  Phase 18B P2-3 fix); reimplementing Phase 3's full 14-entity/8-technique
+  masking policy in Spark, just to make the comparison "fair," is exactly
+  the disproportionately large build `problems_phase_14.md` P14-5 already
+  declined for good reason (out of Phase 14's real scope). Both remain
+  honestly documented limitations, not silently-dropped ones.
 - **Reproduction/evidence:** as documented in P14-4/P14-5.
 - **Recommended fix:** as already named — out of Phase 14's scope by design.
 - **Affected files:** `services/data-plane/src/data_plane/spark/masking_job.py`,
   `services/data-plane/src/data_plane/spark/subsetting_job.py`.
 
-### P2-8 — No real Delta Lake write exists anywhere despite ADR-0007 choosing Delta for versioned/mutable tables
+### P2-8 — No real Delta Lake write exists anywhere despite ADR-0007 choosing Delta for versioned/mutable tables (left open, deliberate Phase 18B scope decision)
 
 - **Problem:** Already tracked as `problems_phase_14.md` P14-1. Confirmed
   unchanged.
 - **Risk:** Low (honestly documented; `delta-spark` remains a declared,
   unwired dependency by deliberate choice, not oversight).
+- **Phase 18B decision:** Deliberately not built. A real Delta Lake write
+  needs a cached Delta Maven artifact that ADR-0017 itself says cannot be
+  assumed present in every review environment -- exactly the infrastructure
+  boundary this repository has correctly, repeatedly declined to cross
+  (restated as recently as this phase's own `docs/SCALE_AND_PERFORMANCE.md`
+  section 6, re-verified under P3-1 above). Re-confirmed this phase:
+  `delta-spark` remains declared in `services/data-plane/pyproject.toml`
+  but `grep -rn "delta" services/data-plane/src/data_plane/spark/` still
+  finds no import of it anywhere in real job code.
 - **Reproduction/evidence:** as documented in P14-1.
 - **Recommended fix:** as already named — a later phase that actually needs
   Delta's ACID/time-travel semantics should close this.
 - **Affected files:** `services/data-plane/src/data_plane/spark/`.
 
-### P2-9 — `ROADMAP.md`'s Phase 16 section and `docs/tutorial/guide/` chapters cite real code paths that a future refactor could silently break, with no automated cross-check (new observation)
+### P2-13 — `PolicyApproval`/`performed_by` and every other actor-attribution field remain unverified free text platform-wide (NARROWED, Phase 18B; the big gap remains genuinely open)
 
-- **Problem:** Phase 15's tutorial (20 chapters) and Phase 16's interview
-  docs (4 files) both derive their credibility from citing exact module
-  paths, CLI flags, API routes, and contract field names against the real
-  source tree — verified as accurate by this review's own reading of both
-  against the current code (no drift found today). But there is no
-  automated test anywhere that fails if a future phase renames, say,
-  `data_plane.spark.masking_job.run_claims_masking_job` or changes
-  `POST /api/v1/lifecycle/scheduler/run-due`'s path — both `docs/tutorial/guide/`
-  and `docs/interview/` would silently go stale exactly the way
-  `problems_phase_09.md` P9-5 already documents for `frontend/src/api/types.ts`
-  drifting from `libs/contracts`, but for prose rather than a type file, and
-  with no CI signal at all (not even a manual-review flag).
-- **Risk:** Low today (verified accurate as of this review). Growing over
-  time as more phases touch the modules these 24 documentation files cite.
-- **Reproduction/evidence:** this review's own cross-check of
-  `docs/interview/system-design.md`/`tradeoffs.md`/`failure-scenarios.md`/`scaling.md`
-  against `services/control-plane/src/control_plane/api/v1/*.py`,
-  `services/data-plane/src/data_plane/spark/`, and `services/control-plane/src/control_plane/platform/rbac.py`
-  found zero inaccuracies as of today — this finding is about the *absence
-  of a guardrail*, not a present inaccuracy.
-- **Recommended fix:** Not urgent enough to warrant new tooling on its own,
-  but worth a lightweight periodic "does every code path docs/interview and
-  docs/tutorial/guide cite still exist" grep-based check, possibly folded
-  into a future documentation-freshness CI step.
-- **Affected files:** `docs/interview/*.md`, `docs/tutorial/guide/*.md`.
-
-### P2-10 — `infra/terraform/aws/main.tf`'s header comment cites a phantom "Phase 20" that does not match this repository's real phase history (new finding)
-
-- **Problem:** The file's own header comment (lines 4-6) reads: *"Phase 0
-  scope: structural placeholder only... this file exists to fix the
-  provider/backend shape so Phase 20 (Kubernetes/Helm + Terraform examples)
-  starts from an agreed structure."* No phase in `ROADMAP.md` is described
-  that way, anywhere — Helm and the real Terraform example were actually
-  built in **Phase 12**. `problems_phase_12.md` confirms Phase 12
-  deliberately built out `azure/main.tf` in full while leaving `aws/main.tf`
-  "unchanged, still passing" — an intentional asymmetry — but nobody updated
-  this file's own in-file comment to reflect that decision.
-- **Risk:** None functionally (`terraform validate`/`fmt` both pass per
-  Phase 12's own verification); purely a documentation-accuracy issue that
-  could mislead a future contributor about which phase to attribute this
-  file's design intent to.
-- **Reproduction/evidence:** `infra/terraform/aws/main.tf` lines 4-6; a
-  repo-wide grep of `ROADMAP.md` for "Phase 20" returns no matches.
-- **Recommended fix:** Update the header comment to name Phase 12 and the
-  real asymmetry decision, matching `azure/main.tf`'s equivalent (accurate)
-  header.
-- **Affected files:** `infra/terraform/aws/main.tf`.
-
-### P2-11 — `services/governance-service`'s `audit/__init__.py` placeholder docstring cites the wrong phase for its own eventual implementation
-
-- **Problem:** The module docstring reads: *"Phase 0 scope: placeholder
-  module. Implemented in Phase 3."* Audit logging was never implemented in
-  `services/governance-service` at all, in Phase 3 or any other phase — it
-  was implemented in Phase 11, inside `services/control-plane`
-  (`control_plane.platform.audit`), per ADR-0015, precisely because
-  `services/governance-service` remains a scaffold. Phase 3 is masking, an
-  unrelated capability. This looks like a copy/paste of a sibling
-  placeholder module's docstring pattern that was never corrected once the
-  real implementation location was decided (ADR-0015 postdates this file).
-- **Risk:** None functionally — this is a docstring in an empty placeholder
-  module. Purely a small, confusing documentation-accuracy issue for a
-  future reader trying to find where audit logging actually lives.
-- **Reproduction/evidence:** `services/governance-service/src/governance_service/audit/__init__.py:9`.
-- **Recommended fix:** Update the docstring to say "not yet implemented
-  here; see `control_plane.platform.audit` (Phase 11) and ADR-0015/ADR-0016
-  for why the real implementation lives in `services/control-plane`
-  instead," mirroring how `ARCHITECTURE.md` section 2.4 already explains
-  this for a reader of that file.
-- **Affected files:** `services/governance-service/src/governance_service/audit/__init__.py`.
-
-### P2-12 — `frontend/`'s Dockerfile build context has no `.dockerignore` anywhere in the repository
-
-- **Problem:** No `.dockerignore` file exists at the repo root, in
-  `frontend/`, `services/control-plane/`, or `services/governance-service/`.
-  `frontend/Dockerfile` does `COPY package.json package-lock.json ./` then
-  later `COPY . .` with build context `frontend/` — with no `.dockerignore`,
-  a developer's local `node_modules/`, `dist/`, or `test-results/` sitting in
-  their `frontend/` checkout would be sent into the Docker build context.
-  `services/control-plane`/`governance-service`'s Dockerfiles use explicit
-  `COPY libs/contracts`, `COPY services/control-plane`, etc. rather than
-  `COPY . .`, so they are not exposed to this specific pattern.
-- **Risk:** Low — not a secret-exposure risk (nothing sensitive lives in
-  `frontend/node_modules`/`dist`), but wasteful (larger build context sent
-  to the Docker daemon) and not best practice; `npm ci` inside the container
-  reinstalls regardless, so correctness is unaffected.
-- **Reproduction/evidence:** `find . -iname ".dockerignore"` returns nothing
-  anywhere in the repository; `frontend/Dockerfile` lines 16-17 (`COPY
-  package.json package-lock.json ./`) followed by a later `COPY . .`.
-- **Recommended fix:** Add a `.dockerignore` to `frontend/` excluding
-  `node_modules`, `dist`, `test-results`, `.env*`.
-- **Affected files:** `frontend/Dockerfile` (missing sibling `.dockerignore`).
-
-### P2-13 — `PolicyApproval`/`performed_by` and every other actor-attribution field remain unverified free text platform-wide
-
-- **Problem:** Already tracked in scattered form across
+- **Problem (original):** Already tracked in scattered form across
   `problems_phase_07.md` P7-6, `problems_phase_10.md` P10-2,
   `problems_phase_11.md` P11-4, `problems_phase_13.md` P13-3, and
   `control_plane.platform.rbac`'s own module docstring. This is the same
@@ -350,20 +310,53 @@ that required no correction.
   audit trail (the primary artifact `docs/COMPLIANCE_EVIDENCE.md` says an
   organization would present to an auditor) is caller-supplied free text
   with no identity verification behind any of it.
-- **Risk:** For this portfolio system: none. For production readiness /
-  auditability specifically: an `AuditEvidencePackage`'s entire value
-  depends on trusting who did what — and every "who" field in it is
-  unverified. This is listed separately from P0-1 because it is specifically
-  an *auditability* review-category finding (the evidence itself, not just
-  the access-control mechanism), even though the root cause is identical.
-- **Reproduction/evidence:** as documented across the cited entries;
-  independently confirmed by this review's own reading of
-  `healthcare_tdm_contracts.evidence`/`audit` and
-  `control_plane.platform.rbac`'s docstrings.
-- **Recommended fix:** same as P0-1 — a real identity provider is the only
-  fix that closes this for every affected field at once, rather than
-  patching each field individually.
-- **Affected files:** `libs/contracts/src/healthcare_tdm_contracts/audit.py`,
+- **What Phase 18B actually closed:** Phase 18A (ADR-0018) already added
+  a real, verified bearer-token identity (`AuthenticatedActor`,
+  `Depends(get_current_actor)`) to every RBAC-gated mutation endpoint --
+  but four of those endpoints (`approve_policy_version`,
+  `reject_policy_version`, `revoke_dataset_version`,
+  `rollback_environment_request`) still recorded the *audit event's own
+  `actor` field* from the unverified `body.performed_by`/`body.revoked_by`
+  free text instead of the verified identity already sitting right there
+  in the request (`actor.username`), even though the RBAC-denial branch
+  of each of those same four endpoints already correctly used
+  `actor.username`. Phase 18B closed that specific inconsistency: all
+  four now record `actor=actor.username` (the cryptographically verified
+  identity) on the "allowed"-outcome audit event, with the free-text
+  field preserved unchanged in `detail` (e.g. `detail.performed_by`) for
+  informational/business-context purposes -- proven by
+  `test_approve_and_reject_policy_version_audit_events_record_the_verified_identity_not_free_text`
+  (`test_governance_api.py`) and
+  `test_revoke_and_rollback_audit_events_record_the_verified_identity_not_free_text`
+  (`test_lifecycle_api.py`).
+- **Why this is a real, proportionate narrowing, not the whole fix:**
+  this only applies to the four endpoints that already require RBAC
+  authentication -- there is no verified actor to substitute in for any
+  endpoint that has no `Depends(get_current_actor)` at all (`submit_consumer_request`,
+  `fulfill_consumer_request`/`reject_consumer_request`/`cancel_consumer_request`,
+  `register_dataset_version`/`register_dataset_version_governed`'s
+  `created_by`, `record_dataset_version_access`'s `accessed_by`,
+  evidence-package `generated_by` -- P13-3's still-open "not RBAC-gated"
+  gap). The domain-level `PolicyApproval.performed_by`/
+  `DatasetVersionRow.revoked_by` columns themselves are also deliberately
+  unchanged (still free text) -- only the *audit trail's* own actor
+  attribution moved to the verified identity, which is the
+  auditability-specific half of this finding P2-13 was scoped to. A real
+  identity provider (ADR-0018's own stated remaining gap) is still the
+  only fix that closes every affected field at once; this phase narrowed
+  the highest-value slice of it (the audit trail itself, for every
+  endpoint where a verified identity already existed to substitute in)
+  rather than attempting that whole build.
+- **Reproduction/evidence:** as documented across the cited entries; the
+  four endpoints' pre-Phase-18B inconsistency (RBAC-denial audit events
+  already used `actor.username`; RBAC-allowed audit events did not) was
+  independently confirmed by reading `api/v1/governance.py`/`api/v1/lifecycle.py`
+  before this phase's fix.
+- **Affected files:** `services/control-plane/src/control_plane/api/v1/governance.py`,
+  `services/control-plane/src/control_plane/api/v1/lifecycle.py`,
+  `services/control-plane/tests/test_governance_api.py`,
+  `services/control-plane/tests/test_lifecycle_api.py`,
+  `libs/contracts/src/healthcare_tdm_contracts/audit.py`,
   `libs/contracts/src/healthcare_tdm_contracts/evidence.py`,
   `services/control-plane/src/control_plane/platform/rbac.py`.
 
@@ -371,107 +364,154 @@ that required no correction.
 
 ## P3 findings
 
-### P3-1 — Data skew, Delta optimization, and autoscaling remain conceptual, not measured, in Spark documentation
+### P3-1 — Data skew, Delta optimization, and autoscaling remain conceptual, not measured, in Spark documentation (RE-VERIFIED, left open, Phase 18B)
 
-- Already tracked as `problems_phase_14.md` P14-2/P14-1/P14-3. Confirmed
-  unchanged and honestly labeled as such throughout `docs/SCALE_AND_PERFORMANCE.md`.
-  **Affected files:** `services/data-plane/src/data_plane/spark/README.md`.
+- Already tracked as `problems_phase_14.md` P14-2/P14-1/P14-3. Phase 18B
+  re-read `docs/SCALE_AND_PERFORMANCE.md` section 6 ("What is documented
+  conceptually, not measured (and why)," lines 151-161) specifically to
+  check whether this finding is still accurately, honestly labeled --
+  it is: the table there names all three concepts (data skew, Delta
+  `OPTIMIZE`/`ZORDER`/`VACUUM`/transaction log, autoscaling) explicitly
+  as "not measured here" with a real, specific reason for each (the
+  Phase 1 estate's bounded-random fan-out does not produce realistic
+  skew; no real Delta write is executed per ADR-0017; `local[*]` has no
+  cluster to autoscale) and cites `data_plane/spark/README.md` and the
+  exact `problems_phase_14.md` findings this restates. This is exactly
+  the kind of already-adequately-addressed-by-existing-docs finding the
+  Phase 18B prompt anticipated for this item -- attempting new
+  measurement here would require infrastructure (a real skewed dataset
+  generator, a real Delta-backed cluster, real autoscaling
+  infrastructure) this repository has correctly, deliberately declined
+  to build. Left open (not deleted) because the underlying gap -- these
+  three concepts remain genuinely unmeasured -- is real and undisputed;
+  what Phase 18B confirmed is that the *documentation* accurately
+  reflects that gap rather than overclaiming, which is the actual
+  substance of what a "production readiness" reviewer would check.
+  **Affected files:** `services/data-plane/src/data_plane/spark/README.md`,
+  `docs/SCALE_AND_PERFORMANCE.md`.
 
-### P3-2 — Compute-unit-hour/annual-processing-volume estimates remain a hardcoded, unbenchmarked constant
+### P3-2 — Compute-unit-hour/annual-processing-volume estimates remain a hardcoded, unbenchmarked constant (NARROWED, Phase 18B; constant deliberately left unchanged)
 
-- Already tracked as `problems_phase_08.md` P8-1. Confirmed unchanged;
-  Phase 14's real throughput numbers were never fed back into
+- **Original:** Already tracked as `problems_phase_08.md` P8-1. Confirmed
+  unchanged going into Phase 18B: Phase 14's real throughput numbers had
+  never been fed back into
   `control_plane.domain.capacity.estimator.ROWS_PER_COMPUTE_UNIT_HOUR`.
-  **Affected files:** `services/control-plane/src/control_plane/domain/capacity/estimator.py`.
+- **What Phase 18B did:** Added a real, cited order-of-magnitude sanity
+  check to this module's own docstring: `docs/SCALE_AND_PERFORMANCE.md`
+  section 3's real, measured `pandas_masking[full_estate]` throughput
+  (2,681 rows/sec at `performance` scale, the closest real analog to
+  this constant's "single-process, row-level, full-fidelity masking
+  work" category) converts to ~9.65M rows/hour -- about **1.9x** this
+  module's assumed 5,000,000, i.e. the illustrative assumption is
+  *conservative* relative to the closest real measurement available, not
+  arbitrary. Made this an executable, not just a comment:
+  `test_rows_per_compute_unit_hour_stays_within_a_sane_order_of_magnitude_of_the_real_phase_14_measurement`
+  (`test_capacity_planner.py`) fails if the constant or the cited real
+  number ever drift far enough apart that the docstring's own claim goes
+  stale.
+- **What remains genuinely open (not fabricated shut):** this is a sanity
+  check, not a benchmark of this constant itself -- a real
+  "subset+mask+certify pipeline" throughput number would also need to
+  include Phase 4 subsetting and Phase 6 certification-gate overhead
+  (excluded from the comparison), and would need to run on whatever "one
+  compute unit" means in a real deployment, not this repository's
+  single-machine `local[*]`/plain-Python dev environment. Replacing the
+  constant outright, rather than sanity-checking it, would need that
+  real benchmark to exist first -- exactly the gap `problems_phase_08.md`
+  P8-1 already named and this phase does not close.
+- **Affected files:** `services/control-plane/src/control_plane/domain/capacity/estimator.py`,
+  `services/control-plane/tests/test_capacity_planner.py`.
 
-### P3-3 — Illustrative capacity scenarios are stateless; nothing can be saved/compared over time
+### P3-5 — No frontend UI exists for Phase 10 governance at all (left open, deliberate Phase 18B scope decision)
 
-- Already tracked as `problems_phase_08.md` P8-4. Confirmed unchanged.
-  **Affected files:** `services/control-plane/src/control_plane/api/v1/capacity.py`.
+- **Problem:** Already tracked as `problems_phase_10.md` P10-4. Re-confirmed
+  this phase by listing `frontend/src/pages/` directly: still no
+  `Governance`/`ConsumerRequests`-named page or nav entry anywhere (17
+  page files, none named or scoped to Phase 10 governance).
+- **Phase 18B decision:** Deliberately not built. A full governance UI
+  (business-consumer management, policy-version approval workflow,
+  consumer-request submission/fulfillment/reject/cancel screens) is a
+  multi-page CRUD frontend feature -- exactly the disproportionately large
+  build the Phase 18B prompt named as out of scope (it groups this with
+  P3-6 below as the same category of deferred frontend write-workflow
+  build). Note Phase 18B *did* add real backend capability this UI would
+  eventually surface (P3-4's REJECTED/CANCELLED terminal states) and kept
+  `frontend/src/api/types.ts`'s `ConsumerDatasetRequest`/`ConsumerRequestStatus`
+  mirror in sync with it (see P3-4's entry above) -- so a future phase that
+  does build this UI starts from an accurate contract, but building the
+  UI itself remains out of this phase's proportionate scope.
+- **Affected files:** `frontend/src/pages/`.
 
-### P3-4 — `ConsumerDatasetRequest` has no REJECTED/CANCELLED terminal state
+### P3-6 — Console remains read-only; no in-UI write workflows for any lifecycle mutation (left open, deliberate Phase 18B scope decision)
 
-- Already tracked as `problems_phase_10.md` P10-3. Confirmed unchanged; low
-  priority as already assessed. **Affected files:**
-  `libs/contracts/src/healthcare_tdm_contracts/governance.py`.
+- **Problem:** Already tracked as `problems_phase_09.md` P9-2. Re-confirmed
+  this phase: `lifecycleApi.revokeDatasetVersion`/`runRefresh`/
+  `rollbackEnvironmentRequest` still exist in `frontend/src/api/lifecycle.ts`
+  but no page or E2E test invokes any of them; `governance.ts`'s frontend
+  client remains read-only too (`listConsumerRequests`/`getConsumerRequest`
+  only -- no `fulfillConsumerRequest`/`rejectConsumerRequest`/
+  `cancelConsumerRequest` call, even though Phase 18B added all three
+  backend endpoints this phase).
+- **Phase 18B decision:** Deliberately not built. A real in-UI write
+  workflow (forms, confirmation dialogs, optimistic/error UI state, new
+  E2E specs) for even one of these mutations is a genuine frontend
+  feature-build, not a fix-and-delete item -- the same disproportionate-
+  build category as P3-5. Building a token write button with no real
+  state handling just to close this line item would be exactly the kind
+  of toy fix the Phase 18B prompt warned against.
+- **Affected files:** `frontend/src/pages/EnvironmentProvisioningPage.tsx`,
+  `frontend/src/pages/DatasetDetailPage.tsx`, `frontend/src/api/governance.ts`.
 
-### P3-5 — No frontend UI exists for Phase 10 governance at all
+### P3-10 — `pattern:npi`/name-based detectors cannot distinguish a business identifier from a personal one without schema context (NARROWED, Phase 18B; structural limitation remains genuinely open)
 
-- Already tracked as `problems_phase_10.md` P10-4. Confirmed unchanged
-  (reconfirmed by this review's own frontend audit — no governance-related
-  page or nav entry exists). **Affected files:** `frontend/src/pages/`.
-
-### P3-6 — Console remains read-only; no in-UI write workflows for any lifecycle mutation
-
-- Already tracked as `problems_phase_09.md` P9-2. Confirmed unchanged and
-  reconfirmed directly: `lifecycleApi.revokeDatasetVersion`/`runRefresh`/
-  `rollbackEnvironmentRequest` exist in `frontend/src/api/lifecycle.ts` but
-  no page or E2E test invokes any of them. **Affected files:**
-  `frontend/src/pages/EnvironmentProvisioningPage.tsx`, `frontend/src/pages/DatasetDetailPage.tsx`.
-
-### P3-7 — Masking run summary still has no shared `libs/contracts` shape
-
-- Already tracked as `problems_phase_09.md` P9-1. Confirmed unchanged.
-  **Affected files:** `services/control-plane/src/control_plane/artifacts/masking.py`.
-
-### P3-8 — No `CHANGELOG` and every workspace package remains pinned at `0.1.0` despite 16 phases of substantial functional change (new observation)
-
-- **Problem:** `libs/contracts`, `services/control-plane`,
-  `services/data-plane`, `services/governance-service`, and `frontend` all
-  report `version = "0.1.0"` in their respective `pyproject.toml`/`package.json`
-  files, unchanged since Phase 0, despite each package having gained
-  substantial, real, tested functionality across the phases documented in
-  `ROADMAP.md`. There is no `CHANGELOG.md` anywhere recording what shipped
-  in which version.
-- **Risk:** Purely cosmetic/release-hygiene; has no functional or security
-  impact for a repository that has never cut a real release. Worth noting
-  only because a "production readiness" review is explicitly the kind of
-  exercise that would flag missing release discipline.
-- **Reproduction/evidence:** `grep -n "^version" */pyproject.toml frontend/package.json`
-  → `0.1.0` everywhere.
-- **Recommended fix:** Low priority; adopt semantic versioning and a
-  changelog only if/when this repository ever produces a real, externally
-  consumed release (e.g. `libs/contracts` published as an installable
-  package for a downstream consumer).
-- **Affected files:** `libs/contracts/pyproject.toml`,
-  `services/control-plane/pyproject.toml`,
-  `services/data-plane/pyproject.toml`,
-  `services/governance-service/pyproject.toml`, `frontend/package.json`.
-
-### P3-9 — Three `pytest.skip(...)` calls in `services/data-plane` are conditional on generator seed/scale and could silently start skipping without notice (new observation)
-
-- **Problem:** `tests/subsetting/test_selection.py:112` and
-  `tests/masking/test_dataset_masker_against_real_estate.py:187,198` each
-  contain a runtime `pytest.skip(...)` guarding against a synthetic-data
-  edge case not existing at the current random seed/scale (e.g. "no partner
-  v2 records generated at this seed/scale"). None fired in this review's
-  real test run (all three guard conditions were false, so the underlying
-  assertions executed for real this time) — but because they are
-  data-dependent rather than environment-dependent, a future change to the
-  generator's seed or scale defaults could cause one to start silently
-  skipping with no CI signal distinguishing "skipped because the edge case
-  legitimately didn't occur this run" from "skipped because a generator
-  regression stopped producing this edge case at all."
-- **Risk:** Low today (verified not currently skipping); a latent risk that
-  a real regression in edge-case generation could hide behind a skip rather
-  than a failure.
-- **Reproduction/evidence:** file:line citations above; confirmed via the
-  real test run performed for this review (439 passed, 0 skipped reported
-  by pytest at the current seed).
-- **Recommended fix:** Consider asserting a minimum expected count in the
-  test setup itself (fail loudly if the edge case has stopped occurring at
-  all) rather than skip silently, or at minimum log/count skips in CI so a
-  sustained pattern of skipping is visible over time.
-- **Affected files:** `services/data-plane/tests/subsetting/test_selection.py`,
-  `services/data-plane/tests/masking/test_dataset_masker_against_real_estate.py`.
-
-### P3-10 — `pattern:npi`/name-based detectors cannot distinguish a business identifier from a personal one without schema context
-
-- Already tracked as `problems_phase_02.md` P2-1. Confirmed unchanged and
-  explicitly, honestly documented as a structural (not fixable by pattern
-  matching alone) limitation in `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md`
-  section 1. **Affected files:**
-  `services/data-plane/src/data_plane/discovery/pattern_rules.py`.
+- **Problem (original):** Already tracked as `problems_phase_02.md` P2-1
+  and explicitly, honestly documented in
+  `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md` section 1: `pattern:npi`
+  cannot tell whether an NPI-shaped column belongs to a provider
+  (business identifier) or a person in some other role, from the column
+  name alone.
+- **What Phase 18B actually closed:** `ColumnToClassify.entity` (the
+  owning entity name, already threaded through
+  `ClassificationEngine._auto_classify` for the schema-based layer) was
+  never passed to the pattern-based fallback layer at all --
+  `pattern_rules.match_all` had no entity-context parameter, so even
+  when the caller *did* know the owning entity was a recognized business
+  entity (`Provider`, `Pharmacy`), a schema-drifted/renamed NPI-like
+  column still got the same generic, low-context guess as a truly novel
+  source system would. `match_all` now accepts an `entity` parameter
+  (threaded from `ClassificationEngine`); when `entity` is one of the
+  two business entities this repository's own schema already recognizes
+  (`data_plane.discovery.pattern_rules.BUSINESS_ENTITY_NAMES`), a
+  matching `pattern:npi` hit is now a confidence-boosted (0.7 -> 0.95),
+  reason-clarified `pattern:npi+entity_context` hit instead -- real
+  schema-level context resolving the exact ambiguity `pattern:npi`'s own
+  reason names, for this one case. Category is deliberately unchanged
+  (still PII) -- this narrows the *confidence/reasoning* gap, it does not
+  invent a claim that a provider identifier is safe. Proven by
+  `test_npi_detector_boosts_confidence_and_clarifies_reason_with_known_business_entity_context`
+  and two adjacent tests (`test_pattern_rules.py`), plus an end-to-end
+  proof through `ClassificationEngine` itself
+  (`test_rule_based_fallback_uses_entity_context_for_a_drifted_npi_column`,
+  `test_engine.py`).
+- **What remains genuinely open (the real, structural half of this
+  finding):** a truly novel source system whose entity name this
+  repository's schema has never seen at all (not `Provider`/`Pharmacy`,
+  not any of the other 12 known entities either) still gets the
+  unmodified, low-context, name-only guess -- entity-name recognition is
+  itself necessarily a fixed, finite list, not semantic understanding.
+  This is the same limitation every schema-based mechanism in this
+  engine already has, restated rather than solved: no amount of
+  additional hardcoded entity names turns a regex into contextual
+  understanding of data it has never been told about. Free-text/NLP
+  detection (P2-6, deliberately not built either) is the only mechanism
+  that would meaningfully close the remaining gap, and it is out of
+  proportionate scope for the same reason P2-6 is.
+- **Affected files:**
+  `services/data-plane/src/data_plane/discovery/pattern_rules.py`,
+  `services/data-plane/src/data_plane/discovery/engine.py`,
+  `services/data-plane/tests/discovery/test_pattern_rules.py`,
+  `services/data-plane/tests/discovery/test_engine.py`,
+  `docs/PHI_PII_CLASSIFICATION_LIMITATIONS.md`.
 
 ---
 

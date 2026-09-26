@@ -281,6 +281,79 @@ def test_illustrative_plan_uses_defaults_when_scenario_is_default() -> None:
     assert set(plan.per_environment_naive_bytes) == {e.value for e in Environment}
 
 
+def test_saved_illustrative_plan_history_persists_and_lists_in_order(session: Session) -> None:
+    """Phase 18B (`problems_final_review.md` P3-3, now resolved): a
+    saved `IllustrativeCapacityPlan` snapshot is real, persisted state,
+    not recomputed every time -- and `list_plans()` returns every saved
+    snapshot, oldest first, which is what "compare over time" means in
+    practice: list two saved plans and diff their already-typed fields."""
+
+    from control_plane.domain.capacity import CapacityScenarioHistoryRepository
+
+    history = CapacityScenarioHistoryRepository(session)
+
+    first_scenario = IllustrativeCapacityScenario(label="q1-forecast", production_baseline_bytes=50 * 10**12)
+    first_plan = illustrative_capacity_plan(first_scenario)
+    first_id = history.save_plan(first_plan, created_by="planner@example.org")
+
+    second_scenario = IllustrativeCapacityScenario(label="q2-forecast", production_baseline_bytes=80 * 10**12)
+    second_plan = illustrative_capacity_plan(second_scenario)
+    second_id = history.save_plan(second_plan, created_by="planner@example.org")
+
+    saved = history.list_plans()
+    assert [saved_id for saved_id, *_ in saved] == [first_id, second_id]
+    assert saved[0][3].naive_total_bytes == first_plan.naive_total_bytes
+    assert saved[1][3].naive_total_bytes == second_plan.naive_total_bytes
+    # The real "compare over time" this finding named as missing: two
+    # real, persisted numbers, not two recomputed-on-the-fly ones.
+    assert saved[1][3].naive_total_bytes > saved[0][3].naive_total_bytes
+
+
+def test_get_saved_plan_returns_the_same_record_list_plans_would(session: Session) -> None:
+    from control_plane.domain.capacity import (
+        CapacityScenarioHistoryRepository,
+        SavedIllustrativeCapacityPlanNotFoundError,
+    )
+
+    history = CapacityScenarioHistoryRepository(session)
+    plan = illustrative_capacity_plan(IllustrativeCapacityScenario(label="one-off"))
+    saved_id = history.save_plan(plan, created_by="planner@example.org")
+
+    fetched_id, created_by, _created_at, fetched_plan = history.get_plan(saved_id)
+    assert fetched_id == saved_id
+    assert created_by == "planner@example.org"
+    assert fetched_plan.naive_total_bytes == plan.naive_total_bytes
+
+    with pytest.raises(SavedIllustrativeCapacityPlanNotFoundError):
+        history.get_plan("00000000-0000-0000-0000-000000000000")
+
+
+def test_rows_per_compute_unit_hour_stays_within_a_sane_order_of_magnitude_of_the_real_phase_14_measurement() -> None:
+    """Phase 18B (`problems_final_review.md` P3-2): `ROWS_PER_COMPUTE_UNIT_HOUR`
+    is explicitly documented as an illustrative assumption, not a real
+    benchmark -- but its own module docstring now cites a real,
+    measured Phase 14 number as an order-of-magnitude sanity check
+    (`docs/SCALE_AND_PERFORMANCE.md` section 3's
+    `pandas_masking[full_estate]` throughput at `performance` scale:
+    2,681 rows/sec, i.e. ~9.65M rows/hour). This test makes that
+    citation a real, executable check rather than a comment that could
+    silently go stale: if a future change moves the assumed constant
+    far outside a sane band around that real number without updating
+    the docstring's own claim, this test starts failing rather than
+    leaving a stale "~1.9x conservative" claim unnoticed."""
+
+    from control_plane.domain.capacity.estimator import ROWS_PER_COMPUTE_UNIT_HOUR
+
+    real_measured_rows_per_hour = 2_681 * 3600  # docs/SCALE_AND_PERFORMANCE.md section 3
+    ratio = real_measured_rows_per_hour / ROWS_PER_COMPUTE_UNIT_HOUR
+    assert 1.0 < ratio < 5.0, (
+        f"ROWS_PER_COMPUTE_UNIT_HOUR={ROWS_PER_COMPUTE_UNIT_HOUR!r} is now {ratio:.2f}x "
+        "away from the real Phase 14 pandas_masking[full_estate] measurement this "
+        "module's docstring cites as a sanity check -- update either the constant or "
+        "the docstring's own claim about how conservative it is."
+    )
+
+
 def test_illustrative_plan_single_tier_has_no_savings_when_all_equal() -> None:
     scenario = IllustrativeCapacityScenario(
         production_baseline_bytes=1_000,
